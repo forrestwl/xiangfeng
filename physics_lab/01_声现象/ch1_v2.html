@@ -794,7 +794,9 @@ function resetWatch() {
 let jarLevel = 100;
 
 function renderTry(v) {
+  const done = stepDone[1];
   const audible = jarLevel > 30;
+  const interacted = jarLevel < 100; // user has touched the slider
   const particles = [];
   for (let i = 0; i < 20; i++) {
     const vis = jarLevel > (i * 5);
@@ -816,7 +818,6 @@ function renderTry(v) {
     </div>
     <div class="jar-plate"></div>
     <div class="jar-base"></div>
-    <!-- Bell label -->
     <div style="position:absolute;bottom:10px;left:50%;transform:translateX(-50%);font-size:11px;color:rgba(255,255,255,0.3);">🔔 闹钟</div>
   </div>
   <div class="jar-controls">
@@ -828,8 +829,18 @@ function renderTry(v) {
     <div class="jar-indicator ${audible ? 'on' : 'off'}">
       ${audible ? '🔊 声音可传播 — 有空气作为介质' : '🔇 声音消失 — 真空中无法传声'}
     </div>
+    ${done ? '<div class="try-done" style="margin-top:12px;text-align:center;color:var(--success);font-size:14px;">✅ 实验探索完成</div>' :
+      interacted ? '<button class="action-btn" onclick="finishTry()" style="margin-top:12px;">✅ 我明白了，继续</button>' :
+      '<div style="margin-top:12px;text-align:center;font-size:12px;color:var(--text-muted);">👆 拖动滑块，观察空气含量对声音的影响</div>'}
   </div>
 </div>`;
+}
+
+function finishTry() {
+  stepDone[1] = true;
+  saveState();
+  updateNav();
+  renderTry(document.getElementById('stepView'));
 }
 
 function adjustJar(v) {

@@ -54,16 +54,18 @@
 <script>
 var CHAPTERS = [
   { num: "1", title: "声音的产生与传播", desc: "声源、介质、声速", file: "ch1_声音的产生与传播.html" },
+  { num: "1", title: "✨ 新 · 声音的产生与传播", desc: "游戏化互动学习", file: "ch1_v2.html", isNew: true },
   { num: "2", title: "声音的特性", desc: "响度、音调、音色", file: "ch2_声音的特性.html" },
   { num: "3", title: "声的利用", desc: "回声测距、声呐", file: "ch3_声的利用.html" },
   { num: "4", title: "噪声的危害和控制", desc: "分贝、防治三环节", file: "ch4_噪声的危害和控制.html" }
 ];
 function p() { var g=document.getElementById('chapterGrid'); var c=0; g.innerHTML=CHAPTERS.map(function(ch,i) {
-  var k='physics_sound_ch'+(i+1); var a=false,m=0;
-  try { var d=JSON.parse(localStorage.getItem(k)); if(d&&d.done){m=d.done.length;a=d.done.length>=4;} } catch(e){}
+  var k='physics_sound_ch'+(Math.min(i+1,4)); var a=false,m=0;
+  try { var d=JSON.parse(localStorage.getItem(k)); if(d&&d.done){m=d.done.length;a=d.done.length>=4;} else if(d&&d.stepDone){m=d.stepDone.filter(Boolean).length;a=m>=4;} } catch(e){}
   if(a)c++; var sc=a?'done':(m>0?'partial':'new');
   var st=a?'✅ 已完成':(m>0?'🔄 进行中':'🆕 可学习');
-  return '<a class="card" href="'+ch.file+'"><div class="num">'+ch.num+'</div><h3>'+ch.title+'</h3><p>'+ch.desc+'</p><span class="status '+sc+'">'+st+'</span></a>';
+  if(ch.isNew && !a && !m) st='✨ 新版';
+  return '<a class="card" href="'+ch.file+'"><div class="num">'+(ch.isNew?'v2':'ch'+ch.num)+'</div><h3>'+(ch.isNew?'🆕 ':'' )+ch.title+'</h3><p>'+ch.desc+'</p><span class="status '+sc+'">'+st+'</span></a>';
 }).join(''); document.getElementById('moduleProgress').textContent='已完成 '+c+'/'+CHAPTERS.length+' 节'; }
 p();
 </script>

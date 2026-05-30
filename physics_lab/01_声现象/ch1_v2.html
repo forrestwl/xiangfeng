@@ -1,0 +1,1177 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<script src="../../auth.js"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>物理实验室 · 声音的产生与传播</title>
+<style>
+/* ═══════════════════════════════════════
+   THEME & BASE
+   ═══════════════════════════════════════ */
+:root {
+  --bg: linear-gradient(135deg, #0c0e1a, #1a1e3a 30%, #0d1b2a 60%, #0a0e1a 100%);
+  --surface: rgba(255,255,255,0.04);
+  --surface-hover: rgba(255,255,255,0.07);
+  --border: rgba(255,255,255,0.06);
+  --border-active: rgba(255,149,0,0.3);
+  --text: #fff;
+  --text-secondary: rgba(255,255,255,0.45);
+  --text-muted: rgba(255,255,255,0.25);
+  --accent: #FF9500;
+  --accent-glow: rgba(255,149,0,0.2);
+  --success: #34C759;
+  --error: #FF3B30;
+  --radius: 14px;
+  --radius-sm: 8px;
+  --font: -apple-system, BlinkMacSystemFont, "SF Pro Display", "PingFang SC", "Helvetica Neue", sans-serif;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: var(--font);
+  min-height: 100dvh;
+  background: var(--bg);
+  display: flex; justify-content: center; align-items: center;
+  padding: 16px; position: relative;
+}
+body::before {
+  content: ''; position: fixed; top: -50%; left: -50%; width: 200%; height: 200%;
+  background: radial-gradient(ellipse at 20% 50%, rgba(255,149,0,0.06) 0%, transparent 50%),
+              radial-gradient(ellipse at 80% 20%, rgba(79,172,254,0.04) 0%, transparent 50%);
+  pointer-events: none; z-index: 0;
+}
+
+/* ═══════════════════════════════════════
+   APP CONTAINER
+   ═══════════════════════════════════════ */
+.app {
+  width: 880px; max-width: 100vw; height: 94dvh; max-height: 740px;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 20px; backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
+  display: flex; flex-direction: column; overflow: hidden;
+  position: relative; z-index: 1;
+}
+
+/* ═══ TOP BAR ═══ */
+.top-bar {
+  display: flex; align-items: center; padding: 10px 16px;
+  background: rgba(255,255,255,0.03); border-bottom: 1px solid var(--border);
+  flex-shrink: 0; gap: 10px;
+}
+.top-bar .back {
+  font-size: 18px; cursor: pointer; opacity: 0.5; text-decoration: none; color: var(--text-secondary);
+  transition: opacity .2s; line-height: 1;
+}
+.top-bar .back:hover { opacity: 1; color: var(--text); }
+.top-bar h1 { font-size: 14px; font-weight: 600; color: var(--text); flex: 1; }
+.top-bar .step-dots { display: flex; gap: 6px; }
+.top-bar .step-dots .dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: rgba(255,255,255,0.1); transition: all .3s; cursor: default;
+}
+.top-bar .step-dots .dot.active { background: var(--accent); box-shadow: 0 0 8px var(--accent-glow); }
+.top-bar .step-dots .dot.done { background: var(--success); }
+.top-bar .step-dots .dot.current-done { background: var(--accent); box-shadow: 0 0 8px var(--accent-glow); }
+
+/* ═══ BODY AREA ═══ */
+.body-area {
+  flex: 1; display: flex; overflow: hidden; min-height: 0;
+}
+
+/* ═══ KNOWLEDGE PANEL (left) ═══ */
+.knowledge-panel {
+  width: 200px; flex-shrink: 0; padding: 16px;
+  background: rgba(255,255,255,0.015);
+  border-right: 1px solid var(--border);
+  display: flex; flex-direction: column; gap: 12px;
+  overflow-y: auto;
+  transition: opacity .3s;
+}
+.knowledge-panel::-webkit-scrollbar { width: 3px; }
+.knowledge-panel::-webkit-scrollbar-thumb { background: rgba(255,255,255,.08); border-radius: 2px; }
+.kp-section { }
+.kp-label { font-size: 10px; font-weight: 600; color: var(--accent); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 4px; }
+.kp-title { font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+.kp-body { font-size: 12.5px; color: var(--text-secondary); line-height: 1.6; }
+.kp-body em { color: var(--accent); font-style: normal; }
+.kp-formula {
+  margin-top: 6px; padding: 8px 10px; border-radius: var(--radius-sm);
+  background: rgba(255,149,0,0.06); border: 1px solid rgba(255,149,0,0.12);
+  font-size: 13px; color: var(--accent); font-family: "SF Mono", Menlo, monospace; text-align: center;
+}
+.kp-data { margin-top: 6px; }
+.kp-data table { width: 100%; border-collapse: collapse; font-size: 11px; }
+.kp-data td { padding: 3px 4px; color: var(--text-secondary); border-bottom: 1px solid rgba(255,255,255,0.04); }
+.kp-data td:last-child { text-align: right; color: var(--text); font-weight: 500; }
+.kp-tip {
+  margin-top: auto; padding: 10px 12px; border-radius: var(--radius-sm);
+  background: rgba(79,172,254,0.06); border: 1px solid rgba(79,172,254,0.1);
+  display: flex; gap: 8px; align-items: flex-start;
+}
+.kp-tip .tip-icon { font-size: 14px; flex-shrink: 0; margin-top: 1px; }
+.kp-tip .tip-text { font-size: 11px; color: rgba(255,255,255,0.5); line-height: 1.5; }
+
+/* ═══ MAIN CONTENT (right) ═══ */
+.main-content {
+  flex: 1; display: flex; align-items: center; justify-content: center;
+  padding: 20px; overflow: auto; min-height: 0;
+  position: relative;
+}
+.main-content > .step-view {
+  width: 100%; height: 100%; display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  animation: fadeUp .35s ease;
+}
+@keyframes fadeUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+
+/* ═══ NAV BAR (bottom) ═══ */
+.nav-bar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 16px; border-top: 1px solid var(--border);
+  flex-shrink: 0; gap: 12px;
+}
+.nav-bar .step-labels { display: flex; gap: 2px; }
+.nav-bar .step-labels .sl {
+  font-size: 10px; font-weight: 500; color: var(--text-muted);
+  padding: 4px 8px; border-radius: 20px; transition: all .3s;
+  white-space: nowrap;
+}
+.nav-bar .step-labels .sl.active { color: var(--text); background: rgba(255,149,0,0.12); }
+.nav-bar .step-labels .sl.done { color: var(--success); }
+.nav-btn {
+  padding: 7px 18px; border: 1px solid var(--border); border-radius: var(--radius-sm);
+  background: transparent; color: var(--text-secondary); font-size: 12px; font-weight: 500;
+  cursor: pointer; transition: all .2s; white-space: nowrap;
+}
+.nav-btn:hover { background: var(--surface-hover); color: var(--text); }
+.nav-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+.nav-btn.primary {
+  background: linear-gradient(135deg, var(--accent), #e08500);
+  color: #fff; border: none; font-weight: 600;
+}
+.nav-btn.primary:hover { box-shadow: 0 4px 16px var(--accent-glow); transform: translateY(-1px); }
+.nav-btn.primary:disabled { opacity: 0.4; box-shadow: none; transform: none; }
+
+/* ═══════════════════════════════════════
+   STEP 0: WATCH (Tuning Fork)
+   ═══════════════════════════════════════ */
+.watch-scene {
+  position: relative; width: 100%; height: 100%;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+}
+.watch-scene svg { width: 100%; max-width: 420px; height: auto; }
+.watch-cta {
+  margin-top: 16px; display: flex; flex-direction: column; align-items: center; gap: 10px;
+}
+.watch-btn {
+  padding: 12px 36px; border: none; border-radius: 12px;
+  background: linear-gradient(135deg, var(--accent), #e08500);
+  color: #fff; font-size: 15px; font-weight: 600; cursor: pointer;
+  transition: all .25s; font-family: var(--font);
+}
+.watch-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 24px var(--accent-glow); }
+.watch-btn:disabled { opacity: 0.4; transform: none; box-shadow: none; cursor: default; }
+.watch-done { font-size: 14px; color: var(--success); font-weight: 600; animation: fadeUp .3s ease; }
+.watch-hint { font-size: 12px; color: var(--text-muted); }
+
+/* SVGs tuning fork */
+@keyframes forkVibrate {
+  0% { transform: rotate(0deg); }
+  25% { transform: rotate(1.5deg); }
+  50% { transform: rotate(-1.5deg); }
+  75% { transform: rotate(1deg); }
+  100% { transform: rotate(0deg); }
+}
+.fork-vibrating .fork-left { animation: forkVibrate 0.06s ease-in-out infinite; transform-origin: 200px 340px; }
+.fork-vibrating .fork-right { animation: forkVibrate 0.06s ease-in-out infinite; transform-origin: 240px 340px; animation-delay: 0.01s; animation-direction: reverse; }
+
+@keyframes rippleWave {
+  0% { r: 18; opacity: 0.7; }
+  100% { r: 90; opacity: 0; }
+}
+@keyframes rippleWave2 {
+  0% { r: 18; opacity: 0.7; }
+  100% { r: 110; opacity: 0; }
+}
+.ripple-ring { animation: rippleWave 1.2s ease-out infinite; }
+.ripple-ring:nth-child(2) { animation-delay: 0.4s; }
+.ripple-ring:nth-child(3) { animation-delay: 0.8s; }
+
+@keyframes splashDrop {
+  0% { transform: translateY(0); opacity: 1; }
+  100% { transform: translateY(-20px); opacity: 0; }
+}
+.splash-dot { animation: splashDrop 0.4s ease-out infinite; }
+.splash-dot:nth-child(2) { animation-delay: 0.15s; }
+.splash-dot:nth-child(3) { animation-delay: 0.3s; }
+
+/* Ear glow when sound reaches */
+@keyframes earGlow {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 0.8; }
+}
+.ear-glow { animation: earGlow 0.8s ease-in-out infinite; }
+
+/* ═══ STEP 1: TRY (Bell Jar) ═══ */
+.try-scene {
+  width: 100%; display: flex; flex-direction: column; align-items: center; gap: 16px;
+}
+.jar-container {
+  position: relative; width: 320px; height: 200px; flex-shrink: 0;
+}
+.jar-dome {
+  position: absolute; top: 0; left: 20px; right: 20px; height: 160px;
+  border-radius: 160px 160px 0 0;
+  border: 2px solid rgba(255,255,255,0.15);
+  background: rgba(255,255,255,0.03);
+  overflow: hidden;
+}
+.jar-base {
+  position: absolute; bottom: 28px; left: 0; right: 0; height: 10px;
+  background: rgba(255,255,255,0.1); border-radius: 4px;
+}
+.jar-plate {
+  position: absolute; bottom: 34px; left: -4px; right: -4px; height: 4px;
+  background: rgba(255,255,255,0.08);
+}
+.bell-group {
+  position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+  display: flex; flex-direction: column; align-items: center;
+}
+.bell-body {
+  width: 30px; height: 36px; border-radius: 0 0 15px 15px;
+  background: linear-gradient(180deg, #c8a060, #b89050);
+  position: relative;
+}
+.bell-rim { width: 34px; height: 4px; background: #a08040; border-radius: 2px; margin-top: -1px; }
+.bell-knob { width: 8px; height: 8px; background: #a08040; border-radius: 50%; margin-bottom: -4px; }
+.bell-clapper {
+  width: 6px; height: 6px; background: #8a7030; border-radius: 50%;
+  position: absolute; bottom: -10px;
+  transition: transform .1s;
+}
+.jar-vibrating .bell-clapper { animation: clapperSwing 0.15s ease-in-out infinite; }
+@keyframes clapperSwing {
+  0%, 100% { transform: translateX(0); }
+  50% { transform: translateX(6px); }
+}
+
+.air-particle {
+  position: absolute; border-radius: 50%;
+  background: var(--accent); opacity: 0.5;
+  transition: opacity 0.5s, transform 0.5s;
+}
+.air-particle.fade { opacity: 0 !important; transform: scale(0.3); }
+
+.jar-controls {
+  width: 100%; max-width: 320px; display: flex; flex-direction: column; gap: 10px;
+}
+.jar-slider-row {
+  display: flex; align-items: center; gap: 12px;
+}
+.jar-slider-row label { font-size: 12px; color: var(--text-secondary); white-space: nowrap; width: 70px; }
+.jar-slider-row input[type=range] {
+  flex: 1; height: 4px; -webkit-appearance: none; appearance: none;
+  background: rgba(255,255,255,0.1); border-radius: 2px; outline: none;
+}
+.jar-slider-row input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none; width: 18px; height: 18px; border-radius: 50%;
+  background: var(--accent); cursor: pointer; border: none;
+  box-shadow: 0 0 8px var(--accent-glow);
+}
+.jar-slider-row .val { font-size: 14px; font-weight: 600; color: var(--text); width: 40px; text-align: right; }
+.jar-indicator {
+  padding: 8px 16px; border-radius: var(--radius-sm);
+  text-align: center; font-size: 13px; font-weight: 600;
+  transition: all .3s;
+}
+.jar-indicator.on { background: rgba(52,199,89,0.12); color: var(--success); border: 1px solid rgba(52,199,89,0.15); }
+.jar-indicator.off { background: rgba(255,59,48,0.1); color: var(--error); border: 1px solid rgba(255,59,48,0.15); }
+
+/* ═══ STEP 2: THINK (Question Cards) ═══ */
+.think-scene {
+  width: 100%; max-width: 440px; display: flex; flex-direction: column; gap: 16px;
+}
+.think-progress {
+  display: flex; gap: 6px; justify-content: center;
+}
+.think-progress .tp {
+  width: 40px; height: 3px; border-radius: 2px; background: rgba(255,255,255,0.08); transition: all .3s;
+}
+.think-progress .tp.active { background: var(--accent); }
+.think-progress .tp.done { background: var(--success); }
+.think-progress .tp.wrong { background: var(--error); }
+.think-q { font-size: 16px; font-weight: 600; color: var(--text); text-align: center; margin-bottom: 4px; }
+.think-opts { display: flex; flex-direction: column; gap: 8px; }
+.think-opt {
+  padding: 12px 16px; border-radius: var(--radius-sm); cursor: pointer;
+  background: var(--surface); border: 1px solid var(--border);
+  color: var(--text-secondary); font-size: 14px;
+  transition: all .2s; text-align: left;
+}
+.think-opt:hover { border-color: var(--border-active); background: rgba(255,149,0,0.04); color: var(--text); }
+.think-opt.correct { border-color: var(--success) !important; background: rgba(52,199,89,0.08) !important; color: var(--success) !important; }
+.think-opt.wrong { border-color: var(--error) !important; background: rgba(255,59,48,0.06) !important; color: var(--error) !important; }
+.think-opt:disabled { cursor: default; }
+.think-feedback {
+  padding: 10px 14px; border-radius: var(--radius-sm);
+  font-size: 12px; line-height: 1.5; display: none;
+  animation: fadeUp .2s ease;
+}
+.think-feedback.show { display: block; }
+.think-feedback.correct { background: rgba(52,199,89,0.06); border: 1px solid rgba(52,199,89,0.12); color: var(--success); }
+.think-feedback.wrong { background: rgba(255,59,48,0.06); border: 1px solid rgba(255,59,48,0.12); color: var(--error); }
+.think-next {
+  align-self: center; padding: 8px 24px; border: none; border-radius: var(--radius-sm);
+  background: var(--accent); color: #fff; font-size: 13px; font-weight: 600;
+  cursor: pointer; display: none; font-family: var(--font);
+}
+.think-next.show { display: block; }
+
+/* ═══ STEP 3: PRACTICE (Mini-games) ═══ */
+.practice-scene {
+  width: 100%; display: flex; flex-direction: column; gap: 12px;
+  align-items: center;
+}
+.practice-tabs {
+  display: flex; gap: 6px;
+}
+.practice-tabs .pt {
+  padding: 6px 14px; border-radius: 20px; font-size: 11px; font-weight: 500;
+  cursor: pointer; transition: all .2s;
+  background: var(--surface); border: 1px solid var(--border); color: var(--text-muted);
+}
+.practice-tabs .pt.active { background: rgba(255,149,0,0.1); border-color: rgba(255,149,0,0.2); color: var(--accent); }
+.practice-tabs .pt.done { color: var(--success); border-color: rgba(52,199,89,0.2); }
+.practice-area {
+  flex: 1; width: 100%; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 14px;
+  position: relative;
+}
+
+/* Speed Race */
+.race-lanes { width: 100%; max-width: 400px; }
+.race-lane {
+  display: flex; align-items: center; gap: 8px; margin-bottom: 8px;
+  padding: 6px 10px; border-radius: var(--radius-sm);
+  background: var(--surface); border: 1px solid var(--border);
+  cursor: pointer; transition: all .2s; height: 40px;
+}
+.race-lane:hover { border-color: var(--border-active); }
+.race-lane:disabled { opacity: 0.5; cursor: default; }
+.race-lane .rl-label { font-size: 12px; font-weight: 500; color: var(--text); width: 50px; flex-shrink: 0; }
+.race-lane .rl-track { flex: 1; height: 12px; background: rgba(255,255,255,0.04); border-radius: 6px; position: relative; overflow: hidden; }
+.race-lane .rl-fill {
+  position: absolute; left: 0; top: 0; height: 100%; border-radius: 6px;
+  transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1); width: 0%;
+}
+.race-lane .rl-speed { font-size: 11px; color: var(--text-muted); width: 50px; text-align: right; }
+
+/* Echo */
+.echo-scene { width: 100%; max-width: 400px; display: flex; flex-direction: column; gap: 12px; align-items: center; }
+.echo-visual {
+  position: relative; width: 100%; height: 100px;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+.echo-person { position: absolute; bottom: 0; left: 20px; font-size: 28px; }
+.echo-wall {
+  position: absolute; bottom: 0;
+  width: 8px; height: 80px; background: #5a4a3a; border-radius: 4px;
+  transition: left 0.3s;
+}
+.echo-mountain { position: absolute; bottom: 60px; font-size: 30px; transition: left 0.3s; }
+.echo-result {
+  padding: 8px 16px; border-radius: var(--radius-sm); font-size: 13px; font-weight: 600;
+  text-align: center; min-height: 40px; display: flex; align-items: center; justify-content: center;
+}
+.echo-result.yes { background: rgba(52,199,89,0.1); color: var(--success); border: 1px solid rgba(52,199,89,0.15); }
+.echo-result.no { background: rgba(255,59,48,0.06); color: var(--error); border: 1px solid rgba(255,59,48,0.1); }
+
+/* Speed Tuner */
+.tuner-scene { width: 100%; max-width: 400px; display: flex; flex-direction: column; gap: 14px; align-items: center; }
+.tuner-target {
+  font-size: 28px; font-weight: 800; color: var(--text);
+  background: rgba(255,149,0,0.06); border: 1px solid rgba(255,149,0,0.12);
+  padding: 8px 24px; border-radius: 12px;
+}
+.tuner-current {
+  font-size: 48px; font-weight: 800;
+  transition: color .3s;
+}
+.tuner-current.match { color: var(--success); }
+.tuner-current.mismatch { color: var(--text); }
+.tuner-bar {
+  width: 100%; height: 8px; background: rgba(255,255,255,0.06); border-radius: 4px; overflow: hidden;
+}
+.tuner-fill {
+  height: 100%; border-radius: 4px; transition: width .15s;
+  background: linear-gradient(90deg, #4facfe, var(--accent), var(--error));
+}
+.tuner-label { font-size: 11px; color: var(--text-muted); text-align: center; }
+
+/* Celebration */
+@keyframes celebrate {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.15); }
+  100% { transform: scale(1); }
+}
+.celebrate { animation: celebrate 0.5s ease; }
+.confetti-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 9999; }
+@keyframes confettiFall {
+  0% { transform: translateY(-10px) rotate(0); opacity: 1; }
+  100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+}
+.confetti-piece {
+  position: absolute; top: -20px; width: 8px; height: 8px; border-radius: 1px;
+  animation: confettiFall 1.5s ease-out forwards;
+}
+
+/* ═══ STEP 4: QUIZ ═══ */
+.quiz-scene { width: 100%; max-width: 440px; display: flex; flex-direction: column; gap: 16px; }
+.quiz-header { font-size: 14px; font-weight: 600; color: var(--text); text-align: center; }
+.quiz-progress { display: flex; gap: 6px; justify-content: center; }
+.quiz-progress .qp {
+  width: 36px; height: 3px; border-radius: 2px; background: rgba(255,255,255,0.08); transition: all .3s;
+}
+.quiz-progress .qp.active { background: var(--accent); }
+.quiz-progress .qp.correct { background: var(--success); }
+.quiz-progress .qp.wrong { background: var(--error); }
+.quiz-question { font-size: 16px; font-weight: 600; color: var(--text); text-align: center; margin-bottom: 4px; }
+.quiz-opts { display: flex; flex-direction: column; gap: 8px; }
+.quiz-opt {
+  padding: 12px 16px; border-radius: var(--radius-sm); cursor: pointer;
+  background: var(--surface); border: 1px solid var(--border);
+  color: var(--text-secondary); font-size: 14px; transition: all .2s; text-align: left;
+}
+.quiz-opt:hover { border-color: var(--border-active); background: rgba(255,149,0,0.04); color: var(--text); }
+.quiz-opt.correct { border-color: var(--success) !important; background: rgba(52,199,89,0.08) !important; color: var(--success) !important; }
+.quiz-opt.wrong { border-color: var(--error) !important; background: rgba(255,59,48,0.06) !important; color: var(--error) !important; }
+.quiz-opt:disabled { cursor: default; }
+.quiz-explain {
+  padding: 10px 14px; border-radius: var(--radius-sm);
+  font-size: 12px; line-height: 1.5; display: none;
+  background: rgba(79,172,254,0.06); border: 1px solid rgba(79,172,254,0.1); color: var(--text-secondary);
+  animation: fadeUp .2s ease;
+}
+.quiz-explain.show { display: block; }
+.quiz-result {
+  text-align: center; font-size: 24px; font-weight: 800; margin-bottom: 8px;
+}
+.quiz-result.pass { color: var(--success); }
+.quiz-result.fail { color: var(--error); }
+.quiz-detail { font-size: 12px; color: var(--text-muted); text-align: center; margin-bottom: 12px; }
+.quiz-detail-item { display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,0.04); }
+.quiz-detail-item .qdi-q { color: var(--text-secondary); }
+.quiz-detail-item .qdi-a { font-weight: 500; }
+.quiz-detail-item .qdi-a.right { color: var(--success); }
+.quiz-detail-item .qdi-a.wrong { color: var(--error); }
+
+/* Common */
+.game-complete {
+  text-align: center; font-size: 16px; font-weight: 700; color: var(--success);
+  animation: celebrate 0.5s ease;
+}
+.close-btn {
+  padding: 6px 12px; border: none; border-radius: var(--radius-sm);
+  background: rgba(255,255,255,0.06); color: var(--text-secondary); cursor: pointer; font-size: 12px;
+  transition: all .2s; font-family: var(--font);
+}
+.close-btn:hover { background: var(--surface-hover); color: var(--text); }
+.action-btn {
+  padding: 8px 20px; border: none; border-radius: var(--radius-sm);
+  background: var(--accent); color: #fff; font-size: 13px; font-weight: 600;
+  cursor: pointer; transition: all .2s; font-family: var(--font);
+}
+.action-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 16px var(--accent-glow); }
+
+/* ═══ SCROLLBAR ═══ */
+.main-content::-webkit-scrollbar,
+.knowledge-panel::-webkit-scrollbar { width: 3px; }
+.main-content::-webkit-scrollbar-thumb { background: rgba(255,255,255,.06); border-radius: 2px; }
+
+/* ═══ RESPONSIVE ═══ */
+@media (max-width: 720px) {
+  .knowledge-panel { display: none; }
+  .app { border-radius: 14px; max-height: 96dvh; }
+  .body-area { flex-direction: column; }
+  .nav-bar .step-labels { display: none; }
+  .top-bar h1 { font-size: 12px; }
+}
+@media (max-width: 480px) {
+  body { padding: 8px; }
+  .top-bar { padding: 8px 12px; }
+  .main-content { padding: 12px; }
+  .nav-bar { padding: 8px 12px; }
+}
+</style>
+</head>
+<body>
+
+<div class="app">
+  <!-- TOP BAR -->
+  <div class="top-bar">
+    <a class="back" href="index.html">←</a>
+    <h1>🔊 声音的产生与传播</h1>
+    <div class="step-dots" id="stepDots"></div>
+  </div>
+
+  <!-- BODY -->
+  <div class="body-area">
+    <!-- Knowledge Panel (left) -->
+    <aside class="knowledge-panel" id="knowledgePanel">
+      <div class="kp-section">
+        <div class="kp-label" id="kpLabel">📖 学习目标</div>
+        <div class="kp-title" id="kpTitle">加载中...</div>
+        <div class="kp-body" id="kpBody"></div>
+      </div>
+      <div class="kp-section" id="kpFormulaSec" style="display:none">
+        <div class="kp-label">📐 公式</div>
+        <div class="kp-formula" id="kpFormula"></div>
+      </div>
+      <div class="kp-section" id="kpDataSec" style="display:none">
+        <div class="kp-label">📊 数据</div>
+        <div class="kp-data" id="kpData"></div>
+      </div>
+      <div class="kp-tip" id="kpTip">
+        <span class="tip-icon">💡</span>
+        <span class="tip-text" id="kpTipText"></span>
+      </div>
+    </aside>
+
+    <!-- Main Content (right) -->
+    <main class="main-content" id="mainContent">
+      <div class="step-view" id="stepView">
+        <div style="text-align:center;color:var(--text-muted);font-size:14px;">加载中...</div>
+      </div>
+    </main>
+  </div>
+
+  <!-- NAV BAR -->
+  <div class="nav-bar">
+    <button class="nav-btn" id="prevBtn" onclick="goStep(curStep - 1)">◀ 上一页</button>
+    <div class="step-labels" id="stepLabels"></div>
+    <button class="nav-btn primary" id="nextBtn" onclick="goStep(curStep + 1)">下一页 ▶</button>
+  </div>
+</div>
+
+<script>
+/* ═══════════════════════════════════════
+   CONSTANTS
+   ═══════════════════════════════════════ */
+const STORAGE_KEY = 'physics_sound_ch1';
+const TOTAL_STEPS = 5;
+const STEP_NAMES = ['看演示', '试一试', '想一想', '练一练', '测一测'];
+
+const KNOWLEDGE = [
+  { label: '🔬 观察', title: '声音由振动产生',
+    body: '一切发声的物体都在<em>振动</em>。振动停止，发声也停止。<br>音叉被敲击后快速振动，带动周围空气振动，形成<em>声波</em>传入人耳。',
+    formula: '', data: '',
+    tip: '点击「播放」按钮，观察音叉振动时水花飞溅的现象。' },
+  { label: '🔬 探索', title: '声音需要介质',
+    body: '声音的传播需要<em>介质</em>（气体、液体、固体）。<br><em>真空</em>不能传声——月球上没有空气，宇航员只能通过<em>无线电</em>交流。',
+    formula: '', data: '<table><tr><td>空气</td><td>340 m/s</td></tr><tr><td>水</td><td>1500 m/s</td></tr><tr><td>钢铁</td><td>5200 m/s</td></tr></table>',
+    tip: '拖动滑块减少空气含量，观察声音逐渐消失的过程。' },
+  { label: '💡 思考', title: '知识巩固',
+    body: '声音的产生需要<em>振动</em>；声音的传播需要<em>介质</em>。<br>固体传声 > 液体传声 > 气体传声（速度对比）。',
+    formula: '', data: '',
+    tip: '每题都有解析，仔细看解释能帮你理解得更扎实。' },
+  { label: '🎯 练习', title: '声速与回声',
+    body: '声音在介质中的传播速度：<em>v = s / t</em><br>回声：声音遇到障碍物<em>反射</em>回来。听到回声的条件：往返时间 ≥ <em>0.1秒</em>，即距离 ≥ 17m。',
+    formula: 'v = s / t &nbsp;&nbsp;|&nbsp;&nbsp; s = v × t ÷ 2（回声）',
+    data: '<table><tr><td>0°C</td><td>331 m/s</td></tr><tr><td>15°C</td><td>340 m/s</td></tr><tr><td>25°C</td><td>346 m/s</td></tr></table>',
+    tip: 'v = 331 + 0.6 × T，其中T是摄氏温度。' },
+  { label: '📝 测验', title: '检测你的掌握',
+    body: '共 5 题，每题都有详细解析。答完查看得分和错题回顾。',
+    formula: '', data: '',
+    tip: '仔细审题，每题限选一项。答题后自动显示解析。' }
+];
+
+// Quiz questions
+const QUIZ = [
+  { q: '声音是由物体的什么产生的？', opts: ['运动', '振动', '热传递', '分子扩散'], ans: 1,
+    explain: '声音是由物体振动产生的。一切发声的物体都在振动，振动停止发声也停止。' },
+  { q: '声音不能在下列哪个环境中传播？', opts: ['空气中', '水中', '真空中', '钢铁中'], ans: 2,
+    explain: '声音的传播需要介质，真空不能传声。月球上宇航员只能通过无线电交流。' },
+  { q: '15℃时，声音在空气中的传播速度约为？', opts: ['1500 m/s', '340 m/s', '5200 m/s', '3×10⁸ m/s'], ans: 1,
+    explain: '15℃时声速约340m/s。1500m/s是水中声速，5200m/s是钢铁中声速。' },
+  { q: '声音在下列哪种介质中传播最快？', opts: ['空气', '水', '钢铁', '真空'], ans: 2,
+    explain: '声音在固体中传播最快，液体次之，气体最慢。钢铁中约5200m/s。' },
+  { q: '人对着山崖喊话，经0.2s听到回声，人距山崖约多远？(声速340m/s)', opts: ['34m', '68m', '17m', '136m'], ans: 0,
+    explain: 's = v×t÷2 = 340×0.2÷2 = 34m。回声走的是往返路程，所以要除以2。' }
+];
+
+/* ═══════════════════════════════════════
+   STATE
+   ═══════════════════════════════════════ */
+let curStep = 0;
+let stepDone = [false, false, false, false, false];
+let thinkIdx = 0;
+let thinkLocked = false;
+let practiceTab = 0;
+let practiceDone = [false, false, false];
+let raceDone = [false, false, false];
+let raceStarted = false;
+let echoDist = 20;
+let echoResult = null;
+let tempVal = 20;
+let tempTarget = 0;
+let tempMatched = false;
+let quizIdx = 0;
+let quizAnswers = [];
+let quizDone = false;
+
+function loadState() {
+  try {
+    const d = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+    stepDone = d.stepDone || [false, false, false, false, false];
+    quizAnswers = d.quizAnswers || [];
+    quizDone = d.quizDone || false;
+  } catch(e) { /* defaults */ }
+}
+
+function saveState() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+      stepDone, quizAnswers, quizDone
+    }));
+  } catch(e) {}
+}
+
+/* ═══════════════════════════════════════
+   NAVIGATION
+   ═══════════════════════════════════════ */
+function goStep(n) {
+  if (n < 0 || n >= TOTAL_STEPS) return;
+  // Can't go forward if current step not done (except for reviewing completed steps)
+  if (n > curStep && !stepDone[curStep] && !STEP_NAMES.every((_, i) => stepDone[i])) return;
+  curStep = n;
+  renderStep();
+  updateNav();
+}
+
+function updateNav() {
+  // Dots
+  const dots = document.getElementById('stepDots');
+  dots.innerHTML = '';
+  for (let i = 0; i < TOTAL_STEPS; i++) {
+    const d = document.createElement('span');
+    d.className = 'dot' + (stepDone[i] ? ' done' : '') + (i === curStep ? ' active' : '');
+    dots.appendChild(d);
+  }
+  // Labels
+  const labels = document.getElementById('stepLabels');
+  labels.innerHTML = STEP_NAMES.map((n, i) =>
+    '<span class="sl' + (stepDone[i] ? ' done' : '') + (i === curStep ? ' active' : '') + '">' + n + '</span>'
+  ).join('');
+  // Buttons
+  document.getElementById('prevBtn').disabled = curStep === 0;
+  const nextBtn = document.getElementById('nextBtn');
+  if (curStep === TOTAL_STEPS - 1) {
+    if (stepDone[4]) {
+      nextBtn.textContent = '✅ 已学完，返回';
+      nextBtn.onclick = function() { window.location.href = 'index.html'; };
+    } else {
+      nextBtn.textContent = '完成学习 🎉';
+      nextBtn.onclick = function() { window.location.href = 'index.html'; };
+    }
+    nextBtn.disabled = false;
+  } else {
+    nextBtn.textContent = '下一页 ▶';
+    nextBtn.onclick = function() { goStep(curStep + 1); };
+    nextBtn.disabled = !stepDone[curStep];
+  }
+}
+
+/* ═══════════════════════════════════════
+   KNOWLEDGE PANEL
+   ═══════════════════════════════════════ */
+function updateKnowledge(step) {
+  const k = KNOWLEDGE[step] || KNOWLEDGE[0];
+  document.getElementById('kpLabel').textContent = k.label;
+  document.getElementById('kpTitle').textContent = k.title;
+  document.getElementById('kpBody').innerHTML = k.body;
+  document.getElementById('kpTipText').textContent = k.tip;
+  const fSec = document.getElementById('kpFormulaSec');
+  if (k.formula) { fSec.style.display = ''; document.getElementById('kpFormula').innerHTML = k.formula; }
+  else { fSec.style.display = 'none'; }
+  const dSec = document.getElementById('kpDataSec');
+  if (k.data) { dSec.style.display = ''; document.getElementById('kpData').innerHTML = k.data; }
+  else { dSec.style.display = 'none'; }
+}
+
+/* ═══════════════════════════════════════
+   RENDER STEP
+   ═══════════════════════════════════════ */
+function renderStep() {
+  const view = document.getElementById('stepView');
+  updateKnowledge(curStep);
+  switch (curStep) {
+    case 0: renderWatch(view); break;
+    case 1: renderTry(view); break;
+    case 2: renderThink(view); break;
+    case 3: renderPractice(view); break;
+    case 4: renderQuiz(view); break;
+  }
+}
+
+/* ═══════════════════════════════════════
+   STEP 0: WATCH
+   ═══════════════════════════════════════ */
+let watchPlaying = false;
+let watchDone = false;
+
+function renderWatch(v) {
+  const done = stepDone[0];
+  watchDone = done;
+  v.innerHTML =
+`<div class="watch-scene">
+  <svg viewBox="0 0 420 280" style="max-width:100%;">
+    <!-- Tuning fork -->
+    <g class="${watchPlaying ? 'fork-vibrating' : ''}">
+      <path class="fork-left" d="M200,340 L200,120 L196,100" stroke="#e8d0a0" stroke-width="4" fill="none" stroke-linecap="round"/>
+      <path class="fork-right" d="M240,340 L240,120 L244,100" stroke="#e8d0a0" stroke-width="4" fill="none" stroke-linecap="round"/>
+      <rect x="192" y="340" width="56" height="8" rx="4" fill="#c8a060"/>
+    </g>
+    <!-- Ripple waves (show when playing) -->
+    ${watchPlaying ? '<circle class="ripple-ring" cx="220" cy="160" r="18" fill="none" stroke="#FF9500" stroke-width="2"/>' +
+      '<circle class="ripple-ring" cx="220" cy="160" r="18" fill="none" stroke="#FF9500" stroke-width="1.5"/>' +
+      '<circle class="ripple-ring" cx="220" cy="160" r="18" fill="none" stroke="#FF9500" stroke-width="1"/>' : ''}
+    <!-- Ear -->
+    <g transform="translate(350, 150)">
+      <ellipse cx="0" cy="20" rx="12" ry="18" fill="${watchPlaying ? 'rgba(255,149,0,0.15)' : 'rgba(255,255,255,0.08)'}" stroke="${watchPlaying ? '#FF9500' : 'rgba(255,255,255,0.15)'}" stroke-width="1.5"/>
+      <path d="M-4,16 C-4,10 4,10 4,16 C4,20 0,22 0,24" stroke="${watchPlaying ? '#FF9500' : 'rgba(255,255,255,0.2)'}" stroke-width="1.5" fill="none"/>
+      <text x="0" y="48" text-anchor="middle" font-size="11" fill="rgba(255,255,255,0.3)">👂 耳</text>
+    </g>
+    <!-- Water splash (show when playing) -->
+    ${watchPlaying ? '<g transform="translate(220, 240)">' +
+      '<ellipse cx="0" cy="0" rx="24" ry="6" fill="rgba(79,172,254,0.15)"/>' +
+      '<circle cx="-8" cy="-8" r="2.5" fill="#4facfe" class="splash-dot"/>' +
+      '<circle cx="0" cy="-12" r="2" fill="#4facfe" class="splash-dot"/>' +
+      '<circle cx="8" cy="-6" r="2.5" fill="#4facfe" class="splash-dot"/>' +
+      '</g>' : ''}
+    <!-- Sound wave path (connector arc) -->
+    ${watchPlaying ? '<path d="M270,160 Q310,120 340,160" stroke="rgba(255,149,0,0.2)" stroke-width="2" fill="none" stroke-dasharray="4,4"/>' : ''}
+  </svg>
+  <div class="watch-cta">
+    ${done ? '<span class="watch-done">✅ 观察完成</span>' :
+      (watchPlaying ? '<span class="watch-hint">🔊 音叉正在振动…水花飞溅！</span><span class="watch-done" style="font-size:13px;">⏳ 播放中</span>' :
+        '<button class="watch-btn" onclick="startWatch()">▶ 播放演示</button>')}
+    ${done && !watchPlaying ? '<button class="watch-btn" onclick="resetWatch()" style="font-size:12px;padding:8px 20px;background:rgba(255,255,255,0.06);color:var(--text-secondary)">🔄 再看一次</button>' : ''}
+  </div>
+</div>`;
+  if (!done && !watchPlaying && !document.querySelector('.watch-btn')) {
+    // re-render needed
+  }
+}
+
+function startWatch() {
+  watchPlaying = true;
+  renderWatch(document.getElementById('stepView'));
+  setTimeout(() => {
+    watchPlaying = false;
+    stepDone[0] = true;
+    watchDone = true;
+    saveState();
+    renderWatch(document.getElementById('stepView'));
+    updateNav();
+  }, 3000);
+}
+
+function resetWatch() {
+  stepDone[0] = false;
+  watchDone = false;
+  watchPlaying = false;
+  saveState();
+  renderWatch(document.getElementById('stepView'));
+  updateNav();
+}
+
+/* ═══════════════════════════════════════
+   STEP 1: TRY (Bell Jar)
+   ═══════════════════════════════════════ */
+let jarLevel = 100;
+
+function renderTry(v) {
+  const audible = jarLevel > 30;
+  const particles = [];
+  for (let i = 0; i < 20; i++) {
+    const vis = jarLevel > (i * 5);
+    particles.push(`<div class="air-particle${vis ? '' : ' fade'}" style="left:${15 + Math.sin(i * 1.7) * 40 + 60}px;top:${15 + Math.cos(i * 2.3) * 30 + 50}px;width:${2 + (i % 3) * 2}px;height:${2 + (i % 3) * 2}px;animation-delay:${i * 0.3}s;animation:float 3s ease-in-out infinite;"></div>`);
+  }
+  v.innerHTML =
+`<div class="try-scene">
+  <div class="jar-container">
+    <div class="jar-dome">
+      <div class="air-particles" style="position:absolute;inset:0;">
+        ${particles.join('')}
+        <div class="bell-group" style="position:absolute;top:60%;left:50%;transform:translate(-50%,-50%);">
+          <div class="bell-knob"></div>
+          <div class="bell-body"></div>
+          <div class="bell-rim"></div>
+          <div class="bell-clapper"></div>
+        </div>
+      </div>
+    </div>
+    <div class="jar-plate"></div>
+    <div class="jar-base"></div>
+    <!-- Bell label -->
+    <div style="position:absolute;bottom:10px;left:50%;transform:translateX(-50%);font-size:11px;color:rgba(255,255,255,0.3);">🔔 闹钟</div>
+  </div>
+  <div class="jar-controls">
+    <div class="jar-slider-row">
+      <label>🌬️ 空气</label>
+      <input type="range" min="0" max="100" value="${jarLevel}" oninput="adjustJar(this.value)">
+      <span class="val">${jarLevel}%</span>
+    </div>
+    <div class="jar-indicator ${audible ? 'on' : 'off'}">
+      ${audible ? '🔊 声音可传播 — 有空气作为介质' : '🔇 声音消失 — 真空中无法传声'}
+    </div>
+  </div>
+</div>`;
+}
+
+function adjustJar(v) {
+  jarLevel = parseInt(v);
+  renderTry(document.getElementById('stepView'));
+}
+
+/* Street-style floating animation for particles */
+const styleSheet = document.createElement('style');
+styleSheet.textContent = `@keyframes float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }`;
+document.head.appendChild(styleSheet);
+
+/* ═══════════════════════════════════════
+   STEP 2: THINK (3 questions)
+   ═══════════════════════════════════════ */
+const THINK_QS = [
+  { q: '声音是由什么产生的？', opts: ['物体的运动', '物体的振动', '物体的热传递', '物体的分子扩散'], ans: 1, explain: '声音是由物体振动产生的。振动停止，发声也停止。' },
+  { q: '月球上宇航员为什么不能直接对话？', opts: ['月球太冷了', '没有空气传声', '引力太小声音传不远', '月球上没有声源'], ans: 1, explain: '声音传播需要介质，月球上没有空气（真空），所以无法直接对话，只能靠无线电。' },
+  { q: '下列哪个现象说明了固体传声？', opts: ['水中听声', '隔壁敲墙能听到', '真空罩实验', '回声测距'], ans: 1, explain: '隔墙有耳——墙壁（固体）能传播声音，说明固体可以传声。' }
+];
+
+function renderThink(v) {
+  const done = stepDone[2];
+  if (done) {
+    v.innerHTML = `<div class="think-scene"><div class="game-complete">✅ 概念巩固已完成！</div></div>`;
+    return;
+  }
+  const q = THINK_QS[thinkIdx];
+  if (!q) { stepDone[2] = true; saveState(); updateNav(); renderThink(v); return; }
+  v.innerHTML =
+`<div class="think-scene">
+  <div class="think-progress">
+    ${THINK_QS.map((_, i) => '<span class="tp' + (i < thinkIdx ? ' done' : i === thinkIdx ? ' active' : '') + '"></span>').join('')}
+  </div>
+  <div class="think-q">${thinkIdx + 1}/${THINK_QS.length}. ${q.q}</div>
+  <div class="think-opts">
+    ${q.opts.map((o, i) =>
+      '<div class="think-opt" data-idx="' + i + '" onclick="thinkSelect(this, ' + i + ')">' + o + '</div>'
+    ).join('')}
+  </div>
+  <div class="think-feedback" id="thinkFb"></div>
+  <button class="think-next" id="thinkNext" onclick="thinkNext()">下一题 →</button>
+</div>`;
+}
+
+function thinkSelect(el, idx) {
+  if (thinkLocked) return;
+  thinkLocked = true;
+  const q = THINK_QS[thinkIdx];
+  const opts = document.querySelectorAll('.think-opt');
+  opts.forEach(o => o.disabled = true);
+  const correct = idx === q.ans;
+  if (correct) el.classList.add('correct');
+  else { el.classList.add('wrong'); opts[q.ans].classList.add('correct'); }
+  const fb = document.getElementById('thinkFb');
+  fb.textContent = (correct ? '✅ 正确！' : '❌ 不对哦。') + ' ' + q.explain;
+  fb.className = 'think-feedback show ' + (correct ? 'correct' : 'wrong');
+  document.getElementById('thinkNext').classList.add('show');
+}
+
+function thinkNext() {
+  thinkIdx++;
+  thinkLocked = false;
+  if (thinkIdx >= THINK_QS.length) {
+    stepDone[2] = true;
+    saveState();
+    updateNav();
+  }
+  renderThink(document.getElementById('stepView'));
+}
+
+/* ═══════════════════════════════════════
+   STEP 3: PRACTICE (3 mini-games)
+   ═══════════════════════════════════════ */
+function renderPractice(v) {
+  const allDone = practiceDone.every(Boolean);
+  if (allDone && !stepDone[3]) {
+    stepDone[3] = true;
+    saveState();
+    updateNav();
+  }
+  v.innerHTML =
+`<div class="practice-scene">
+  <div class="practice-tabs">
+    ${['🏁 声速排排看', '🏔️ 回声探测', '🎯 声速调音师'].map((n, i) =>
+      '<span class="pt' + (practiceDone[i] ? ' done' : '') + (i === practiceTab ? ' active' : '') + '" onclick="switchPractice(' + i + ')">' + n + '</span>'
+    ).join('')}
+  </div>
+  <div class="practice-area" id="practiceArea"></div>
+</div>`;
+  renderPracticeTab();
+}
+
+function switchPractice(i) {
+  practiceTab = i;
+  renderPractice(document.getElementById('stepView'));
+}
+
+function renderPracticeTab() {
+  const area = document.getElementById('practiceArea');
+  if (!area) return;
+  if (practiceDone[practiceTab]) {
+    area.innerHTML = '<div class="game-complete">✅ 通关！</div>';
+    return;
+  }
+  if (practiceTab === 0) renderRace(area);
+  else if (practiceTab === 1) renderEcho(area);
+  else renderTuner(area);
+}
+
+/* Race */
+function renderRace(area) {
+  const media = [
+    { name: '空气', speed: 340, color: '#4facfe' },
+    { name: '水', speed: 1500, color: '#007AFF' },
+    { name: '钢铁', speed: 5200, color: '#FF9500' }
+  ];
+  const done = raceDone.every(Boolean);
+
+  if (done && !practiceDone[0]) {
+    practiceDone[0] = true;
+    renderPractice(document.getElementById('stepView'));
+    return;
+  }
+
+  area.innerHTML =
+`<div style="width:100%;max-width:400px;">
+  <div style="font-size:13px;color:var(--text-secondary);text-align:center;margin-bottom:10px;">
+    点击介质，声波赛跑！谁最快？
+  </div>
+  <div class="race-lanes">
+    ${media.map((m, i) =>
+      '<div class="race-lane" id="rl' + i + '" onclick="raceClick(' + i + ')" style="' + (raceDone[i] ? 'border-color:' + m.color + ';background:rgba(255,255,255,0.06);' : '') + '" ' + (raceDone[i] ? 'disabled' : '') + '>' +
+        '<span class="rl-label">' + m.name + '</span>' +
+        '<div class="rl-track"><div class="rl-fill" id="rf' + i + '" style="background:' + m.color + ';width:' + (raceDone[i] ? '100%' : '0%') + '"></div></div>' +
+        '<span class="rl-speed">' + (raceDone[i] ? m.speed + ' m/s' : '点击') + '</span>' +
+      '</div>'
+    ).join('')}
+  </div>
+  ${raceDone.every(Boolean) && !practiceDone[0]
+    ? '<button class="action-btn" onclick="finishRace()" style="margin-top:8px;">✅ 我知道答案了 — 钢铁最快！</button>'
+    : ''}
+</div>`;
+}
+
+function raceClick(idx) {
+  if (raceDone[idx]) return;
+  raceDone[idx] = true;
+  const media = [340, 1500, 5200];
+  const colors = ['#4facfe', '#007AFF', '#FF9500'];
+  // Animate
+  setTimeout(() => {
+    const fill = document.getElementById('rf' + idx);
+    if (fill) { fill.style.transition = 'width ' + (0.3 + idx * 0.2) + 's cubic-bezier(0.4,0,0.2,1)'; fill.style.width = '100%'; }
+  }, 50);
+  renderRace(document.getElementById('practiceArea'));
+}
+
+function finishRace() {
+  practiceDone[0] = true;
+  renderPractice(document.getElementById('stepView'));
+}
+
+/* Echo */
+function renderEcho(area) {
+  const wallLeft = 60 + echoDist * 3;
+  const minEchoDist = 17;
+  area.innerHTML =
+`<div class="echo-scene">
+  <div style="font-size:13px;color:var(--text-secondary);text-align:center;">
+    拖动滑块设置距离，点击「发声」检测有无回声
+  </div>
+  <div class="echo-visual">
+    <span class="echo-person">🔊</span>
+    <div class="echo-wall" style="left:${wallLeft}px"></div>
+    <span class="echo-mountain" style="left:${wallLeft + 4}px">🏔️</span>
+    <div style="position:absolute;bottom:-18px;left:60px;font-size:10px;color:var(--text-muted);">0m</div>
+    <div style="position:absolute;bottom:-18px;left:${wallLeft}px;font-size:10px;color:var(--text-muted);">${echoDist}m</div>
+  </div>
+  <div style="display:flex;gap:10px;align-items:center;width:100%;">
+    <span style="font-size:12px;color:var(--text-secondary);white-space:nowrap;">📏 距离</span>
+    <input type="range" min="5" max="50" value="${echoDist}" oninput="adjustEcho(this.value)" style="flex:1;">
+    <span style="font-size:14px;font-weight:600;color:var(--text);width:36px;text-align:right;">${echoDist}m</span>
+  </div>
+  <div style="display:flex;gap:8px;width:100%;">
+    <button class="action-btn" onclick="emitEcho()" style="flex:1;">🔊 发声</button>
+  </div>
+  ${echoResult === null ? '' :
+    '<div class="echo-result ' + (echoResult ? 'yes' : 'no') + '">' +
+      (echoResult
+        ? '✅ 听到回声！（需要 ≥17m）' + (echoDist >= minEchoDist && !practiceDone[1] ? '<button class="action-btn" onclick="finishEcho()" style="margin-left:8px;font-size:11px;padding:4px 12px;">通关 →</button>' : '')
+        : '❌ 没有回声（距离太近，＜' + minEchoDist + 'm）') +
+    '</div>'}
+</div>`;
+}
+
+function adjustEcho(v) {
+  echoDist = parseInt(v);
+  echoResult = null;
+  renderEcho(document.getElementById('practiceArea'));
+}
+
+function emitEcho() {
+  echoResult = echoDist >= 17;
+  renderEcho(document.getElementById('practiceArea'));
+}
+
+function finishEcho() {
+  practiceDone[1] = true;
+  renderPractice(document.getElementById('stepView'));
+}
+
+/* Tuner */
+function renderTuner(area) {
+  if (tempTarget === 0) {
+    const targets = [340, 343, 346, 349, 352, 355];
+    tempTarget = targets[Math.floor(Math.random() * targets.length)];
+  }
+  const currentSpeed = 331 + 0.6 * tempVal;
+  const matched = Math.abs(currentSpeed - tempTarget) <= 1;
+  area.innerHTML =
+`<div class="tuner-scene">
+  <div style="font-size:13px;color:var(--text-secondary);text-align:center;">
+    调节温度，使声速匹配目标值
+  </div>
+  <div class="tuner-target">🎯 ${tempTarget} m/s</div>
+  <div class="tuner-current ${matched ? 'match' : 'mismatch'}" style="font-size:42px;">${Math.round(currentSpeed)} <span style="font-size:16px;font-weight:400;color:var(--text-muted);">m/s</span></div>
+  <div class="tuner-bar">
+    <div class="tuner-fill" style="width:${((tempVal - 0) / 40) * 100}%"></div>
+  </div>
+  <div class="tuner-label">🌡️ ${Math.round(tempVal)}°C &nbsp;|&nbsp; v = 331 + 0.6 × ${Math.round(tempVal)} = ${Math.round(currentSpeed)} m/s</div>
+  <input type="range" min="0" max="40" value="${tempVal}" oninput="adjustTuner(this.value)" style="width:100%;">
+  ${matched && !practiceDone[2] ? '<button class="action-btn" onclick="finishTuner()">🎉 匹配成功！通关 →</button>' : ''}
+</div>`;
+}
+
+function adjustTuner(v) {
+  tempVal = parseInt(v);
+  renderTuner(document.getElementById('practiceArea'));
+}
+
+function finishTuner() {
+  practiceDone[2] = true;
+  renderPractice(document.getElementById('stepView'));
+}
+
+/* ═══════════════════════════════════════
+   STEP 4: QUIZ
+   ═══════════════════════════════════════ */
+let quizLocked = false;
+
+function renderQuiz(v) {
+  if (quizDone) {
+    const score = quizAnswers.filter(a => a === true).length;
+    v.innerHTML =
+`<div class="quiz-scene" style="align-items:center;">
+  <div style="text-align:center;">
+    <div class="quiz-result ${score >= 3 ? 'pass' : 'fail'}">${score >= 3 ? '🎉 通过！' : '📚 还需加油'}</div>
+    <div style="font-size:48px;font-weight:800;color:var(--text);margin:8px 0;">${score}<span style="font-size:20px;color:var(--text-muted);">/5</span></div>
+    <div class="quiz-detail">
+      ${QUIZ.map((q, i) =>
+        '<div class="quiz-detail-item"><span class="qdi-q">Q' + (i+1) + '. ' + q.q.slice(0, 24) + '</span>' +
+        '<span class="qdi-a ' + (quizAnswers[i] ? 'right' : 'wrong') + '">' + (quizAnswers[i] ? '✓' : '✗') + '</span></div>'
+      ).join('')}
+    </div>
+    <button class="action-btn" onclick="resetQuiz()">🔄 重新测验</button>
+  </div>
+</div>`;
+    return;
+  }
+
+  if (quizIdx >= QUIZ.length) {
+    quizDone = true;
+    saveState();
+    renderQuiz(v);
+    return;
+  }
+
+  const q = QUIZ[quizIdx];
+  v.innerHTML =
+`<div class="quiz-scene">
+  <div style="font-size:13px;color:var(--text-secondary);text-align:center;">📝 第 ${quizIdx + 1}/${QUIZ.length} 题</div>
+  <div class="quiz-progress">
+    ${QUIZ.map((_, i) => '<span class="qp' + (i < quizIdx ? ' correct' : i === quizIdx ? ' active' : '') + '"></span>').join('')}
+  </div>
+  <div class="quiz-question">${q.q}</div>
+  <div class="quiz-opts">
+    ${q.opts.map((o, i) =>
+      '<div class="quiz-opt" onclick="quizSelect(this, ' + i + ')">' + o + '</div>'
+    ).join('')}
+  </div>
+  <div class="quiz-explain" id="quizExplain"></div>
+</div>`;
+}
+
+function quizSelect(el, idx) {
+  if (quizLocked) return;
+  quizLocked = true;
+  const q = QUIZ[quizIdx];
+  const opts = document.querySelectorAll('.quiz-opt');
+  opts.forEach(o => o.disabled = true);
+  const correct = idx === q.ans;
+  if (correct) el.classList.add('correct');
+  else { el.classList.add('wrong'); opts[q.ans].classList.add('correct'); }
+  quizAnswers[quizIdx] = correct;
+  const exp = document.getElementById('quizExplain');
+  exp.textContent = (correct ? '✅ ' : '❌ ') + q.explain;
+  exp.classList.add('show');
+  saveState();
+  setTimeout(() => { quizNext(); }, 2000);
+}
+
+function quizNext() {
+  quizIdx++;
+  quizLocked = false;
+  if (quizIdx >= QUIZ.length) {
+    quizDone = true;
+    saveState();
+    updateNav();
+  }
+  renderQuiz(document.getElementById('stepView'));
+}
+
+function resetQuiz() {
+  quizIdx = 0;
+  quizAnswers = [];
+  quizDone = false;
+  quizLocked = false;
+  saveState();
+  renderQuiz(document.getElementById('stepView'));
+  updateNav();
+}
+
+/* ═══════════════════════════════════════
+   INIT
+   ═══════════════════════════════════════ */
+loadState();
+// If all steps done and quiz done too, start at summary
+const firstIncomplete = stepDone.indexOf(false);
+curStep = firstIncomplete >= 0 ? firstIncomplete : 0;
+renderStep();
+updateNav();
+</script>
+</body>
+</html>

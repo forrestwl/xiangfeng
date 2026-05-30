@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
+<script src="../auth.js"></script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>相风 · 物理</title>
@@ -143,6 +144,90 @@
   .module.glow-12:hover { box-shadow: 0 12px 40px rgba(255,149,0,0.12); border-color: rgba(255,149,0,0.3); }
   .module.glow-13:hover { box-shadow: 0 12px 40px rgba(175,82,222,0.12); border-color: rgba(175,82,222,0.3); }
 
+  #auth-bar { display: none !important; }
+  .user-row {
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    margin-top: 14px; padding-top: 12px;
+    border-top: 1px solid rgba(255,255,255,0.06);
+  }
+  .user-row .avatar {
+    width: 30px; height: 30px; border-radius: 50%;
+    background: linear-gradient(135deg, #4facfe, #00f2fe);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 700; color: #fff; flex-shrink: 0;
+  }
+  .user-row .uname { font-size: 13px; color: #fff; font-weight: 500; }
+  .user-row .ubtn {
+    padding: 4px 12px; border-radius: 8px; font-size: 11px;
+    background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.08);
+    color: rgba(255,255,255,0.5); cursor: pointer; transition: all .2s;
+  }
+  .user-row .ubtn:hover { background: rgba(79,172,254,0.15); border-color: rgba(79,172,254,0.3); color: #4facfe; }
+  .phy-overlay {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    z-index: 999998; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px);
+    display: flex; justify-content: center; align-items: center;
+    animation: authIn .2s ease;
+  }
+  @keyframes authIn { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes authUp { from { opacity: 0; transform: translateY(20px) scale(.96); } to { opacity: 1; transform: translateY(0); } }
+  .phy-box {
+    background: linear-gradient(135deg,#1a1e3a,#0d1b2a);
+    border: 1px solid rgba(255,255,255,.1); border-radius: 20px;
+    padding: 28px 24px 20px; width: 360px; max-width: 92vw;
+    box-shadow: 0 20px 60px rgba(0,0,0,.5); animation: authUp .25s ease;
+    max-height: 80vh; overflow-y: auto;
+  }
+  .phy-box::-webkit-scrollbar { width: 4px; }
+  .phy-box::-webkit-scrollbar-thumb { background: rgba(255,255,255,.1); border-radius: 2px; }
+  .phy-box .close {
+    position: absolute; top: 12px; right: 16px;
+    background: none; border: none; color: rgba(255,255,255,.3); font-size: 22px; cursor: pointer;
+  }
+  .phy-box h2 { text-align: center; font-size: 19px; font-weight: 700; color: #fff; margin: 0 0 2px; }
+  .phy-box .sub { text-align: center; font-size: 12px; color: rgba(255,255,255,.3); margin-bottom: 16px; }
+  .user-card {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 14px; border-radius: 12px;
+    background: rgba(255,255,255,.03); border: 1px solid rgba(255,255,255,.06);
+    margin-bottom: 6px; cursor: pointer; transition: all .2s;
+  }
+  .user-card:hover { background: rgba(79,172,254,.08); border-color: rgba(79,172,254,.2); }
+  .user-card.current { border-color: rgba(79,172,254,.3); background: rgba(79,172,254,.06); }
+  .user-card .info { display: flex; align-items: center; gap: 10px; }
+  .user-card .info .dot {
+    width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+    background: rgba(255,255,255,.15);
+  }
+  .user-card.current .info .dot { background: #4facfe; box-shadow: 0 0 6px rgba(79,172,254,.5); }
+  .user-card .info .nm { color: #fff; font-size: 14px; font-weight: 500; }
+  .user-card .info .st { color: rgba(255,255,255,.35); font-size: 11px; }
+  .user-card .del {
+    background: none; border: none; color: rgba(255,59,48,.4); cursor: pointer;
+    font-size: 16px; padding: 4px; border-radius: 6px; transition: all .2s;
+  }
+  .user-card .del:hover { background: rgba(255,59,48,.15); color: #FF3B30; }
+  .new-user-area {
+    margin-top: 12px; padding-top: 12px;
+    border-top: 1px solid rgba(255,255,255,.06);
+    text-align: center;
+  }
+  .new-user-area p { font-size: 12px; color: rgba(255,255,255,.3); margin-bottom: 8px; }
+  .new-user-row { display: flex; gap: 8px; }
+  .new-user-row input {
+    flex: 1; padding: 10px 14px; border-radius: 10px;
+    background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.08);
+    color: #fff; font-size: 14px; outline: none; font-family: inherit;
+  }
+  .new-user-row input:focus { border-color: #4facfe; }
+  .new-user-row input::placeholder { color: rgba(255,255,255,.2); }
+  .new-user-row button {
+    padding: 10px 20px; border: none; border-radius: 10px;
+    background: linear-gradient(135deg,#4facfe,#00f2fe); color: #fff;
+    font-size: 14px; font-weight: 600; cursor: pointer; white-space: nowrap;
+  }
+  .new-user-row button:hover { opacity: .9; }
+
   @media (max-width: 640px) {
     .modules { grid-template-columns: 1fr; }
     body { padding: 20px 14px; }
@@ -161,6 +246,7 @@
       <div class="progress-bar"><div class="fill" id="globalFill"></div></div>
       <span class="progress-text" id="globalProgress">加载中...</span>
     </div>
+    <div class="user-row" id="userRow"></div>
   </div>
   <div class="modules" id="moduleGrid"></div>
 </div>
@@ -210,6 +296,131 @@ function getProgress(dir) {
   return { done, total: info.count * 4 };
 }
 
+// ══════════════════════════════════════════
+// USER MANAGEMENT (PET-style)
+// ══════════════════════════════════════════
+function getUsers() {
+  try { return JSON.parse(localStorage.getItem('_users') || '[]'); }
+  catch(e) { return []; }
+}
+function curUser() {
+  try { return localStorage.getItem('_currentUser') || null; }
+  catch(e) { return null; }
+}
+function esc(s) { var d=document.createElement('div'); d.textContent=s; return d.innerHTML; }
+var _overlay = null;
+function closeOverlay() { if(_overlay){_overlay.remove();_overlay=null;} }
+
+function updateUserRow() {
+  var row = document.getElementById('userRow');
+  if (!row) return;
+  var u = curUser();
+  if (u) {
+    row.innerHTML = '<div class="avatar">' + u.charAt(0).toUpperCase() + '</div>' +
+      '<span class="uname">' + esc(u) + '</span>' +
+      '<button class="ubtn" onclick="showUserLogin()">🔄 切换</button>' +
+      '<button class="ubtn" onclick="showUserMgr()">👥 管理</button>';
+  } else {
+    row.innerHTML = '<button class="ubtn" onclick="showUserLogin()" style="color:#4facfe;border-color:rgba(79,172,254,.3);background:rgba(79,172,254,.08);">🔑 选择用户</button>';
+  }
+}
+
+function showUserLogin() {
+  if (_overlay) closeOverlay();
+  var users = getUsers(), cur = curUser();
+  var cards = users.map(function(u) {
+    var isCur = u.name === cur;
+    return '<div class="user-card' + (isCur ? ' current' : '') + '" onclick="selectUser(\'' + esc(u.name) + '\')">' +
+      '<div class="info"><div class="dot"></div><div><div class="nm">' + esc(u.name) + '</div></div></div>' +
+      (isCur ? '<span style="font-size:11px;color:#4facfe;font-weight:500;">当前</span>' :
+       '<span style="color:rgba(255,255,255,.2);font-size:18px;">›</span>') + '</div>';
+  }).join('');
+  _overlay = document.createElement('div');
+  _overlay.className = 'phy-overlay';
+  _overlay.innerHTML = '<div class="phy-box" style="position:relative">' +
+    '<button class="close" onclick="closeOverlay()">✕</button>' +
+    '<h2>🔬 物理实验室</h2><p class="sub">选择用户，进度自动保存</p>' +
+    '<div>' + (cards || '<p style="text-align:center;color:rgba(255,255,255,.3);font-size:13px;padding:16px 0;">还没有用户</p>') + '</div>' +
+    '<div class="new-user-area"><p>✨ 新同学</p><div class="new-user-row">' +
+    '<input id="newUName" placeholder="输入你的名字" onkeydown="if(event.key===\'Enter\')createUserBtn()">' +
+    '<button onclick="createUserBtn()">出发 →</button></div></div></div>';
+  document.body.appendChild(_overlay);
+  setTimeout(function(){ var i=document.getElementById('newUName'); if(i) i.focus(); }, 100);
+}
+
+function selectUser(name) {
+  var list = getUsers();
+  if (!list.some(function(u){return u.name===name;})) return;
+  Storage.prototype.setItem.call(localStorage, '_currentUser', name);
+  closeOverlay(); render();
+}
+
+function createUserBtn() {
+  var i = document.getElementById('newUName');
+  if (!i) return;
+  var name = i.value.trim();
+  if (!name || name.length > 20) return;
+  var list = getUsers();
+  if (list.some(function(u){return u.name===name;})) { selectUser(name); return; }
+  list.push({name:name, pin:'physics', role:list.length===0?'admin':'student', created:Date.now()});
+  Storage.prototype.setItem.call(localStorage, '_users', JSON.stringify(list));
+  Storage.prototype.setItem.call(localStorage, '_currentUser', name);
+  closeOverlay(); render();
+}
+
+function showUserMgr() {
+  if (_overlay) closeOverlay();
+  var users = getUsers(), cur = curUser();
+  var cards = users.map(function(u) {
+    var isCur = u.name === cur;
+    return '<div class="user-card' + (isCur ? ' current' : '') + '">' +
+      '<div class="info"><div class="dot"></div><div class="nm">' + esc(u.name) + '</div></div>' +
+      '<div style="display:flex;align-items:center;gap:6px;">' +
+      (isCur ? '<span style="font-size:11px;color:#4facfe;font-weight:500;">当前</span>' : '') +
+      '<button class="del" onclick="if(confirm(\'确定删除用户「' + esc(u.name) + '」吗？所有学习记录将丢失。\'))deleteUser(\'' + esc(u.name) + '\')">✕</button>' +
+      '</div></div>';
+  }).join('');
+  _overlay = document.createElement('div');
+  _overlay.className = 'phy-overlay';
+  _overlay.innerHTML = '<div class="phy-box" style="position:relative">' +
+    '<button class="close" onclick="closeOverlay()">✕</button>' +
+    '<h2>👥 用户管理</h2><p class="sub">共 ' + users.length + ' 个用户</p>' +
+    '<div>' + (cards || '<p style="text-align:center;color:rgba(255,255,255,.3);font-size:13px;padding:16px 0;">还没有用户</p>') + '</div>' +
+    '<div class="new-user-area"><div class="new-user-row">' +
+    '<input id="newUMgr" placeholder="新建用户" onkeydown="if(event.key===\'Enter\')createMgrUser()">' +
+    '<button onclick="createMgrUser()">➕ 新建</button></div></div></div>';
+  document.body.appendChild(_overlay);
+  setTimeout(function(){ var i=document.getElementById('newUMgr'); if(i) i.focus(); }, 100);
+}
+
+function deleteUser(name) {
+  var _rawSet = Storage.prototype.setItem, _rawKey = Storage.prototype.key, _rawRemove = Storage.prototype.removeItem;
+  _rawSet.call(localStorage, '_users', JSON.stringify(getUsers().filter(function(u){return u.name!==name;})));
+  var dels = [];
+  for (var i = 0; i < localStorage.length; i++) {
+    var k = _rawKey.call(localStorage, i);
+    if (k && k.indexOf(name + '_') === 0) dels.push(k);
+  }
+  dels.forEach(function(k){_rawRemove.call(localStorage, k);});
+  if (curUser() === name) _rawRemove.call(localStorage, '_currentUser');
+  closeOverlay(); render();
+}
+
+function createMgrUser() {
+  var i = document.getElementById('newUMgr');
+  if (!i) return;
+  var name = i.value.trim();
+  if (!name || name.length > 20) return;
+  var list = getUsers();
+  if (list.some(function(u){return u.name===name;})) return;
+  list.push({name:name, pin:'physics', role:list.length===0?'admin':'student', created:Date.now()});
+  Storage.prototype.setItem.call(localStorage, '_users', JSON.stringify(list));
+  closeOverlay(); render();
+}
+
+// ══════════════════════════════════════════
+// RENDER
+// ══════════════════════════════════════════
 function render() {
   let totalDone = 0, totalMissions = 0;
   const grid = document.getElementById('moduleGrid');
@@ -233,8 +444,10 @@ function render() {
   const pct = totalMissions > 0 ? Math.round(totalDone / totalMissions * 100) : 0;
   document.getElementById('globalFill').style.width = pct + '%';
   document.getElementById('globalProgress').textContent = `已完成 ${totalDone}/${totalMissions}`;
+  updateUserRow();
 }
 render();
+if (!curUser()) setTimeout(showUserLogin, 300);
 </script>
 </body>
 </html>

@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-<script src="../../auth.js"></script>
 <meta charset="UTF-8">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>物理实验室 · 声音的产生与传播</title>
 <style>
@@ -534,10 +534,6 @@ body::before {
         <div class="kp-label">📊 数据</div>
         <div class="kp-data" id="kpData"></div>
       </div>
-      <div class="kp-tip" id="kpTip">
-        <span class="tip-icon">💡</span>
-        <span class="tip-text" id="kpTipText"></span>
-      </div>
     </aside>
 
     <!-- Main Content (right) -->
@@ -557,6 +553,109 @@ body::before {
 </div>
 
 <script>
+/* ═══════════════════════════════════════
+   SOUND SYSTEM (Web Audio API)
+   ═══════════════════════════════════════ */
+let audioCtx = null;
+
+function initAudio() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+}
+
+function playTone(freq, dur, type = 'sine', vol = 0.25, startDelay = 0) {
+  try {
+    initAudio();
+    const t = audioCtx.currentTime + startDelay;
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = type; osc.frequency.setValueAtTime(freq, t);
+    gain.gain.setValueAtTime(vol, t);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + dur);
+    osc.connect(gain); gain.connect(audioCtx.destination);
+    osc.start(t); osc.stop(t + dur);
+  } catch(e) { /* audio unavailable */ }
+}
+
+// Step 0: 音叉 — 440Hz 带泛音和颤音效果
+function sfxTuningFork() {
+  playTone(440, 2.5, 'sine', 0.2);
+  playTone(880, 1.2, 'sine', 0.06, 0.1);
+  playTone(1320, 0.8, 'sine', 0.03, 0.2);
+  // Vibrato effect
+  let i = 0; const iv = setInterval(() => {
+    if (i++ > 8) { clearInterval(iv); return; }
+    playTone(441 + (i%2 ? 0 : -1), 0.15, 'sine', 0.04, 0.3 * i);
+  }, 150);
+}
+
+let bellTimer = null;
+// Step 1: 闹钟铃声（随空气含量变化）
+function sfxBell(airPct) {
+  if (bellTimer) { clearTimeout(bellTimer); bellTimer = null; }
+  if (airPct < 5) return; // 真空 → 彻底无声
+  const vol = (airPct / 100) * 0.2;
+  playTone(800, 0.4, 'sine', vol * 0.4);
+  playTone(1000, 0.25, 'sine', vol * 0.2, 0.08);
+  playTone(600, 0.35, 'sine', vol * 0.3, 0.15);
+  // Repeat ringing while air > 30%
+  if (airPct > 30) bellTimer = setTimeout(() => sfxBell(airPct), 1200);
+}
+
+// Step 2/4: 正确/错误音效
+function sfxCorrect() {
+  playTone(523, 0.12, 'sine', 0.18);
+  setTimeout(() => playTone(659, 0.12, 'sine', 0.18), 120);
+  setTimeout(() => playTone(784, 0.25, 'sine', 0.18), 240);
+}
+function sfxWrong() {
+  playTone(220, 0.3, 'sawtooth', 0.12);
+  setTimeout(() => playTone(185, 0.4, 'sawtooth', 0.1), 150);
+}
+
+// Step 3: 介质赛跑 — 不同音高代表不同介质
+function sfxRaceClick(mediaIdx) {
+  const notes = [262, 440, 880]; // C4, A4, A5
+  playTone(notes[mediaIdx], 0.3, 'sine', 0.18);
+}
+
+function sfxRaceWin() {
+  playTone(523, 0.15, 'sine', 0.2);
+  setTimeout(() => playTone(659, 0.15, 'sine', 0.2), 150);
+  setTimeout(() => playTone(784, 0.15, 'sine', 0.2), 300);
+  setTimeout(() => playTone(1047, 0.4, 'sine', 0.2), 450);
+}
+
+// Step 3: 回声 — 一声原音 + 一声反射
+function sfxEcho(dist) {
+  const delay = dist * 5.8; // ms ≈ 往返时间: 2*dist / 340 * 1000
+  playTone(1000, 0.25, 'sine', 0.3);          // 原音（0.25s 短促人声感）
+  if (dist >= 17) {
+    setTimeout(() => playTone(800, 0.12, 'sine', 0.08), delay);  // 一声反射（更弱更短）
+  }
+}
+
+// Step 3: 调音师 — 持续音随温度变化
+let tunerOsc = null;
+function sfxTunerStart(freq) {
+  sfxTunerStop();
+  try {
+    initAudio();
+    tunerOsc = audioCtx.createOscillator();
+    const g = audioCtx.createGain();
+    tunerOsc.type = 'sine'; tunerOsc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+    g.gain.setValueAtTime(0.08, audioCtx.currentTime);
+    tunerOsc.connect(g); g.connect(audioCtx.destination);
+    tunerOsc.start();
+  } catch(e) {}
+}
+function sfxTunerUpdate(freq) {
+  if (tunerOsc) try { tunerOsc.frequency.setValueAtTime(freq, audioCtx.currentTime); } catch(e) {}
+}
+function sfxTunerStop() {
+  if (tunerOsc) { try { tunerOsc.stop(); } catch(e) {} tunerOsc = null; }
+}
+
 /* ═══════════════════════════════════════
    CONSTANTS
    ═══════════════════════════════════════ */
@@ -588,6 +687,24 @@ const KNOWLEDGE = [
     tip: '仔细审题，每题限选一项。答题后自动显示解析。' }
 ];
 
+/* 练一练 三个小游戏的知识面板（精简版 — 仅保留关键数据） */
+const PRACTICE_KNOWLEDGE = [
+  { label: '🏁 数据', title: '不同介质中的声速',
+    body: '钢铁 > 水 > 空气',
+    formula: '', data: '<table><tr><td>空气</td><td>340 m/s</td></tr><tr><td>水</td><td>1500 m/s</td></tr><tr><td>钢铁</td><td>5200 m/s</td></tr></table>',
+    tip: '' },
+  { label: '🏔️ 公式', title: '回声测距',
+    body: '',
+    formula: 's = v × t ÷ 2',
+    data: '<table><tr><td>≥17m</td><td>听到回声</td></tr><tr><td>&lt;17m</td><td>无回声</td></tr></table>',
+    tip: '' },
+  { label: '🌡️ 公式', title: '温度与声速',
+    body: '',
+    formula: 'v = 331 + 0.6T',
+    data: '<table><tr><td>0°C</td><td>331 m/s</td></tr><tr><td>15°C</td><td>340 m/s</td></tr><tr><td>25°C</td><td>346 m/s</td></tr></table>',
+    tip: '' }
+];
+
 // Quiz questions
 const QUIZ = [
   { q: '声音是由物体的什么产生的？', opts: ['运动', '振动', '热传递', '分子扩散'], ans: 1,
@@ -613,6 +730,7 @@ let practiceTab = 0;
 let practiceDone = [false, false, false];
 let raceDone = [false, false, false];
 let raceStarted = false;
+let raceFinished = false;
 let echoDist = 20;
 let echoResult = null;
 let tempVal = 20;
@@ -644,55 +762,66 @@ function saveState() {
    ═══════════════════════════════════════ */
 function goStep(n) {
   if (n < 0 || n >= TOTAL_STEPS) return;
-  // Can't go forward if current step not done (except for reviewing completed steps)
-  if (n > curStep && !stepDone[curStep] && !STEP_NAMES.every((_, i) => stepDone[i])) return;
+  // Stop any looping sounds from previous step
+  if (bellTimer) { clearTimeout(bellTimer); bellTimer = null; }
+  sfxTunerStop();
   curStep = n;
   renderStep();
   updateNav();
 }
 
+function allStepsDone() {
+  return stepDone.every(Boolean);
+}
+
 function updateNav() {
-  // Dots
+  const allDone = allStepsDone();
+  // Dots (always clickable)
   const dots = document.getElementById('stepDots');
   dots.innerHTML = '';
   for (let i = 0; i < TOTAL_STEPS; i++) {
     const d = document.createElement('span');
     d.className = 'dot' + (stepDone[i] ? ' done' : '') + (i === curStep ? ' active' : '');
+    d.style.cursor = 'pointer';
+    d.onclick = function() { goStep(i); };
     dots.appendChild(d);
   }
-  // Labels
+  // Labels (always clickable)
   const labels = document.getElementById('stepLabels');
   labels.innerHTML = STEP_NAMES.map((n, i) =>
-    '<span class="sl' + (stepDone[i] ? ' done' : '') + (i === curStep ? ' active' : '') + '">' + n + '</span>'
+    '<span class="sl' + (stepDone[i] ? ' done' : '') + (i === curStep ? ' active' : '') + '"' +
+    ' style="cursor:pointer;" onclick="goStep(' + i + ')"' +
+    '>' + n + '</span>'
   ).join('');
-  // Buttons
-  document.getElementById('prevBtn').disabled = curStep === 0;
+  // Keep nav button positions; only show 完成学习 on last step
+  const prevBtn = document.getElementById('prevBtn');
   const nextBtn = document.getElementById('nextBtn');
   if (curStep === TOTAL_STEPS - 1) {
-    if (stepDone[4]) {
-      nextBtn.textContent = '✅ 已学完，返回';
-      nextBtn.onclick = function() { window.location.href = 'index.html'; };
-    } else {
-      nextBtn.textContent = '完成学习 🎉';
-      nextBtn.onclick = function() { window.location.href = 'index.html'; };
-    }
+    prevBtn.style.visibility = 'hidden';
+    nextBtn.style.visibility = 'visible';
+    nextBtn.textContent = '完成学习 🎉';
+    nextBtn.onclick = function() { window.location.href = 'index.html'; };
     nextBtn.disabled = false;
   } else {
-    nextBtn.textContent = '下一页 ▶';
-    nextBtn.onclick = function() { goStep(curStep + 1); };
-    nextBtn.disabled = !stepDone[curStep];
+    prevBtn.style.visibility = 'hidden';
+    nextBtn.style.visibility = 'hidden';
   }
 }
 
 /* ═══════════════════════════════════════
    KNOWLEDGE PANEL
    ═══════════════════════════════════════ */
-function updateKnowledge(step) {
-  const k = KNOWLEDGE[step] || KNOWLEDGE[0];
+function updateKnowledge(step, subTab) {
+  let k;
+  if (step === 3 && subTab !== undefined) {
+    k = PRACTICE_KNOWLEDGE[subTab] || PRACTICE_KNOWLEDGE[0];
+  } else {
+    k = KNOWLEDGE[step] || KNOWLEDGE[0];
+  }
   document.getElementById('kpLabel').textContent = k.label;
   document.getElementById('kpTitle').textContent = k.title;
   document.getElementById('kpBody').innerHTML = k.body;
-  document.getElementById('kpTipText').textContent = k.tip;
+  if (document.getElementById('kpTip')) document.getElementById('kpTip').style.display = 'none';
   const fSec = document.getElementById('kpFormulaSec');
   if (k.formula) { fSec.style.display = ''; document.getElementById('kpFormula').innerHTML = k.formula; }
   else { fSec.style.display = 'none'; }
@@ -706,7 +835,7 @@ function updateKnowledge(step) {
    ═══════════════════════════════════════ */
 function renderStep() {
   const view = document.getElementById('stepView');
-  updateKnowledge(curStep);
+  updateKnowledge(curStep, curStep === 3 ? practiceTab : undefined);
   switch (curStep) {
     case 0: renderWatch(view); break;
     case 1: renderTry(view); break;
@@ -768,6 +897,7 @@ function renderWatch(v) {
 
 function startWatch() {
   watchPlaying = true;
+  sfxTuningFork();
   renderWatch(document.getElementById('stepView'));
   setTimeout(() => {
     watchPlaying = false;
@@ -796,6 +926,7 @@ let jarLevel = 100;
 function renderTry(v) {
   const done = stepDone[1];
   const audible = jarLevel > 30;
+  const isVacuum = jarLevel < 5;
   const interacted = jarLevel < 100; // user has touched the slider
   const particles = [];
   for (let i = 0; i < 20; i++) {
@@ -808,12 +939,13 @@ function renderTry(v) {
     <div class="jar-dome">
       <div class="air-particles" style="position:absolute;inset:0;">
         ${particles.join('')}
-        <div class="bell-group" style="position:absolute;top:60%;left:50%;transform:translate(-50%,-50%);">
+        <div class="bell-group${audible ? ' bell-ringing' : ''}" style="position:absolute;top:60%;left:50%;transform:translate(-50%,-50%);">
           <div class="bell-knob"></div>
           <div class="bell-body"></div>
           <div class="bell-rim"></div>
           <div class="bell-clapper"></div>
         </div>
+        ${isVacuum ? '<div style="position:absolute;top:40%;left:50%;transform:translate(-50%,-50%);font-size:20px;font-weight:700;color:rgba(255,59,48,0.5);letter-spacing:4px;text-shadow:0 0 20px rgba(255,59,48,0.3);">真空</div>' : ''}
       </div>
     </div>
     <div class="jar-plate"></div>
@@ -829,14 +961,16 @@ function renderTry(v) {
     <div class="jar-indicator ${audible ? 'on' : 'off'}">
       ${audible ? '🔊 声音可传播 — 有空气作为介质' : '🔇 声音消失 — 真空中无法传声'}
     </div>
-    ${done ? '<div class="try-done" style="margin-top:12px;text-align:center;color:var(--success);font-size:14px;">✅ 实验探索完成</div>' :
-      interacted ? '<button class="action-btn" onclick="finishTry()" style="margin-top:12px;">✅ 我明白了，继续</button>' :
-      '<div style="margin-top:12px;text-align:center;font-size:12px;color:var(--text-muted);">👆 拖动滑块，观察空气含量对声音的影响</div>'}
+    ${isVacuum && !done ? '<div style="margin-top:8px;text-align:center;font-size:13px;color:var(--error);">✅ 抽成真空后闹钟声消失了！声音不能在真空中传播</div>' : ''}
+  </div>
+  <div style="width:100%;margin-top:8px;padding:8px 12px;background:rgba(255,255,255,0.04);border-radius:8px;font-size:13px;color:var(--text-secondary);text-align:center;">
+    💡 拖动滑块减少空气，观察声音如何逐渐消失 — 真空不能传声
   </div>
 </div>`;
 }
 
 function finishTry() {
+  if (bellTimer) { clearTimeout(bellTimer); bellTimer = null; }
   stepDone[1] = true;
   saveState();
   updateNav();
@@ -845,13 +979,21 @@ function finishTry() {
 
 function adjustJar(v) {
   jarLevel = parseInt(v);
+  sfxBell(jarLevel);
+  if (!stepDone[1]) { stepDone[1] = true; saveState(); updateNav(); }
   renderTry(document.getElementById('stepView'));
 }
 
-/* Street-style floating animation for particles */
-const styleSheet = document.createElement('style');
-styleSheet.textContent = `@keyframes float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }`;
-document.head.appendChild(styleSheet);
+/* Bell ringing animation */
+const bellStyle = document.createElement('style');
+bellStyle.textContent = `
+@keyframes float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+.bell-ringing .bell-clapper { animation: clapper 0.3s ease-in-out infinite alternate; transform-origin: 50% 0; }
+@keyframes clapper { 0% { transform: rotate(-15deg); } 100% { transform: rotate(15deg); } }
+.bell-ringing .bell-body { animation: bell-shake 0.3s ease-in-out infinite alternate; }
+@keyframes bell-shake { 0% { transform: translateX(-1px); } 100% { transform: translateX(1px); } }
+`;
+document.head.appendChild(bellStyle);
 
 /* ═══════════════════════════════════════
    STEP 2: THINK (3 questions)
@@ -863,9 +1005,15 @@ const THINK_QS = [
 ];
 
 function renderThink(v) {
-  const done = stepDone[2];
-  if (done) {
-    v.innerHTML = `<div class="think-scene"><div class="game-complete">✅ 概念巩固已完成！</div></div>`;
+  if (thinkIdx >= THINK_QS.length && stepDone[2]) {
+    // All done — show score + restart option
+    const score = THINK_QS.filter((_, i) => /* answered correctly - just show summary */ false).length;
+    v.innerHTML =
+`<div class="think-scene">
+  <div class="game-complete" style="font-size:16px;">✅ 概念巩固已答完</div>
+  <div style="margin-top:8px;font-size:13px;color:var(--text-muted);">共 ${THINK_QS.length} 题</div>
+  <button class="action-btn" onclick="resetThink()" style="margin-top:12px;">🔄 重新回答</button>
+</div>`;
     return;
   }
   const q = THINK_QS[thinkIdx];
@@ -886,6 +1034,12 @@ function renderThink(v) {
 </div>`;
 }
 
+function resetThink() {
+  thinkIdx = 0;
+  thinkLocked = false;
+  renderThink(document.getElementById('stepView'));
+}
+
 function thinkSelect(el, idx) {
   if (thinkLocked) return;
   thinkLocked = true;
@@ -893,8 +1047,8 @@ function thinkSelect(el, idx) {
   const opts = document.querySelectorAll('.think-opt');
   opts.forEach(o => o.disabled = true);
   const correct = idx === q.ans;
-  if (correct) el.classList.add('correct');
-  else { el.classList.add('wrong'); opts[q.ans].classList.add('correct'); }
+  if (correct) { el.classList.add('correct'); sfxCorrect(); }
+  else { el.classList.add('wrong'); opts[q.ans].classList.add('correct'); sfxWrong(); }
   const fb = document.getElementById('thinkFb');
   fb.textContent = (correct ? '✅ 正确！' : '❌ 不对哦。') + ' ' + q.explain;
   fb.className = 'think-feedback show ' + (correct ? 'correct' : 'wrong');
@@ -936,72 +1090,110 @@ function renderPractice(v) {
 
 function switchPractice(i) {
   practiceTab = i;
+  sfxTunerStop();
+  updateKnowledge(3, i);
   renderPractice(document.getElementById('stepView'));
+}
+
+function checkPracticeComplete() {
+  if (practiceDone.every(Boolean) && !stepDone[3]) {
+    stepDone[3] = true;
+    saveState();
+    updateNav();
+  }
 }
 
 function renderPracticeTab() {
   const area = document.getElementById('practiceArea');
   if (!area) return;
-  if (practiceDone[practiceTab]) {
-    area.innerHTML = '<div class="game-complete">✅ 通关！</div>';
-    return;
-  }
+  // Always show the game (not just "通关") for replay
   if (practiceTab === 0) renderRace(area);
   else if (practiceTab === 1) renderEcho(area);
   else renderTuner(area);
 }
 
-/* Race */
+/* Race — 三介质同时赛跑 */
+const RACE_DIST = 1020; // meters — 声音在空气中跑3秒的距离
+
 function renderRace(area) {
   const media = [
     { name: '空气', speed: 340, color: '#4facfe' },
     { name: '水', speed: 1500, color: '#007AFF' },
     { name: '钢铁', speed: 5200, color: '#FF9500' }
   ];
-  const done = raceDone.every(Boolean);
-
-  if (done && !practiceDone[0]) {
-    practiceDone[0] = true;
-    renderPractice(document.getElementById('stepView'));
-    return;
-  }
+  const allClicked = raceDone.every(Boolean);
 
   area.innerHTML =
 `<div style="width:100%;max-width:400px;">
-  <div style="font-size:13px;color:var(--text-secondary);text-align:center;margin-bottom:10px;">
-    点击介质，声波赛跑！谁最快？
+  <div style="font-size:13px;color:var(--text-secondary);text-align:center;margin-bottom:6px;">
+    点击开跑，看声音 ${RACE_DIST}m 赛跑谁最快！
   </div>
-  <div class="race-lanes">
+  <div style="position:relative;">
+    <div style="position:absolute;right:-2px;top:-16px;font-size:11px;color:var(--text-muted);">🏁 ${RACE_DIST}m</div>
+    <div class="race-lanes">
     ${media.map((m, i) =>
-      '<div class="race-lane" id="rl' + i + '" onclick="raceClick(' + i + ')" style="' + (raceDone[i] ? 'border-color:' + m.color + ';background:rgba(255,255,255,0.06);' : '') + '" ' + (raceDone[i] ? 'disabled' : '') + '>' +
+      '<div class="race-lane" id="rl' + i + '" style="' + (raceDone[i] ? 'border-color:' + m.color + ';background:rgba(255,255,255,0.06);' : '') + '">' +
         '<span class="rl-label">' + m.name + '</span>' +
         '<div class="rl-track"><div class="rl-fill" id="rf' + i + '" style="background:' + m.color + ';width:' + (raceDone[i] ? '100%' : '0%') + '"></div></div>' +
-        '<span class="rl-speed">' + (raceDone[i] ? m.speed + ' m/s' : '点击') + '</span>' +
+        '<span class="rl-speed" id="rs' + i + '">' + (raceDone[i] ? m.speed + ' m/s' : '') + '</span>' +
       '</div>'
     ).join('')}
   </div>
-  ${raceDone.every(Boolean) && !practiceDone[0]
-    ? '<button class="action-btn" onclick="finishRace()" style="margin-top:8px;">✅ 我知道答案了 — 钢铁最快！</button>'
-    : ''}
+  ${raceFinished
+    ? '<div style="display:flex;gap:8px;margin-top:8px;justify-content:center;">' +
+      '<button class="action-btn" onclick="resetRace()" style="font-size:12px;padding:8px 16px;background:rgba(255,255,255,0.08);color:var(--text-secondary)">🔄 再来一次</button>' +
+      '</div>'
+    : !raceStarted
+      ? '<button class="action-btn" onclick="startRace()" style="margin-top:12px;">🏁 开跑！</button>'
+      : '<div style="margin-top:12px;text-align:center;font-size:13px;color:var(--text-muted);">⏳ 赛跑中…</div>'}
+  </div>
+  <div style="width:100%;margin-top:8px;padding:8px 12px;background:rgba(255,255,255,0.04);border-radius:8px;font-size:13px;color:var(--text-secondary);text-align:center;word-break:break-word;">
+    💡 声音在固体中传播最快，气体中最慢。点击开跑看谁先到终点！
+  </div>
 </div>`;
 }
 
-function raceClick(idx) {
-  if (raceDone[idx]) return;
-  raceDone[idx] = true;
-  const media = [340, 1500, 5200];
-  const colors = ['#4facfe', '#007AFF', '#FF9500'];
-  // Animate
-  setTimeout(() => {
-    const fill = document.getElementById('rf' + idx);
-    if (fill) { fill.style.transition = 'width ' + (0.3 + idx * 0.2) + 's cubic-bezier(0.4,0,0.2,1)'; fill.style.width = '100%'; }
-  }, 50);
+function startRace() {
+  raceStarted = true;
+  raceFinished = false;
+  raceDone = [false, false, false];
   renderRace(document.getElementById('practiceArea'));
+  // Start all three lanes simultaneously
+  const media = [340, 1500, 5200];
+  // Base duration: slowest (air) takes ~3s, fastest (steel) proportional
+  const baseDur = 3; // seconds for air
+  for (let i = 0; i < 3; i++) {
+    const dur = baseDur * (media[0] / media[i]); // air=3s, water=0.68s, steel=0.2s
+    setTimeout(() => {
+      const fill = document.getElementById('rf' + i);
+      if (fill) {
+        fill.style.transition = 'width ' + dur + 's linear';
+        fill.style.width = '100%';
+      }
+    }, 100);
+    // Mark done and show speed when each finishes
+    setTimeout(() => {
+      raceDone[i] = true;
+      const spd = document.getElementById('rs' + i);
+      if (spd) spd.textContent = media[i] + ' m/s';
+      // Check if all done
+      if (raceDone.every(Boolean)) {
+        raceFinished = true;
+        if (!practiceDone[0]) { practiceDone[0] = true; checkPracticeComplete(); }
+        sfxRaceWin();
+        renderRace(document.getElementById('practiceArea'));
+      }
+    }, 100 + dur * 1000);
+  }
+  // Play short click for each
+  media.forEach((_, i) => setTimeout(() => sfxRaceClick(i), 100 + i * 120));
 }
 
-function finishRace() {
-  practiceDone[0] = true;
-  renderPractice(document.getElementById('stepView'));
+function resetRace() {
+  raceStarted = false;
+  raceFinished = false;
+  raceDone = [false, false, false];
+  renderRace(document.getElementById('practiceArea'));
 }
 
 /* Echo */
@@ -1031,9 +1223,12 @@ function renderEcho(area) {
   ${echoResult === null ? '' :
     '<div class="echo-result ' + (echoResult ? 'yes' : 'no') + '">' +
       (echoResult
-        ? '✅ 听到回声！（需要 ≥17m）' + (echoDist >= minEchoDist && !practiceDone[1] ? '<button class="action-btn" onclick="finishEcho()" style="margin-left:8px;font-size:11px;padding:4px 12px;">通关 →</button>' : '')
+        ? '✅ 听到回声！（距离需要 ≥17m）'
         : '❌ 没有回声（距离太近，＜' + minEchoDist + 'm）') +
     '</div>'}
+  <div style="width:100%;margin-top:8px;padding:8px 12px;background:rgba(255,255,255,0.04);border-radius:8px;font-size:13px;color:var(--text-secondary);text-align:center;word-break:break-word;">
+    💡 距离 ≥ 17m 时才能听到回声（往返时间 ≥ 0.1s）
+  </div>
 </div>`;
 }
 
@@ -1045,46 +1240,78 @@ function adjustEcho(v) {
 
 function emitEcho() {
   echoResult = echoDist >= 17;
+  sfxEcho(echoDist);
+  if (echoResult && !practiceDone[1]) { practiceDone[1] = true; checkPracticeComplete(); }
   renderEcho(document.getElementById('practiceArea'));
 }
 
-function finishEcho() {
-  practiceDone[1] = true;
-  renderPractice(document.getElementById('stepView'));
-}
-
-/* Tuner */
+/* Tuner — 温度与声速（声音跑固定距离） */const TUNER_DIST = 1000;
+/* Tuner — 像排排看一样的赛跑动画 */
 function renderTuner(area) {
-  if (tempTarget === 0) {
-    const targets = [340, 343, 346, 349, 352, 355];
-    tempTarget = targets[Math.floor(Math.random() * targets.length)];
-  }
-  const currentSpeed = 331 + 0.6 * tempVal;
-  const matched = Math.abs(currentSpeed - tempTarget) <= 1;
+  const speed = 331 + 0.6 * tempVal;
+  // Slower temp = longer animation (3s at 0°C, ~1.5s at 40°C)
+  const animDur = 3 * (331 / speed) * 1.8;
   area.innerHTML =
-`<div class="tuner-scene">
-  <div style="font-size:13px;color:var(--text-secondary);text-align:center;">
-    调节温度，使声速匹配目标值
+`<div style="width:100%;max-width:400px;">
+  <div style="font-size:13px;color:var(--text-secondary);text-align:center;margin-bottom:6px;">
+    调节温度，看声音跑完 ${TUNER_DIST}m 的速度变化
   </div>
-  <div class="tuner-target">🎯 ${tempTarget} m/s</div>
-  <div class="tuner-current ${matched ? 'match' : 'mismatch'}" style="font-size:42px;">${Math.round(currentSpeed)} <span style="font-size:16px;font-weight:400;color:var(--text-muted);">m/s</span></div>
-  <div class="tuner-bar">
-    <div class="tuner-fill" style="width:${((tempVal - 0) / 40) * 100}%"></div>
+  <!-- Track like race game -->
+  <div style="position:relative;">
+    <div style="position:absolute;right:0;top:-14px;font-size:10px;color:var(--text-muted);">${TUNER_DIST}m</div>
+    <div class="race-lanes">
+      <div class="race-lane">
+        <span class="rl-label">声音</span>
+        <div class="rl-track">
+          <div class="rl-fill" id="tunerFill" style="background:var(--accent);width:0%;transition:width ${animDur}s linear;"></div>
+        </div>
+        <span class="rl-speed" id="tunerSpeed">${Math.round(speed)} m/s</span>
+      </div>
+    </div>
   </div>
-  <div class="tuner-label">🌡️ ${Math.round(tempVal)}°C &nbsp;|&nbsp; v = 331 + 0.6 × ${Math.round(tempVal)} = ${Math.round(currentSpeed)} m/s</div>
-  <input type="range" min="0" max="40" value="${tempVal}" oninput="adjustTuner(this.value)" style="width:100%;">
-  ${matched && !practiceDone[2] ? '<button class="action-btn" onclick="finishTuner()">🎉 匹配成功！通关 →</button>' : ''}
+  <!-- Info -->
+  <div style="display:flex;gap:16px;justify-content:center;margin:4px 0;">
+    <div style="text-align:center;font-size:12px;color:var(--text-muted);">🌡️ ${Math.round(tempVal)}°C</div>
+    <div style="text-align:center;font-size:12px;color:var(--text-muted);">⏱ ${(TUNER_DIST/speed).toFixed(2)}s</div>
+  </div>
+  <div style="font-size:12px;color:var(--text-muted);text-align:center;margin-bottom:6px;">
+    v = 331 + 0.6 × ${Math.round(tempVal)} = ${Math.round(speed)} m/s
+  </div>
+  <!-- Slider -->
+  <div style="display:flex;gap:10px;align-items:center;">
+    <span style="font-size:11px;color:var(--text-muted);white-space:nowrap;">❄️ 0°C</span>
+    <input type="range" min="0" max="40" value="${tempVal}" oninput="adjustTuner(this.value)" style="flex:1;">
+    <span style="font-size:11px;color:var(--text-muted);white-space:nowrap;">🔥 40°C</span>
+  </div>
+  <div style="margin-top:8px;padding:8px 12px;background:rgba(255,255,255,0.04);border-radius:8px;font-size:13px;color:var(--text-secondary);text-align:center;">
+    💡 温度越高声速越快，跑完 ${TUNER_DIST}m 用时越短
+  </div>
 </div>`;
+  // Start fill animation
+  requestAnimationFrame(() => {
+    const fill = document.getElementById('tunerFill');
+    if (!fill) return;
+    fill.style.transition = 'none';
+    fill.style.width = '0%';
+    void fill.offsetHeight;
+    fill.style.transition = 'width ' + animDur + 's linear';
+    fill.style.width = '100%';
+    // Play arrival sound when fill completes
+    fill.ontransitionend = () => {
+      const freq = 331 + 0.6 * tempVal;
+      sfxCorrect();
+      fill.ontransitionend = null;
+    };
+  });
 }
 
 function adjustTuner(v) {
   tempVal = parseInt(v);
   renderTuner(document.getElementById('practiceArea'));
-}
-
-function finishTuner() {
-  practiceDone[2] = true;
-  renderPractice(document.getElementById('stepView'));
+  if (!practiceDone[2]) {
+    practiceDone[2] = true;
+    checkPracticeComplete();
+  }
 }
 
 /* ═══════════════════════════════════════
@@ -1143,8 +1370,8 @@ function quizSelect(el, idx) {
   const opts = document.querySelectorAll('.quiz-opt');
   opts.forEach(o => o.disabled = true);
   const correct = idx === q.ans;
-  if (correct) el.classList.add('correct');
-  else { el.classList.add('wrong'); opts[q.ans].classList.add('correct'); }
+  if (correct) { el.classList.add('correct'); sfxCorrect(); }
+  else { el.classList.add('wrong'); opts[q.ans].classList.add('correct'); sfxWrong(); }
   quizAnswers[quizIdx] = correct;
   const exp = document.getElementById('quizExplain');
   exp.textContent = (correct ? '✅ ' : '❌ ') + q.explain;

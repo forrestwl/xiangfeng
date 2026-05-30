@@ -253,11 +253,11 @@ const MISSIONS = [
 ];
 
 const CHALLENGES = [
-  { goal: '人对着山崖喊话，0.4s后听到回声。山崖距离多远？（声速340m/s）', answer: 68, unit: 'm', tolerance: 1 },
-  { goal: '看到闪电后3s听到雷声。打雷处多远？（声速340m/s）', answer: 1020, unit: 'm', tolerance: 10 },
-  { goal: '在哪个介质中声音传播最快？（0=空气, 1=水, 2=钢铁）', answer: 2, unit: '', tolerance: 0 },
-  { goal: '某人敲击铁管一端，另一人在另一端听到两次敲击声，间隔0.5s。管长多少m？（声速：空气340m/s，铁5200m/s）', answer: 182, unit: 'm', tolerance: 5 },
-  { goal: '15℃时声速340m/s，温度升高到25℃时声速约为346m/s。若声音传播2s，哪个温度下传得更远？多几米？', answer: 12, unit: 'm', tolerance: 2 }
+  { goal: '开启真空，看声波还能传到接收器吗？', type: 'vacuum' },
+  { goal: '点击介质按钮，找出哪种介质传声最快！', type: 'speed_race' },
+  { goal: '调节距离，找到能听到回声的最短位置', type: 'echo' },
+  { goal: '调节温度，让声速匹配目标值 🎯', type: 'temp' },
+  { goal: '选择介质和距离，让声音恰好走 2 秒', type: 'timed' }
 ];
 
 const QUIZ_POOL = [
@@ -581,36 +581,244 @@ function drawExplore(W, H) {
   }
 }
 
+// ── Challenge Game State ──
+var chState = {}; // per-challenge interactive state
+
 function drawChallenge(W, H) {
   ctx.fillStyle = '#141626';
   ctx.fillRect(0, 0, W, H);
-
   const ch = CHALLENGES[state.challengeIdx] || CHALLENGES[0];
+  const med = getMedium();
+
+  // Goal text at top
   ctx.fillStyle = '#ffffff';
-  ctx.font = '15px sans-serif';
+  ctx.font = '14px sans-serif';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
+  const goal = ch.goal;
+  const maxW = W - 40;
+  let lines = [], line = '';
+  for (let c of goal) { line += c; if (ctx.measureText(line).width > maxW && line.length > 10) { lines.push(line); line = ''; } }
+  if (line) lines.push(line);
+  let gy = 24;
+  lines.forEach(l => { ctx.fillText(l.trim(), W/2, gy); gy += 20; });
 
-  // Show a visual based on challenge
-  const lines = ch.goal.split('');
-  let line = '';
-  let lineY = 60;
-  ch.goal.split('').forEach((ch, i) => {
-    line += ch;
-    if (line.length > 25 || i === ch.goal.length - 1) {
-      ctx.fillText(line.trim(), W / 2, lineY);
-      line = '';
-      lineY += 28;
+  const srcX = 80, srcY = H/2 + 10;
+
+  if (ch.type === 'vacuum') {
+    // Bell jar - simpler version
+    const cx = srcX, cy = srcY - 20;
+    // Jar
+    ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+    ctx.lineWidth = 2;
+    roundRect(ctx, cx - 50, cy - 50, 100, 100, 12);
+    ctx.stroke();
+    // Bell
+    ctx.fillStyle = '#c8a060';
+    ctx.beginPath(); ctx.arc(cx, cy - 10, 16, 0, Math.PI * 2); ctx.fill();
+    // Clapper
+    const swinging = isPlaying && !chState.vacuumOn;
+    const sw = swinging ? Math.sin(animTime * 0.3) * 3 : 0;
+    ctx.fillStyle = '#a08040';
+    ctx.beginPath(); ctx.arc(cx + sw, cy + 10, 6, 0, Math.PI * 2); ctx.fill();
+    // Vacuum indicator
+    ctx.fillStyle = chState.vacuumOn ? 'rgba(100,149,237,0.5)' : 'rgba(200,200,200,0.08)';
+    ctx.fillRect(cx - 40, cy - 40, 80, 80);
+    // Label
+    ctx.fillStyle = chState.vacuumOn ? '#4facfe' : 'rgba(255,255,255,0.4)';
+    ctx.font = '12px sans-serif';
+    ctx.fillText(chState.vacuumOn ? '🔇 真空 - 声音无法传播' : '🔊 空气 - 声音可传播', cx, cy + 60);
+    // Wave animation if NOT vacuum
+    if (!chState.vacuumOn && isPlaying) {
+      for (let i = 0; i < 3; i++) {
+        const px = cx + 20 + (animTime * 2 + i * 40) % 120;
+        ctx.strokeStyle = `rgba(255,149,0,${0.5 - px/240})`;
+        ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.arc(px, cy, 8 + i * 2, 0, Math.PI * 2); ctx.stroke();
+      }
     }
-  });
+    // Receiver on right
+    const rxx = W - 60;
+    ctx.fillStyle = chState.vacuumOn ? 'rgba(255,255,255,0.2)' : 'rgba(52,199,89,0.5)';
+    ctx.beginPath(); ctx.arc(rxx, cy + 5, 14, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#fff'; ctx.font = '16px sans-serif'; ctx.fillText('👂', rxx, cy + 10);
+    // Vacuum toggle button on canvas
+    const btnX = W/2 - 50, btnY = H - 55;
+    ctx.fillStyle = chState.vacuumOn ? '#4facfe' : 'rgba(255,255,255,0.08)';
+    roundRect(ctx, btnX, btnY, 100, 32, 8); ctx.fill();
+    ctx.fillStyle = '#fff'; ctx.font = '13px sans-serif';
+    ctx.fillText(chState.vacuumOn ? '🔛 关闭真空' : '🔘 开启真空', W/2, btnY + 16);
+    // Status
+    if (chState.done) {
+      ctx.fillStyle = '#34C759'; ctx.font = '15px sans-serif'; ctx.fillText('✅ 观察成功！声波需要介质传播', W/2, H/2 + 100);
+    }
 
-  // Input area
-  ctx.fillStyle = 'rgba(255,255,255,0.08)';
-  roundRect(ctx, W / 2 - 80, H / 2 - 30, 160, 50, 10);
-  ctx.fill();
-  ctx.fillStyle = 'rgba(255,255,255,0.35)';
-  ctx.font = '14px sans-serif';
-  ctx.fillText(`答案输入框（${ch.unit}）`, W / 2, H / 2 + 50);
+  } else if (ch.type === 'speed_race') {
+    // Three buttons for media
+    const lanes = ['空气', '水', '钢铁'];
+    const speeds = [340, 1500, 5200];
+    const bw = 90, bh = 40, gap = 14;
+    const tw = bw * 3 + gap * 2;
+    const sx = (W - tw) / 2;
+    lanes.forEach((n, i) => {
+      const x = sx + i * (bw + gap), by = gy + 20;
+      ctx.fillStyle = chState.raceClicked && chState.raceClicked.includes(i) ? MEDIA[i].color : 'rgba(255,255,255,0.06)';
+      roundRect(ctx, x, by, bw, bh, 10); ctx.fill();
+      ctx.fillStyle = chState.raceClicked && chState.raceClicked.includes(i) ? '#fff' : 'rgba(255,255,255,0.5)';
+      ctx.font = '15px sans-serif'; ctx.fillText(n, x + bw/2, by + bh/2);
+      // Speed display
+      if (chState.raceClicked && chState.raceClicked.includes(i)) {
+        ctx.fillStyle = MEDIA[i].color; ctx.font = '13px sans-serif';
+        ctx.fillText(speeds[i] + ' m/s', x + bw/2, by + bh + 18);
+      }
+    });
+    // Animation if a medium is racing
+    if (chState.racing !== undefined && isPlaying) {
+      const idx = chState.racing;
+      const sx2 = 30, ex = W - 30;
+      const progress = (animTime * 0.3 * (speeds[idx] / 340)) % 1;
+      const bx = sx2 + (ex - sx2) * progress;
+      ctx.fillStyle = MEDIA[idx].color;
+      ctx.beginPath(); ctx.arc(bx, srcY + 20, 10, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#fff'; ctx.font = '16px sans-serif'; ctx.fillText('🔊', bx, srcY + 24);
+      // Finish line
+      ctx.strokeStyle = 'rgba(255,255,255,0.3)'; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(ex, srcY - 30); ctx.lineTo(ex, srcY + 70); ctx.stroke();
+      if (progress > 0.95) {
+        // Mark this medium as done racing
+        if (chState.racingDone === undefined) chState.racingDone = {};
+        chState.racingDone[idx] = true;
+      }
+    } else {
+      // Draw finish line even when not racing
+      const ex = W - 30;
+      ctx.strokeStyle = 'rgba(255,255,255,0.3)'; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(ex, srcY - 30); ctx.lineTo(ex, srcY + 70); ctx.stroke();
+    }
+    // Status
+    if (chState.raceClicked && chState.raceClicked.length >= 3 && !chState.done) {
+      // Auto-complete when all three clicked
+    }
+    if (chState.done) {
+      ctx.fillStyle = '#34C759'; ctx.font = '15px sans-serif';
+      ctx.fillText('✅ 钢铁传声最快！固体 > 液体 > 气体', W/2, H - 20);
+    }
+
+  } else if (ch.type === 'echo') {
+    // Speaker on left, wall on right at variable distance
+    const wallX = 150 + chState.echoDist * 2.5;
+    const wy = srcY;
+    // Speaker
+    ctx.fillStyle = '#FF9500'; ctx.beginPath(); ctx.arc(50, wy, 14, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#fff'; ctx.font = '14px sans-serif'; ctx.fillText('🔊', 50, wy + 4);
+    // Wall
+    ctx.fillStyle = '#5a4a3a';
+    ctx.fillRect(wallX - 3, wy - 50, 6, 100);
+    ctx.fillStyle = '#8a7a6a';
+    ctx.font = '20px sans-serif'; ctx.fillText('🏔️', wallX + 8, wy + 6);
+    // Distance label
+    const distM = chState.echoDist;
+    ctx.fillStyle = 'rgba(255,255,255,0.3)'; ctx.font = '11px sans-serif';
+    ctx.fillText(distM + 'm', 60 + (wallX - 60) / 2, wy + 30);
+    // Emit button
+    const ebx = W/2 - 45, eby = H - 55;
+    ctx.fillStyle = chState.echoEmitting ? '#FF9500' : 'rgba(255,255,255,0.06)';
+    roundRect(ctx, ebx, eby, 90, 32, 8); ctx.fill();
+    ctx.fillStyle = '#fff'; ctx.font = '13px sans-serif';
+    ctx.fillText('🔊 发声', W/2, eby + 16);
+    // Wave animation
+    if (chState.echoEmitting) {
+      for (let i = 0; i < 3; i++) {
+        const px = 50 + (animTime * 3 + i * 50) % (wallX - 50);
+        ctx.strokeStyle = `rgba(255,149,0,${0.6 - px/(wallX-50)*0.5})`;
+        ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.arc(px, wy - 5, 6 + i * 3, 0, Math.PI * 2); ctx.stroke();
+      }
+      // Echo return
+      const echoDelay = distM * 2 / 340 * 60; // frames
+      if (animTime > echoDelay && animTime < echoDelay + 30) {
+        const epx = wallX - (animTime - echoDelay) * 3;
+        if (epx > 50) {
+          ctx.strokeStyle = `rgba(79,172,254,${0.8 - (wallX - epx)/(wallX-50)*0.5})`;
+          ctx.lineWidth = 2;
+          ctx.beginPath(); ctx.arc(epx, wy - 5, 8, 0, Math.PI * 2); ctx.stroke();
+        }
+      }
+      // Check if echo heard (round trip > 100ms = 34m at 340m/s one way)
+      // Actually min echo distance: s = v * t / 2 = 340 * 0.1 / 2 = 17m
+    }
+    if (chState.done) {
+      ctx.fillStyle = '#34C759'; ctx.font = '15px sans-serif';
+      ctx.fillText('✅ 找到回声距离：' + chState.echoAnswer + 'm', W/2, H - 20);
+    }
+
+  } else if (ch.type === 'temp') {
+    // Speed gauge
+    const gx = W/2, gy2 = srcY - 10;
+    ctx.strokeStyle = 'rgba(255,255,255,0.1)'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(gx, gy2 + 20, 60, 0, Math.PI); ctx.stroke();
+    // Current speed
+    const currentSpeed = 331 + 0.6 * chState.tempVal;
+    const angle = Math.PI * (currentSpeed - 331) / (355 - 331);
+    const lx = gx + 50 * Math.cos(Math.PI - angle);
+    const ly = gy2 + 20 - 50 * Math.sin(Math.PI - angle);
+    ctx.strokeStyle = currentSpeed >= chState.tempTarget - 1 && currentSpeed <= chState.tempTarget + 1 ? '#34C759' : '#FF9500';
+    ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.moveTo(gx, gy2 + 20); ctx.lineTo(lx, ly); ctx.stroke();
+    // Display speed
+    ctx.fillStyle = '#fff'; ctx.font = '28px sans-serif'; ctx.textBaseline = 'middle';
+    ctx.fillText(Math.round(currentSpeed) + ' m/s', W/2, gy2 + 60);
+    // Target
+    ctx.fillStyle = 'rgba(255,255,255,0.5)'; ctx.font = '14px sans-serif';
+    ctx.fillText('🎯 目标: ' + chState.tempTarget + ' m/s', W/2, gy2 + 85);
+    // Temperature bar
+    const barX = 30, barW = W - 60, barY = H - 50, barH = 10;
+    ctx.fillStyle = 'rgba(255,255,255,0.08)';
+    roundRect(ctx, barX, barY, barW, barH, 5); ctx.fill();
+    const fillW = (chState.tempVal - 0) / (40 - 0) * barW;
+    ctx.fillStyle = fillW / barW < 0.3 ? '#4facfe' : fillW / barW < 0.7 ? '#FF9500' : '#FF3B30';
+    roundRect(ctx, barX, barY, fillW, barH, 5); ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,0.4)'; ctx.font = '11px sans-serif'; ctx.textBaseline = 'top';
+    ctx.fillText('0°C', barX, barY + barH + 4);
+    ctx.fillText('40°C', barX + barW - 30, barY + barH + 4);
+    ctx.fillStyle = '#fff'; ctx.font = '12px sans-serif'; ctx.textBaseline = 'bottom';
+    ctx.fillText('🌡️ ' + Math.round(chState.tempVal) + '°C', W/2, barY - 4);
+    if (chState.done) {
+      ctx.fillStyle = '#34C759'; ctx.font = '15px sans-serif';
+      ctx.fillText('✅ 匹配成功！声速 = ' + Math.round(currentSpeed) + ' m/s', W/2, gy2 + 115);
+    }
+
+  } else if (ch.type === 'timed') {
+    // Race track
+    const ty = srcY;
+    // Start line
+    ctx.strokeStyle = 'rgba(255,255,255,0.3)'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(30, ty - 40); ctx.lineTo(30, ty + 40); ctx.stroke();
+    // Finish line (checkered)
+    const finX = 170 + chState.timedDist * 2.8;
+    ctx.fillStyle = 'rgba(255,255,255,0.2)';
+    ctx.fillRect(finX - 2, ty - 40, 4, 80);
+    // Animate if running
+    if (chState.timedRunning && isPlaying) {
+      const spd = MEDIA[chState.timedMedium].speed;
+      const travelTime = chState.timedDist / spd;
+      const progress = Math.min(1, animTime * 0.5 / travelTime);
+      const cx2 = 30 + (finX - 30) * progress;
+      ctx.fillStyle = MEDIA[chState.timedMedium].color;
+      ctx.beginPath(); ctx.arc(cx2, ty, 12, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#fff'; ctx.font = '14px sans-serif'; ctx.fillText('🔊', cx2, ty + 4);
+      // Elapsed time
+      ctx.fillStyle = '#fff'; ctx.font = '20px sans-serif';
+      ctx.fillText((animTime * 0.5).toFixed(1) + 's', W/2, ty + 70);
+    }
+    // Medium indicator
+    ctx.fillStyle = 'rgba(255,255,255,0.3)'; ctx.font = '12px sans-serif';
+    ctx.fillText('介质: ' + MEDIA[chState.timedMedium].name + ' | 距离: ' + chState.timedDist + 'm', W/2, ty + 100);
+    if (chState.done) {
+      ctx.fillStyle = '#34C759'; ctx.font = '15px sans-serif';
+      ctx.fillText('✅ 完成！' + MEDIA[chState.timedMedium].name + ' / ' + chState.timedDist + 'm = 2.0s', W/2, H - 20);
+    }
+  }
 }
 
 function roundRect(ctx, x, y, w, h, r) {
@@ -668,11 +876,12 @@ function updateUI() {
     if (state.done.includes(2)) {
       desc.innerHTML = '🎉 所有关卡挑战成功！ <button onclick="resetChallenges()" style="padding:6px 16px;background:#FF9500;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:13px;">🔄 重新挑战</button>';
     } else {
-      desc.innerHTML = `${m.desc} 当前第 ${state.challengeIdx + 1}/${CHALLENGES.length} 关。`;
+      desc.innerHTML = `${m.desc} 第 ${state.challengeIdx + 1}/${CHALLENGES.length} 关 | ${CHALLENGES[state.challengeIdx].goal}`;
     }
     document.getElementById('modeToggle').className = 'mode-toggle';
     document.getElementById('speedDisplay').style.display = 'none';
-    drawChallengeUI();
+    if (!chState._init) { initChallenge(); chState._init = true; }
+    renderChallengeControls();
   } else if (state.currentMission === 3) {
     if (state.done.includes(3)) {
       desc.innerHTML = '✅ 测验已完成！ <button onclick="startQuiz()" style="padding:6px 16px;background:#FF9500;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:13px;">🔄 再来一轮</button>';
@@ -720,68 +929,6 @@ function updateUI() {
   // Quiz overlay
   document.getElementById('quizOverlay').className = state.currentMission === 3 && state.quizIdx < QUIZ_POOL.length ? 'quiz-overlay show' : 'quiz-overlay';
   document.querySelector('.canvas-wrap').className = state.currentMission === 3 && state.quizIdx < QUIZ_POOL.length ? 'canvas-wrap quiz-active' : 'canvas-wrap';
-}
-
-function drawChallengeUI() {
-  // Canvas overlay for challenge input
-  const W = canvas.width, H = canvas.height;
-  ctx.clearRect(0, 0, W, H);
-  ctx.fillStyle = '#141626';
-  ctx.fillRect(0, 0, W, H);
-
-  const ch = CHALLENGES[state.challengeIdx] || CHALLENGES[0];
-  ctx.fillStyle = '#ffffff';
-  ctx.font = '15px sans-serif';
-  ctx.textAlign = 'center';
-
-  // Word-wrap the goal text
-  const words = ch.goal;
-  const maxW = W - 40;
-  let lines = [];
-  let line = '';
-  for (let c of words) {
-    line += c;
-    if (ctx.measureText(line).width > maxW) {
-      lines.push(line.slice(0, -1));
-      line = c;
-    }
-  }
-  if (line) lines.push(line);
-
-  let y = 40;
-  lines.forEach(l => {
-    ctx.fillText(l.trim(), W / 2, y);
-    y += 26;
-  });
-
-  // Answer buttons for challenge 3 (medium choice)
-  if (state.challengeIdx === 2) {
-    const btns = ['空气', '水', '钢铁'];
-    const btnW = 120, btnH = 50;
-    const totalW = btns.length * btnW + (btns.length - 1) * 12;
-    const startX = (W - totalW) / 2;
-    btns.forEach((b, i) => {
-      const bx = startX + i * (btnW + 12);
-      const by = 140;
-      ctx.fillStyle = i === exploreMedium ? '#FF9500' : '#eee';
-      roundRect(ctx, bx, by, btnW, btnH, 10);
-      ctx.fill();
-      ctx.fillStyle = i === exploreMedium ? '#fff' : '#666';
-      ctx.font = '16px sans-serif';
-      ctx.fillText(b, bx + btnW / 2, by + btnH / 2 + 6);
-    });
-  } else {
-    // Show formula hint
-    ctx.fillStyle = 'rgba(255,255,255,0.35)';
-    ctx.font = '14px sans-serif';
-    if (state.challengeIdx === 0 || state.challengeIdx === 1) {
-      ctx.fillText('提示: s = v × t ÷ 2（回声往返）', W / 2, y + 30);
-    } else if (state.challengeIdx === 3) {
-      ctx.fillText('提示: 两次声音 = 空气和铁传播时间差', W / 2, y + 30);
-    } else if (state.challengeIdx === 4) {
-      ctx.fillText('提示: Δs = (v₂ - v₁) × t', W / 2, y + 30);
-    }
-  }
 }
 
 // ── Observe ──
@@ -862,136 +1009,218 @@ canvas.addEventListener('click', (e) => {
 });
 
 // ── Challenge ──
-function drawChallengeUI() {
-  const W = canvas.width, H = canvas.height;
-  ctx.clearRect(0, 0, W, H);
-  ctx.fillStyle = '#141626';
-  ctx.fillRect(0, 0, W, H);
-
+// ── Challenge HTML Controls ──
+function renderChallengeControls() {
+  const desc = document.getElementById('missionDesc');
   const ch = CHALLENGES[state.challengeIdx] || CHALLENGES[0];
-  ctx.fillStyle = '#ffffff';
-  ctx.font = '15px sans-serif';
-  ctx.textAlign = 'center';
+  if (!desc) return;
 
-  // Word wrap
-  const maxW = W - 40;
-  let lines = [];
-  let line = '';
-  for (let c of ch.goal) {
-    line += c;
-    if (ctx.measureText(line).width > maxW && line.length > 10) {
-      lines.push(line);
-      line = '';
+  if (ch.type === 'vacuum') {
+    desc.innerHTML = '<div style="display:flex;flex-direction:column;gap:6px;">' +
+      '<span style="font-size:13px;color:rgba(255,255,255,0.6);">🔘 点击画布上的「开启真空」按钮，观察声波变化</span>' +
+      '<span style="font-size:11px;color:rgba(255,255,255,0.3);">提示：声音需要介质（空气）才能传播</span></div>';
+
+  } else if (ch.type === 'speed_race') {
+    const allClicked = chState.raceClicked && chState.raceClicked.length >= 3;
+    desc.innerHTML = '<div style="display:flex;flex-direction:column;gap:6px;">' +
+      '<span style="font-size:13px;color:rgba(255,255,255,0.6);">点击画布上的介质按钮（空气/水/钢铁），观察哪个传声最快</span>' +
+      (allClicked && !chState.done
+        ? '<button onclick="completeChallenge()" style="padding:8px 16px;background:#34C759;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;">✅ 我知道答案了 - 钢铁最快！</button>'
+        : '') +
+      '<span style="font-size:11px;color:rgba(255,255,255,0.3);">提示：固体 > 液体 > 气体</span></div>';
+
+  } else if (ch.type === 'echo') {
+    const dist = chState.echoDist || 5;
+    desc.innerHTML = '<div style="display:flex;flex-direction:column;gap:6px;">' +
+      '<span style="font-size:13px;color:rgba(255,255,255,0.6);">🎛️ 距离: <b style="color:#fff;">' + dist + 'm</b></span>' +
+      '<input type="range" min="5" max="50" value="' + dist + '" oninput="adjustEcho(this.value)" style="width:100%;accent-color:#FF9500;">' +
+      '<div style="display:flex;gap:6px;">' +
+      '<button onclick="emitEcho()" style="flex:1;padding:8px;background:#FF9500;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;">🔊 发声</button>' +
+      (chState.echoResult !== undefined
+        ? '<span style="flex:1;padding:8px;border-radius:8px;text-align:center;font-size:13px;font-weight:500;' +
+          (chState.echoResult ? 'background:rgba(52,199,89,0.15);color:#34C759;">✅ 听到回声！' : 'background:rgba(255,59,48,0.1);color:#FF3B30;">❌ 没有回声') + '</span>'
+        : '') +
+      '</div>' +
+      (chState.echoResult && !chState.done
+        ? '<button onclick="completeChallenge()" style="padding:8px;background:#34C759;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;">✅ 记下这个距离，通关！</button>'
+        : '') +
+      '<span style="font-size:11px;color:rgba(255,255,255,0.3);">提示：回声需要 ≥0.1s 的时间差 (≥17m)</span></div>';
+
+  } else if (ch.type === 'temp') {
+    const val = Math.round(chState.tempVal);
+    desc.innerHTML = '<div style="display:flex;flex-direction:column;gap:6px;">' +
+      '<span style="font-size:13px;color:rgba(255,255,255,0.6);">🌡️ 温度: <b style="color:#fff;">' + val + '°C</b></span>' +
+      '<input type="range" min="0" max="40" value="' + val + '" oninput="adjustTemp(this.value)" style="width:100%;accent-color:#FF9500;">' +
+      '<div style="font-size:12px;color:rgba(255,255,255,0.4);text-align:center;">当前声速: ' + Math.round(331 + 0.6 * val) + ' m/s &nbsp;|&nbsp; 🎯 目标: ' + chState.tempTarget + ' m/s</div>' +
+      (chState.done ? '<span style="text-align:center;color:#34C759;font-size:13px;font-weight:600;">✅ 匹配成功！</span>' : '') +
+      '<span style="font-size:11px;color:rgba(255,255,255,0.3);">提示：v = 331 + 0.6T（T为°C）</span></div>';
+
+  } else if (ch.type === 'timed') {
+    desc.innerHTML = '<div style="display:flex;flex-direction:column;gap:6px;">' +
+      '<span style="font-size:13px;color:rgba(255,255,255,0.6);">🔄 介质: <b style="color:#fff;">' + MEDIA[chState.timedMedium].name + '</b></span>' +
+      '<div style="display:flex;gap:4px;">' +
+      MEDIA.map((m,i) => '<button onclick="setTimedMedium('+i+')" style="flex:1;padding:6px;border-radius:6px;border:none;cursor:pointer;font-size:12px;font-weight:'+(i===chState.timedMedium?'600':'400')+';background:'+(i===chState.timedMedium?m.color:'rgba(255,255,255,0.06)')+';color:'+(i===chState.timedMedium?'#fff':'rgba(255,255,255,0.5)')+';">' + m.name + '</button>').join('') +
+      '</div>' +
+      '<span style="font-size:13px;color:rgba(255,255,255,0.6);">📏 距离: <b style="color:#fff;">' + chState.timedDist + 'm</b></span>' +
+      '<input type="range" min="10" max=' + (chState.timedMedium===0?'2000':chState.timedMedium===1?'9000':'30000') + ' value="' + chState.timedDist + '" oninput="adjustTimedDist(this.value)" style="width:100%;accent-color:#FF9500;">' +
+      '<div style="font-size:12px;color:rgba(255,255,255,0.4);text-align:center;">🏁 预计: ' + (chState.timedDist / MEDIA[chState.timedMedium].speed).toFixed(2) + 's &nbsp;|&nbsp; 🎯 目标: 2.0s</div>' +
+      '<button onclick="startTimedRace()" style="padding:8px;background:#FF9500;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;">▶ 发射</button>' +
+      (chState.done ? '<span style="text-align:center;color:#34C759;font-size:13px;font-weight:600;">✅ 精准命中 2.0s！</span>' : '') +
+      '<span style="font-size:11px;color:rgba(255,255,255,0.3);">提示：t = d / v，找距离让时间 = 2.0s</span></div>';
+  }
+}
+
+// ── Challenge Helpers ──
+function adjustEcho(v) {
+  chState.echoDist = parseInt(v);
+  chState.echoResult = undefined;
+  chState.echoEmitting = false;
+  renderChallengeControls();
+}
+
+function emitEcho() {
+  chState.echoEmitting = true;
+  chState.echoResult = undefined;
+  animTime = 0;
+  isPlaying = true;
+  // Calculate echo: round trip >= 0.1s = distance >= 17m
+  const dist = chState.echoDist;
+  const roundTripTime = dist * 2 / 340;
+  setTimeout(() => {
+    chState.echoResult = roundTripTime >= 0.1;
+    chState.echoEmitting = false;
+    isPlaying = false;
+    if (chState.echoResult) {
+      chState.echoAnswer = dist;
     }
-  }
-  if (line) lines.push(line);
-  let y = 40;
-  lines.forEach(l => { ctx.fillText(l.trim(), W / 2, y); y += 28; });
-
-  // Answer buttons
-  const btnW = 140, btnH = 46;
-  let options;
-  if (state.challengeIdx === 2) {
-    options = ['0: 空气', '1: 水', '2: 钢铁'];
-  } else {
-    options = ['输入答案', '看提示'];
-  }
-
-  const totalW = options.length * btnW + (options.length - 1) * 12;
-  const startX = (W - totalW) / 2;
-  options.forEach((b, i) => {
-    const bx = startX + i * (btnW + 12);
-    const by = 160;
-    ctx.fillStyle = 'rgba(255,255,255,0.04)';
-    roundRect(ctx, bx, by, btnW, btnH, 10);
-    ctx.fill();
-    ctx.fillStyle = 'rgba(255,255,255,0.65)';
-    ctx.font = '15px sans-serif';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(b, bx + btnW / 2, by + btnH / 2);
-  });
-
-  // Hint
-  ctx.fillStyle = 'rgba(255,255,255,0.35)';
-  ctx.font = '13px sans-serif';
-  ctx.textBaseline = 'bottom';
-  const hints = [
-    '提示: s = v×t÷2（往返路程要除以2）',
-    '提示: s = v×t',
-    '点击选择对应数字',
-    '提示: Δt = L/v₁ - L/v₂，代入求解L',
-    '提示: Δs = Δv × t'
-  ];
-  ctx.fillText(hints[state.challengeIdx] || '', W / 2, H - 10);
+    renderChallengeControls();
+  }, 1000 + roundTripTime * 1000);
 }
 
-function checkChallengeAnswer(input) {
-  const ch = CHALLENGES[state.challengeIdx];
-  if (!ch) return false;
-  if (state.challengeIdx === 2) {
-    return Math.abs(input - ch.answer) <= ch.tolerance;
+function adjustTemp(v) {
+  chState.tempVal = parseInt(v);
+  const speed = 331 + 0.6 * chState.tempVal;
+  if (Math.abs(speed - chState.tempTarget) <= 1) {
+    chState.done = true;
+    isPlaying = false;
+    renderChallengeControls();
   }
-  return Math.abs(input - ch.answer) <= ch.tolerance;
+  drawScene();
 }
 
-// Canvas click for challenges
+function setTimedMedium(i) {
+  chState.timedMedium = i;
+  chState.timedRunning = false;
+  isPlaying = false;
+  // Adjust dist slider max based on medium
+  chState.timedDist = Math.min(chState.timedDist, i===0 ? 2000 : i===1 ? 9000 : 30000);
+  renderChallengeControls();
+  drawScene();
+}
+
+function adjustTimedDist(v) {
+  chState.timedDist = parseInt(v);
+  renderChallengeControls();
+  drawScene();
+}
+
+function startTimedRace() {
+  chState.timedRunning = true;
+  isPlaying = true;
+  animTime = 0;
+  const spd = MEDIA[chState.timedMedium].speed;
+  const targetTime = 2.0;
+  const requiredDist = spd * targetTime;
+  const tolerance = 5; // meters tolerance
+  setTimeout(() => {
+    chState.timedRunning = false;
+    isPlaying = false;
+    if (Math.abs(chState.timedDist - requiredDist) <= tolerance) {
+      chState.done = true;
+    }
+    renderChallengeControls();
+  }, 2500);
+}
+
+// ── Canvas click for challenges ──
 canvas.addEventListener('click', (e) => {
   if (state.currentMission !== 2) return;
   const rect = canvas.getBoundingClientRect();
   const scaleX = canvas.width / rect.width;
   const x = (e.clientX - rect.left) * scaleX;
+  const y = (e.clientY - rect.top) * scaleX;
+  const W = canvas.width, H = canvas.height;
+  const ch = CHALLENGES[state.challengeIdx] || CHALLENGES[0];
 
-  // If challenge 3 (medium choice), check clicks on answer buttons
-  if (state.challengeIdx === 2) {
-    const btnW = 140, btnH = 46;
-    const totalW = 3 * btnW + 24;
-    const startX2 = (canvas.width - totalW) / 2;
-    for (let i = 0; i < 3; i++) {
-      const bx = startX2 + i * (btnW + 12);
-      const by = 160;
-      if (x >= bx && x <= bx + btnW) {
-        if (checkChallengeAnswer(i)) {
-          state.challengeIdx++;
-          if (state.challengeIdx >= CHALLENGES.length) {
-            if (!state.done.includes(2)) state.done.push(2);
-            saveState();
-            updateUI();
-          } else {
-            saveState();
-            updateUI();
-          }
+  if (ch.type === 'vacuum') {
+    // Vacuum toggle button
+    const btnX = W/2 - 50, btnY = H - 55;
+    if (x >= btnX && x <= btnX + 100 && y >= btnY && y <= btnY + 32) {
+      chState.vacuumOn = !chState.vacuumOn;
+      if (!chState.vacuumOn) { isPlaying = true; animTime = 0; }
+      else { isPlaying = false; }
+      if (chState.vacuumOn) {
+        // Vacuum means no sound - mark success after brief animation
+        chState.done = true;
+        if (!chState._obsDone) {
+          chState._obsDone = true;
         }
+      }
+      drawScene();
+    }
+
+  } else if (ch.type === 'speed_race') {
+    // Medium buttons
+    const bw = 90, bh = 40, gap = 14;
+    const tw = bw * 3 + gap * 2;
+    const sx = (W - tw) / 2;
+    // Recalculate goal text height
+    let calcGy = 24;
+    const goal = ch.goal;
+    let gLines = [], gLine = '';
+    for (let c of goal) { gLine += c; if (gLine.length > 25) { gLines.push(gLine); gLine = ''; } }
+    if (gLine) gLines.push(gLine);
+    calcGy = 24 + gLines.length * 20;
+
+    for (let i = 0; i < 3; i++) {
+      const bx = sx + i * (bw + gap), by = calcGy + 20;
+      if (x >= bx && x <= bx + bw && y >= by && y <= by + bh) {
+        if (!chState.raceClicked) chState.raceClicked = [];
+        if (!chState.raceClicked.includes(i)) {
+          chState.raceClicked.push(i);
+          chState.racing = i;
+          animTime = 0;
+          isPlaying = true;
+          setTimeout(() => {
+            if (chState.raceClicked && chState.raceClicked.length >= 3) {
+              renderChallengeControls();
+            }
+          }, 2000);
+        }
+        drawScene();
         return;
       }
     }
   }
-
-  // For other challenges, prompt for answer input
-  const userInput = prompt('输入你的答案（数字）:', '');
-  if (userInput === null) return;
-  const num = parseFloat(userInput);
-  if (isNaN(num)) return;
-
-  if (checkChallengeAnswer(num)) {
-    state.challengeIdx++;
-    if (state.challengeIdx >= CHALLENGES.length) {
-      if (!state.done.includes(2)) state.done.push(2);
-      saveState();
-      updateUI();
-      alert('🎉 恭喜通关！');
-    } else {
-      saveState();
-      updateUI();
-    }
-  } else {
-    alert('❌ 答案不对，再想想！');
-  }
 });
+
+function completeChallenge() {
+  state.challengeIdx++;
+  if (state.challengeIdx >= CHALLENGES.length) {
+    if (!state.done.includes(2)) state.done.push(2);
+    saveState();
+    updateUI();
+  } else {
+    saveState();
+    updateUI();
+  }
+}
 
 function resetChallenges() {
   state.challengeIdx = 0;
   const idx = state.done.indexOf(2);
   if (idx >= 0) state.done.splice(idx, 1);
+  chState = {}; // reset all game state
   saveState();
   updateUI();
 }

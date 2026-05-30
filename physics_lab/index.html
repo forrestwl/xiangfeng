@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>相风 · 物理</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "PingFang SC", "Helvetica Neue", sans-serif;
+    min-height: 100dvh;
+    background: linear-gradient(135deg, #0c0e1a 0%, #1a1e3a 30%, #0d1b2a 60%, #0a0e1a 100%);
+    padding: 30px 20px;
+    position: relative;
+    overflow-x: hidden;
+  }
+  body::before {
+    content: '';
+    position: fixed;
+    top: -50%; left: -50%;
+    width: 200%; height: 200%;
+    background: radial-gradient(ellipse at 20% 50%, rgba(0, 122, 255, 0.06) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 20%, rgba(175, 82, 222, 0.05) 0%, transparent 50%),
+                radial-gradient(ellipse at 50% 80%, rgba(0, 200, 100, 0.04) 0%, transparent 50%);
+    pointer-events: none;
+    z-index: 0;
+  }
+  .container { max-width: 960px; margin: 0 auto; position: relative; z-index: 1; }
+
+  /* Header */
+  .header { text-align: center; margin-bottom: 40px; }
+  .header .logo {
+    display: inline-block;
+    font-size: 14px; font-weight: 700; letter-spacing: 3px;
+    background: linear-gradient(135deg, #4facfe, #00f2fe);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+  }
+  .header h1 {
+    font-size: 38px; font-weight: 800;
+    background: linear-gradient(135deg, #fff 0%, #4facfe 50%, #00f2fe 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 6px;
+  }
+  .header p { color: rgba(255,255,255,0.4); font-size: 15px; }
+  .header .progress-wrap {
+    margin-top: 16px;
+    display: flex; align-items: center; justify-content: center; gap: 14px;
+  }
+  .header .progress-bar {
+    width: 300px; height: 4px;
+    background: rgba(255,255,255,0.08);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .header .progress-bar .fill {
+    height: 100%;
+    background: linear-gradient(90deg, #4facfe, #00f2fe);
+    border-radius: 2px;
+    width: 0%;
+    transition: width 0.6s ease;
+  }
+  .header .progress-text { font-size: 13px; color: rgba(255,255,255,0.35); }
+
+  /* Modules Grid */
+  .modules { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+
+  .module {
+    display: block;
+    padding: 22px 20px;
+    border-radius: 16px;
+    text-decoration: none;
+    color: inherit;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.06);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+  }
+  .module::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: linear-gradient(135deg, rgba(255,255,255,0.04) 0%, transparent 60%);
+    pointer-events: none;
+  }
+  .module:hover {
+    border-color: rgba(79, 172, 254, 0.3);
+    background: rgba(255,255,255,0.07);
+    transform: translateY(-3px);
+    box-shadow: 0 12px 40px rgba(79, 172, 254, 0.1);
+  }
+  .module:active { transform: translateY(-1px); }
+
+  .module .icon { font-size: 32px; margin-bottom: 6px; display: block; }
+  .module h3 { font-size: 16px; font-weight: 600; color: #fff; margin: 4px 0 2px; }
+  .module p { font-size: 12.5px; color: rgba(255,255,255,0.35); line-height: 1.5; }
+  .module .meta { margin-top: 10px; display: flex; gap: 10px; align-items: center; }
+  .module .meta .tag {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 500;
+  }
+  .module .meta .tag.done {
+    background: rgba(52, 199, 89, 0.15);
+    color: #34C759;
+    border: 1px solid rgba(52, 199, 89, 0.2);
+  }
+  .module .meta .tag.active {
+    background: rgba(79, 172, 254, 0.15);
+    color: #4facfe;
+    border: 1px solid rgba(79, 172, 254, 0.2);
+  }
+  .module .meta .tag.pending {
+    background: rgba(255,255,255,0.06);
+    color: rgba(255,255,255,0.3);
+    border: 1px solid rgba(255,255,255,0.08);
+  }
+  .module .meta span.non-tag { font-size: 11px; color: rgba(255,255,255,0.3); }
+
+  /* Glow accent per module (via JS) */
+  .module.glow-01:hover { box-shadow: 0 12px 40px rgba(255,149,0,0.12); border-color: rgba(255,149,0,0.3); }
+  .module.glow-02:hover { box-shadow: 0 12px 40px rgba(255,149,0,0.12); border-color: rgba(255,149,0,0.3); }
+  .module.glow-03:hover { box-shadow: 0 12px 40px rgba(0,122,255,0.12); border-color: rgba(0,122,255,0.3); }
+  .module.glow-04:hover { box-shadow: 0 12px 40px rgba(0,122,255,0.12); border-color: rgba(0,122,255,0.3); }
+  .module.glow-05:hover { box-shadow: 0 12px 40px rgba(52,199,89,0.12); border-color: rgba(52,199,89,0.3); }
+  .module.glow-06:hover { box-shadow: 0 12px 40px rgba(175,82,222,0.12); border-color: rgba(175,82,222,0.3); }
+  .module.glow-07:hover { box-shadow: 0 12px 40px rgba(255,59,48,0.12); border-color: rgba(255,59,48,0.3); }
+  .module.glow-08:hover { box-shadow: 0 12px 40px rgba(196,150,50,0.12); border-color: rgba(196,150,50,0.3); }
+  .module.glow-09:hover { box-shadow: 0 12px 40px rgba(6,182,212,0.12); border-color: rgba(6,182,212,0.3); }
+  .module.glow-10:hover { box-shadow: 0 12px 40px rgba(255,59,48,0.12); border-color: rgba(255,59,48,0.3); }
+  .module.glow-11:hover { box-shadow: 0 12px 40px rgba(0,122,255,0.12); border-color: rgba(0,122,255,0.3); }
+  .module.glow-12:hover { box-shadow: 0 12px 40px rgba(255,149,0,0.12); border-color: rgba(255,149,0,0.3); }
+  .module.glow-13:hover { box-shadow: 0 12px 40px rgba(175,82,222,0.12); border-color: rgba(175,82,222,0.3); }
+
+  @media (max-width: 640px) {
+    .modules { grid-template-columns: 1fr; }
+    body { padding: 20px 14px; }
+    .header h1 { font-size: 28px; }
+    .header .progress-bar { width: 200px; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <a href="../index.html" style="text-decoration:none;"><div class="logo">✦ 相风 · 物理</div></a>
+    <h1>🔬 物理实验室</h1>
+    <p>初中物理 · 13 个模块 · 互动实验学习</p>
+    <div class="progress-wrap">
+      <div class="progress-bar"><div class="fill" id="globalFill"></div></div>
+      <span class="progress-text" id="globalProgress">加载中...</span>
+    </div>
+  </div>
+  <div class="modules" id="moduleGrid"></div>
+</div>
+
+<script>
+const MODULES = [
+  { num: '01', icon: '🔊', title: '声现象', desc: '声音的产生与传播、回声、响度音调音色、噪声防治', dir: '01_声现象', status: 'active', g: 1 },
+  { num: '02', icon: '🌡️', title: '物态变化', desc: '温度、熔化凝固、汽化液化、升华凝华', dir: '02_物态变化', status: 'active', g: 2 },
+  { num: '03', icon: '🔦', title: '光现象', desc: '光的传播、反射、折射、透镜、成像规律、色散', dir: '03_光现象', status: 'active', g: 3 },
+  { num: '04', icon: '⚖️', title: '质量与密度', desc: '质量、天平、密度测量、密度的应用', dir: '04_质量与密度', status: 'active', g: 4 },
+  { num: '05', icon: '🚗', title: '运动和力', desc: '牛顿第一定律、惯性、二力平衡、摩擦力', dir: '05_运动和力', status: 'active', g: 5 },
+  { num: '06', icon: '💨', title: '压强', desc: '压力压强、液体压强、大气压强、流体压强', dir: '06_压强', status: 'active', g: 6 },
+  { num: '07', icon: '🚢', title: '浮力', desc: '浮力产生原因、阿基米德原理、浮沉条件', dir: '07_浮力', status: 'active', g: 7 },
+  { num: '08', icon: '🔧', title: '简单机械', desc: '杠杆、滑轮、斜面、机械效率', dir: '08_简单机械', status: 'active', g: 8 },
+  { num: '09', icon: '⚡', title: '功和机械能', desc: '功、功率、动能势能、机械能守恒', dir: '09_功和机械能', status: 'active', g: 9 },
+  { num: '10', icon: '🔥', title: '内能', desc: '分子热运动、比热容、热值、热机', dir: '10_内能', status: 'active', g: 10 },
+  { num: '11', icon: '💡', title: '电流和电路', desc: '电荷、电路、电流电压电阻、欧姆定律', dir: '11_电流和电路', status: 'active', g: 11 },
+  { num: '12', icon: '🔌', title: '电功率', desc: '电能、电功率、焦耳定律、家庭电路', dir: '12_电功率', status: 'active', g: 12 },
+  { num: '13', icon: '🧲', title: '电与磁', desc: '磁现象、奥斯特实验、电磁铁、电动机发电机', dir: '13_电与磁', status: 'active', g: 13 }
+];
+
+function getProgress(dir) {
+  const prefixMap = {
+    '01_声现象': { key: 'physics_sound', count: 4 },
+    '02_物态变化': { key: 'physics_wen_tai_bian_hua', count: 4 },
+    '03_光现象': { key: 'physics_optics', count: 6 },
+    '04_质量与密度': { key: 'physics_zhi_liang_yu_mi_du', count: 4 },
+    '05_运动和力': { key: 'physics_yun_dong_he_li', count: 4 },
+    '06_压强': { key: 'physics_ya_qiang', count: 4 },
+    '07_浮力': { key: 'physics_fu_li', count: 4 },
+    '08_简单机械': { key: 'physics_jian_dan_ji_xie', count: 4 },
+    '09_功和机械能': { key: 'physics_gong_he_ji_xie_neng', count: 4 },
+    '10_内能': { key: 'physics_nei_neng', count: 4 },
+    '11_电流和电路': { key: 'physics_dian_liu_he_dian_lu', count: 6 },
+    '12_电功率': { key: 'physics_dian_gong_lv', count: 4 },
+    '13_电与磁': { key: 'physics_dian_yu_ci', count: 5 }
+  };
+  const info = prefixMap[dir];
+  if (!info) return { done: 0, total: 0 };
+  let done = 0;
+  for (let i = 1; i <= info.count; i++) {
+    try {
+      const d = JSON.parse(localStorage.getItem(info.key + '_ch' + i));
+      if (d && d.done) done += Math.min(d.done.length, 4);
+    } catch(e) {}
+  }
+  return { done, total: info.count * 4 };
+}
+
+function render() {
+  let totalDone = 0, totalMissions = 0;
+  const grid = document.getElementById('moduleGrid');
+  grid.innerHTML = MODULES.map(m => {
+    const { done, total } = getProgress(m.dir);
+    totalDone += done; totalMissions += total;
+    const pct = total > 0 ? Math.round(done / total * 100) : 0;
+    let sc = m.status === 'done' ? 'done' : 'active';
+    let st = '🔄 学习中';
+    if (pct === 100) { sc = 'done'; st = '✅ 已掌握'; }
+    return `<a class="module glow-${String(m.g).padStart(2,'0')}" href="${m.dir}/index.html">
+      <span class="icon">${m.icon}</span>
+      <h3>${m.num}. ${m.title}</h3>
+      <p>${m.desc}</p>
+      <div class="meta">
+        <span class="tag ${sc}">${st}</span>
+        <span class="non-tag">${done}/${total}</span>
+      </div>
+    </a>`;
+  }).join('');
+  const pct = totalMissions > 0 ? Math.round(totalDone / totalMissions * 100) : 0;
+  document.getElementById('globalFill').style.width = pct + '%';
+  document.getElementById('globalProgress').textContent = `已完成 ${totalDone}/${totalMissions}`;
+}
+render();
+</script>
+</body>
+</html>

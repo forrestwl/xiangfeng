@@ -1,0 +1,1347 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PET 单词侦探</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "PingFang SC", "Helvetica Neue", sans-serif;
+  min-height: 100dvh;
+  background: linear-gradient(135deg, #0c0e1a 0%, #1a1e3a 30%, #0d1b2a 60%, #0a0e1a 100%);
+  display: flex; justify-content: center; align-items: center; padding: 16px;
+  position: relative;
+}
+body::before {
+  content: ''; position: fixed; top: -50%; left: -50%; width: 200%; height: 200%;
+  background: radial-gradient(ellipse at 20% 50%, rgba(0,122,255,0.06) 0%, transparent 50%),
+              radial-gradient(ellipse at 80% 20%, rgba(0,242,254,0.04) 0%, transparent 50%);
+  pointer-events: none; z-index: 0;
+}
+.app {
+  width: 520px; max-width: 100vw; min-height: 600px; max-height: 96dvh;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 24px;
+  backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
+  display: flex; flex-direction: column; overflow: hidden;
+  position: relative; z-index: 1;
+}
+.header {
+  padding: 20px 24px 12px; text-align: center; flex-shrink: 0;
+  background: linear-gradient(180deg, rgba(0,122,255,0.06) 0%, transparent 100%);
+}
+.header .logo { font-size: 11px; font-weight: 700; letter-spacing: 3px; background: linear-gradient(135deg, #4facfe, #00f2fe); -webkit-background-clip: text; -webkit-text-fill-color: transparent; text-transform: uppercase; }
+.header h1 { font-size: 22px; font-weight: 800; background: linear-gradient(135deg, #fff 0%, #4facfe 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin: 2px 0; }
+.header p { color: rgba(255,255,255,0.35); font-size: 12px; }
+.body { flex: 1; overflow-y: auto; padding: 8px 20px 16px; }
+.body::-webkit-scrollbar { width: 4px; }
+.body::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
+
+/* Buttons */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  padding: 10px 24px; border-radius: 12px; font-size: 14px; font-weight: 500;
+  cursor: pointer; transition: all 0.2s; border: none; text-decoration: none;
+}
+.btn-primary { background: linear-gradient(135deg, #007AFF, #00f2fe); color: #fff; }
+.btn-primary:hover { transform: translateY(-1px); box-shadow: 0 4px 20px rgba(0,122,255,0.3); }
+.btn-secondary { background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.7); border: 1px solid rgba(255,255,255,0.08); }
+.btn-secondary:hover { background: rgba(255,255,255,0.1); color: #fff; }
+.btn-danger { background: rgba(255,59,48,0.1); color: #FF453A; border: 1px solid rgba(255,59,48,0.15); }
+.btn-danger:hover { background: rgba(255,59,48,0.2); }
+.btn-block { display: flex; width: 100%; }
+.btn-sm { padding: 6px 14px; font-size: 12px; border-radius: 8px; }
+.btn-lg { padding: 14px 32px; font-size: 16px; border-radius: 14px; }
+.btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none !important; }
+
+/* Cards */
+.card {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 16px; padding: 16px 20px;
+  transition: all 0.2s;
+}
+.card:hover { border-color: rgba(255,255,255,0.1); }
+
+/* Input */
+.input {
+  width: 100%; padding: 10px 16px; border-radius: 10px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.08);
+  color: #fff; font-size: 14px; outline: none;
+  font-family: inherit; transition: border-color 0.2s;
+}
+.input:focus { border-color: #007AFF; }
+.input::placeholder { color: rgba(255,255,255,0.25); }
+
+/* Option button */
+.option-btn { width: 100%; }
+.option-btn .btn { width: 100%; padding: 14px 20px; font-size: 15px; justify-content: flex-start; border-radius: 14px; background: rgba(255,255,255,0.04); color: rgba(255,255,255,0.85); border: 1px solid rgba(255,255,255,0.06); }
+.option-btn .btn:hover { background: rgba(0,122,255,0.1); border-color: rgba(0,122,255,0.2); color: #fff; }
+.option-btn .btn.correct { background: rgba(52,199,89,0.15) !important; border-color: #34C759 !important; color: #34C759 !important; }
+.option-btn .btn.wrong { background: rgba(255,59,48,0.15) !important; border-color: #FF453A !important; color: #FF453A !important; }
+
+/* Progress bar */
+.progress-bar { height: 4px; background: rgba(255,255,255,0.06); border-radius: 2px; overflow: hidden; margin: 8px 0; }
+.progress-bar .fill { height: 100%; background: linear-gradient(90deg, #007AFF, #00f2fe); border-radius: 2px; transition: width 0.3s; }
+
+/* Badge */
+.badge { display: inline-block; padding: 2px 10px; border-radius: 20px; font-size: 11px; font-weight: 500; }
+.badge-blue { background: rgba(0,122,255,0.1); color: #4facfe; border: 1px solid rgba(0,122,255,0.15); }
+.badge-green { background: rgba(52,199,89,0.1); color: #34C759; border: 1px solid rgba(52,199,89,0.15); }
+.badge-gold { background: rgba(255,215,0,0.1); color: #FFD700; border: 1px solid rgba(255,215,0,0.15); }
+
+/* Stats row */
+.stats { display: flex; gap: 8px; }
+.stat-card { flex: 1; padding: 12px; border-radius: 12px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); text-align: center; }
+.stat-card .num { font-size: 20px; font-weight: 700; display: block; }
+.stat-card .label { font-size: 10px; color: rgba(255,255,255,0.35); margin-top: 2px; }
+
+/* Misc */
+.muted { color: rgba(255,255,255,0.35); font-size: 12px; }
+.flex { display: flex; gap: 8px; }
+.flex-center { display: flex; align-items: center; justify-content: center; gap: 8px; }
+.gap-4 { gap: 4px; }
+.gap-8 { gap: 8px; }
+.gap-12 { gap: 12px; }
+.mt-4 { margin-top: 4px; }
+.mt-8 { margin-top: 8px; }
+.mt-12 { margin-top: 12px; }
+.mt-16 { margin-top: 16px; }
+.mb-8 { margin-bottom: 8px; }
+.mb-12 { margin-bottom: 12px; }
+.text-center { text-align: center; }
+.hidden { display: none !important; }
+.fade-in { animation: fadeIn 0.3s ease; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+.slide-up { animation: slideUp 0.4s ease; }
+@keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
+.pulse { animation: pulse 0.5s ease; }
+</style>
+</head>
+<body>
+<div class="app" id="app">
+  <div class="header">
+    <a href="../index.html" style="text-decoration:none;"><div class="logo">✦ 相风 · 词侦</div></a>
+    <h1>🐾 PET 单词侦探</h1>
+    <p id="headerSub">剑桥 PET (B1) · 在阅读中识词</p>
+  </div>
+  <div class="body" id="appBody"></div>
+</div>
+
+<script>
+// ══════════════════════════════════════════
+// DATA
+// ══════════════════════════════════════════
+const WORDS = [
+  ["appointment", "预约", "I have a dentist appointment at 3 o'clock.", "我三点有个牙医预约。"],
+  ["arrange", "安排", "Can you arrange a meeting for next week?", "你能安排下周的会议吗？"],
+  ["borrow", "借入", "Can I borrow your pen for a moment?", "我能借你的笔用一下吗？"],
+  ["collect", "收集；领取", "I need to collect my ticket from the station.", "我需要在车站取票。"],
+  ["comfortable", "舒适的", "This chair is very comfortable to sit in.", "这把椅子坐着很舒服。"],
+  ["decide", "决定", "We need to decide where to go on holiday.", "我们需要决定去哪里度假。"],
+  ["expect", "期望；预料", "I expect the train will be late today.", "我预料今天火车会晚点。"],
+  ["fix", "修理", "Can you fix this broken chair?", "你能修好这把坏椅子吗？"],
+  ["forget", "忘记", "Don't forget to lock the door when you leave.", "走的时候别忘了锁门。"],
+  ["invite", "邀请", "They invited us to their party on Saturday.", "他们邀请我们参加周六的派对。"],
+  ["lend", "借出", "Could you lend me your umbrella?", "你能把雨伞借给我吗？"],
+  ["manage", "设法做到", "I managed to finish the work on time.", "我设法按时完成了工作。"],
+  ["offer", "提供；提议", "She offered to help me with my homework.", "她主动提出帮我做作业。"],
+  ["ordinary", "普通的", "It was just an ordinary day at school.", "那只是学校里普通的一天。"],
+  ["prepare", "准备", "I need to prepare for the exam tonight.", "我今晚需要准备考试。"],
+  ["receive", "收到", "I received a letter from my friend in Japan.", "我收到了日本朋友的来信。"],
+  ["recommend", "推荐", "Can you recommend a good restaurant nearby?", "你能推荐附近一家好餐厅吗？"],
+  ["remind", "提醒", "Please remind me to call her tomorrow.", "请提醒我明天给她打电话。"],
+  ["responsible", "负责的", "Who is responsible for locking the office?", "谁负责锁办公室的门？"],
+  ["several", "几个", "I have read several books about history.", "我读了几本关于历史的书。"],
+  ["spend", "花费", "I usually spend two hours on my homework.", "我通常花两个小时做作业。"],
+  ["useful", "有用的", "This app is very useful for learning English.", "这个APP对学英语很有用。"],
+  ["valuable", "珍贵的", "This old watch is valuable to my family.", "这块旧表对我的家人来说很珍贵。"],
+  ["waste", "浪费", "Don't waste your time watching too much TV.", "别把时间浪费在看太多电视上。"],
+  ["worry", "担心", "Don't worry about the test; you will do well.", "别担心考试，你会考好的。"],
+  ["abroad", "在国外", "She wants to study abroad next year.", "她明年想出国留学。"],
+  ["accommodation", "住宿", "We need to find accommodation for the night.", "我们需要找地方过夜。"],
+  ["ancient", "古老的", "We visited an ancient temple in the city.", "我们参观了城里一座古老的寺庙。"],
+  ["attract", "吸引", "The museum attracts many visitors every year.", "这个博物馆每年吸引很多游客。"],
+  ["cancelled", "已取消的", "The flight was cancelled because of the storm.", "航班因为暴风雨取消了。"],
+  ["crowded", "拥挤的", "The train station was very crowded this morning.", "今天早上火车站非常拥挤。"],
+  ["delay", "延误", "The flight was delayed by two hours.", "航班延误了两个小时。"],
+  ["destination", "目的地", "We finally arrived at our destination.", "我们终于到达了目的地。"],
+  ["direction", "方向", "Can you tell me the direction to the station?", "你能告诉我去车站的方向吗？"],
+  ["explore", "探索", "We explored the old town for hours.", "我们花了好几个小时探索老城区。"],
+  ["journey", "行程", "The journey from London to Paris takes two hours.", "从伦敦到巴黎的行程大约两小时。"],
+  ["passenger", "乘客", "The bus can carry up to fifty passengers.", "这辆巴士最多可载五十名乘客。"],
+  ["platform", "站台", "The train to Beijing leaves from platform 3.", "去北京的火车从3号站台出发。"],
+  ["reserve", "预订", "I'd like to reserve a table for four.", "我想预订一张四人桌。"],
+  ["return", "返回；归还", "When will you return from your trip?", "你什么时候旅行回来？"],
+  ["sightseeing", "观光", "We did some sightseeing around the city.", "我们在城里逛了逛。"],
+  ["souvenir", "纪念品", "I bought a souvenir for my family.", "我给家人买了纪念品。"],
+  ["suitable", "适合的", "This hotel is suitable for families.", "这家酒店适合有孩子的家庭。"],
+  ["traffic", "交通", "The traffic in the city centre is terrible.", "市中心的交通糟透了。"],
+  ["transport", "交通", "Public transport is very convenient here.", "这里的公共交通很方便。"],
+  ["achieve", "实现", "She worked hard to achieve her goal.", "她努力工作以实现目标。"],
+  ["admit", "承认", "He admitted that he made a mistake.", "他承认自己犯了一个错误。"],
+  ["advantage", "优势", "Being tall is an advantage in basketball.", "个子高是打篮球的优势。"],
+  ["attend", "参加", "All students must attend the meeting.", "所有学生都必须参加会议。"],
+  ["concentrate", "集中注意力", "I can't concentrate with all this noise.", "这么吵我无法集中注意力。"],
+  ["confident", "自信的", "She felt confident about passing the exam.", "她对通过考试很有信心。"],
+  ["course", "课程", "I'm taking a course in English literature.", "我正在修一门英语文学课程。"],
+  ["degree", "学位", "She has a degree in economics.", "她有经济学学位。"],
+  ["encourage", "鼓励", "My teacher encouraged me to try again.", "我的老师鼓励我再试一次。"],
+  ["examination", "考试", "The final examination will be in June.", "期末考试将在六月进行。"],
+  ["improve", "提高", "I want to improve my English speaking.", "我想提高英语口语能力。"],
+  ["knowledge", "知识", "He has a good knowledge of Chinese history.", "他对中国历史很了解。"],
+  ["opportunity", "机会", "This is a great opportunity to learn.", "这是学习的好机会。"],
+  ["practice", "练习", "Practice makes perfect.", "熟能生巧。"],
+  ["recognise", "认出", "I didn't recognise him after all these years.", "这么多年后我没认出他。"],
+  ["require", "需要", "This course requires a lot of reading.", "这门课需要大量阅读。"],
+  ["revise", "复习", "I need to revise for the maths test.", "我需要复习准备数学考试。"],
+  ["subject", "科目", "My favourite subject is science.", "我最喜欢的科目是科学。"],
+  ["succeed", "成功", "If you try hard, you will succeed.", "如果你努力，就会成功。"],
+  ["apply", "申请", "I want to apply for a part-time job at the library.", "我想申请图书馆的兼职。"],
+  ["career", "职业", "She has a successful career in marketing.", "她在市场营销领域事业有成。"],
+  ["colleague", "同事", "My colleague helped me finish the report.", "我的同事帮我完成了报告。"],
+  ["company", "公司", "He works for a large international company.", "他在一家大型国际公司工作。"],
+  ["customer", "顾客", "The customer asked for a refund.", "顾客要求退款。"],
+  ["employ", "雇用", "The company employs over 500 people.", "这家公司雇用了500多人。"],
+  ["experience", "经验", "Do you have any experience in teaching?", "你有教学经验吗？"],
+  ["interview", "面试", "I have a job interview tomorrow.", "我明天上午有个面试。"],
+  ["organise", "组织", "She organised the whole event by herself.", "她独自组织了整个活动。"],
+  ["promote", "晋升", "She was promoted to manager last month.", "她上个月被提升为经理了。"],
+  ["salary", "薪水", "The salary for this job is quite good.", "这份工作的薪水相当不错。"],
+  ["staff", "员工", "All staff must attend the meeting.", "所有员工都必须参加会议。"],
+  ["balanced", "均衡的", "It's important to have a balanced diet.", "均衡饮食很重要。"],
+  ["contain", "包含", "This drink contains a lot of sugar.", "这种饮料含有很多糖。"],
+  ["diet", "饮食", "A healthy diet includes fruits and vegetables.", "健康饮食包括水果和蔬菜。"],
+  ["energy", "能量", "I need more energy to get through the day.", "我需要更多精力撑过一天。"],
+  ["exercise", "锻炼", "Regular exercise is good for your health.", "定期锻炼对你的健康有好处。"],
+  ["ingredient", "成分", "The main ingredients are flour and eggs.", "主要原料是面粉和鸡蛋。"],
+  ["injure", "受伤", "He injured his leg during the football match.", "他在足球比赛中伤了腿。"],
+  ["medicine", "药", "Take this medicine three times a day.", "这种药一天吃三次。"],
+  ["patient", "病人；耐心的", "The patient is recovering well.", "病人恢复良好。"],
+  ["recover", "恢复", "It took her long to recover from the illness.", "她花了很长时间才恢复。"],
+  ["reduce", "减少", "You should reduce the amount of sugar you eat.", "你应该减少糖的摄入量。"],
+  ["treatment", "治疗", "She is receiving treatment at the hospital.", "她正在医院接受治疗。"],
+  ["weight", "体重", "She has lost a lot of weight recently.", "她最近瘦了很多。"],
+  ["audience", "观众", "The audience loved the performance.", "观众很喜欢这场表演。"],
+  ["celebrate", "庆祝", "We celebrated her birthday with a party.", "我们办了个派对庆祝生日。"],
+  ["competition", "比赛", "She won first prize in the competition.", "她在比赛中获得了一等奖。"],
+  ["defeat", "击败", "Our team defeated the opponents 3-0.", "我们队3-0击败了对手。"],
+  ["equipment", "设备", "We need to buy some sports equipment.", "我们需要买一些运动器材。"],
+  ["match", "比赛", "The football match ended in a draw.", "足球比赛以平局结束。"],
+  ["perform", "表演", "The band performed their new song on TV.", "乐队在电视上表演了新歌。"],
+  ["popular", "受欢迎的", "This game is popular among teenagers.", "这个游戏在青少年中很受欢迎。"],
+  ["relax", "放松", "I like to relax by listening to music.", "我喜欢听音乐放松。"],
+  ["score", "得分", "What was the final score of the game?", "比赛的最后比分是多少？"],
+  ["support", "支持", "My family supported me through the competition.", "我的家人一直支持我比赛。"],
+  ["talent", "天赋", "She has a talent for playing the piano.", "她有弹钢琴的天赋。"],
+  ["climate", "气候", "The climate in this region is very dry.", "这个地区的气候非常干燥。"],
+  ["disaster", "灾难", "The flood was the worst natural disaster.", "这场洪水是最严重的自然灾害。"],
+  ["environment", "环境", "We need to protect the environment.", "我们需要保护环境。"],
+  ["material", "材料", "This bag is made of recycled materials.", "这个包是用回收材料做的。"],
+  ["pollution", "污染", "Air pollution is a serious problem in cities.", "空气污染是大城市的严重问题。"],
+  ["prevent", "预防", "Exercise can prevent many diseases.", "锻炼可以预防很多疾病。"],
+  ["protect", "保护", "We must protect endangered animals.", "我们必须保护濒危动物。"],
+  ["recycle", "回收", "You should recycle paper and plastic.", "你应该回收纸张和塑料。"],
+  ["resource", "资源", "Water is a valuable natural resource.", "水是一种宝贵的自然资源。"],
+  ["survive", "生存", "Few animals can survive in the desert.", "只有少数动物能在沙漠中生存。"],
+  ["temperature", "温度", "The temperature can reach 40 degrees.", "夏天温度能达到40度。"],
+  ["access", "访问", "You can access the internet from any device.", "你可以从任何设备访问互联网。"],
+  ["application", "应用程序", "I downloaded a new photo editing application.", "我下载了一个新的照片编辑应用。"],
+  ["connect", "连接", "This cable connects the computer to the printer.", "这根线连接电脑和打印机。"],
+  ["device", "设备", "You can use this device to read e-books.", "你可以用这个设备看电子书。"],
+  ["download", "下载", "I need to download the latest update.", "我需要下载最新的更新。"],
+  ["feature", "功能", "The new phone has many amazing features.", "新手机有很多出色的功能。"],
+  ["install", "安装", "I need to install some new software.", "我需要安装一些新软件。"],
+  ["operate", "操作", "Do you know how to operate this machine?", "你知道怎么操作这台机器吗？"],
+  ["software", "软件", "The software needs to be updated regularly.", "这个软件需要定期更新。"],
+  ["technology", "技术", "Technology changed how we communicate.", "技术改变了我们沟通的方式。"],
+  ["admire", "钦佩", "I admire her for her courage.", "我钦佩她的勇气。"],
+  ["afford", "负担得起", "We can't afford to buy a new car now.", "我们目前买不起新车。"],
+  ["agree", "同意", "I agree with your opinion on this matter.", "在这件事上我同意你的看法。"],
+  ["apologise", "道歉", "She apologised for being late.", "她为迟到道歉了。"],
+  ["argue", "争论", "They argued about what to watch on TV.", "他们为看什么电视节目而争吵。"],
+  ["belong", "属于", "This book belongs to my sister.", "这本书属于我姐姐。"],
+  ["communicate", "沟通", "We communicate with each other by email.", "我们通过电子邮件互相交流。"],
+  ["complain", "抱怨", "The customer complained about the service.", "顾客投诉了服务。"],
+  ["depend", "取决于", "It depends on the weather whether we go out.", "我们是否出门取决于天气。"],
+  ["disappointed", "失望的", "She was disappointed with her exam results.", "她对考试成绩很失望。"],
+  ["embarrassed", "尴尬的", "I felt embarrassed when I made a mistake.", "我犯错时感到很尴尬。"],
+  ["generous", "慷慨的", "It was generous of him to share his lunch.", "他分享了午餐，真是慷慨。"],
+  ["grateful", "感激的", "I'm very grateful for your help.", "我非常感激你的帮助。"],
+  ["independent", "独立的", "She is very independent for her age.", "就她的年龄来说，她很独立。"],
+  ["promise", "承诺", "I promise to return the book by Friday.", "我保证周五前还书。"],
+  ["relationship", "关系", "They have a good relationship with neighbours.", "他们和邻居关系很好。"],
+  ["respect", "尊重", "You should respect other people's opinions.", "你应该尊重他人的意见。"],
+  ["satisfied", "满意的", "The teacher was satisfied with my progress.", "老师对我的进步很满意。"],
+  ["trust", "信任", "I trust my best friend completely.", "我完全信任我最好的朋友。"],
+  ["accept", "接受", "She accepted the invitation to the party.", "她接受了派对的邀请。"],
+  ["avoid", "避免", "You should avoid eating too much sugar.", "你应该避免吃太多糖。"],
+  ["cause", "导致", "The cold weather caused many problems.", "寒冷的天气导致了许多问题。"],
+  ["control", "控制", "You need to learn to control your temper.", "你需要学会控制脾气。"],
+  ["cover", "覆盖", "Cover the pot and let it cook for ten minutes.", "盖上锅盖煮十分钟。"],
+  ["damage", "损坏", "The storm damaged many houses.", "暴风雨损坏了许多房屋。"],
+  ["destroy", "毁灭", "The fire destroyed the whole building.", "大火烧毁了整栋楼。"],
+  ["develop", "发展", "The town developed into a big city.", "这个镇发展成了大城市。"],
+  ["drop", "掉落", "I dropped my phone on the floor.", "我把手机掉地上了。"],
+  ["fill", "填满", "Please fill the glass with water.", "请把杯子装满水。"],
+  ["increase", "增加", "The population has increased rapidly.", "人口快速增长。"],
+  ["notice", "注意到", "Did you notice anything unusual?", "你注意到什么不寻常的吗？"],
+  ["prove", "证明", "The test proved that he was right.", "测试证明他是对的。"],
+  ["remain", "保持", "Please remain seated until the bus stops.", "请坐好直到车停。"],
+  ["separate", "分开", "Separate the white clothes from dark ones.", "把白衣服和深色衣服分开。"],
+  ["board", "登机", "We boarded the plane at 6 o'clock.", "我们六点登上了飞机。"],
+  ["depart", "出发", "The train departs at 9 am.", "火车早上九点出发。"],
+  ["fare", "票价", "The bus fare is two pounds.", "公交车票价是两英镑。"],
+  ["flight", "航班", "The flight to London takes two hours.", "去伦敦的航班需要两小时。"],
+  ["guide", "导游", "The guide showed us around the museum.", "导游带我们参观了博物馆。"],
+  ["luggage", "行李", "Please keep your luggage with you.", "请随身携带你的行李。"],
+  ["passport", "护照", "You need a passport to travel abroad.", "出国旅行需要护照。"],
+  ["tour", "旅行", "We went on a tour of the old city.", "我们游览了老城区。"],
+  ["ability", "能力", "She has the ability to learn languages quickly.", "她有快速学语言的能力。"],
+  ["benefit", "好处", "Exercise has many health benefits.", "锻炼对健康有很多好处。"],
+  ["choice", "选择", "You made a good choice.", "你做了个好选择。"],
+  ["compare", "比较", "Don't compare yourself with others.", "不要拿自己和别人比较。"],
+  ["compete", "竞争", "Students compete for the scholarship.", "学生们竞争奖学金。"],
+  ["consider", "考虑", "Please consider my application.", "请考虑我的申请。"],
+  ["include", "包括", "The price includes breakfast.", "价格包含早餐。"],
+  ["method", "方法", "This is a more effective method.", "这是一个更有效的方法。"],
+  ["research", "研究", "She is doing research on climate change.", "她在做气候变化研究。"],
+  ["result", "结果", "The exam results will be out next week.", "考试成绩下周公布。"],
+  ["deal", "交易", "They made a deal after long negotiation.", "经过谈判他们达成了交易。"],
+  ["earn", "赚取", "How much do you earn per month?", "你一个月赚多少钱？"],
+  ["hire", "雇佣", "The company hired twenty new staff.", "公司雇了二十名新员工。"],
+  ["retire", "退休", "My father retired at the age of 60.", "我父亲60岁退休了。"],
+  ["skill", "技能", "This job requires good communication skills.", "这份工作需要良好的沟通技能。"],
+  ["train", "培训", "The company trains its employees regularly.", "公司定期培训员工。"],
+  ["value", "价值", "This painting is of great value.", "这幅画很有价值。"],
+  ["balance", "平衡", "It's important to balance work and rest.", "平衡工作和休息很重要。"],
+  ["boil", "煮沸", "Boil the water before drinking.", "喝之前把水烧开。"],
+  ["fresh", "新鲜的", "We should eat more fresh vegetables.", "我们应该多吃新鲜蔬菜。"],
+  ["measure", "测量", "The nurse measured my temperature.", "护士量了我的体温。"],
+  ["poison", "毒物", "Some mushrooms contain poison.", "有些蘑菇含有毒素。"],
+  ["smell", "闻", "The food smells delicious.", "食物闻起来很香。"],
+  ["taste", "尝", "This soup tastes wonderful.", "这汤尝起来很棒。"],
+  ["amuse", "逗乐", "The joke amused everyone.", "这个笑话逗乐了所有人。"],
+  ["champion", "冠军", "She became the champion of the competition.", "她成为了比赛的冠军。"],
+  ["entertain", "娱乐", "The magician entertained the children.", "魔术师逗孩子们开心。"],
+  ["goal", "进球", "He scored a goal in the final minute.", "他在最后一分钟进了一球。"],
+  ["join", "加入", "Why don't you join the club?", "你为什么不加入俱乐部？"],
+  ["racing", "赛跑", "He is interested in car racing.", "他对赛车感兴趣。"],
+  ["breathe", "呼吸", "It's healthy to breathe fresh air.", "呼吸新鲜空气对健康有好处。"],
+  ["desert", "沙漠", "The Sahara is the largest desert in the world.", "撒哈拉是世界上最大的沙漠。"],
+  ["flood", "洪水", "The heavy rain caused floods in the area.", "暴雨在该地区引发了洪水。"],
+  ["harvest", "收获", "They harvest the crops in autumn.", "他们在秋天收割庄稼。"],
+  ["natural", "自然的", "This product contains only natural ingredients.", "这个产品只含天然成分。"],
+  ["wild", "野生的", "There are many wild animals in the forest.", "森林里有很多野生动物。"],
+  ["data", "数据", "The data shows an increase in sales.", "数据显示销售额增长。"],
+  ["digital", "数字的", "We live in a digital world.", "我们生活在一个数字世界。"],
+  ["network", "网络", "The network connects all the computers.", "网络连接了所有电脑。"],
+  ["online", "在线的", "You can buy tickets online.", "你可以在线购票。"],
+  ["screen", "屏幕", "The screen is too bright.", "屏幕太亮了。"],
+  ["update", "更新", "You should update your software regularly.", "你应该定期更新软件。"],
+  ["annoy", "使烦恼", "The noise annoyed the neighbours.", "噪音惹恼了邻居。"],
+  ["anxious", "焦虑的", "She felt anxious before the exam.", "考试前她感到很焦虑。"],
+  ["ashamed", "羞愧的", "He was ashamed of his behaviour.", "他为自己的行为感到羞愧。"],
+  ["brave", "勇敢的", "The firefighters were very brave.", "消防员非常勇敢。"],
+  ["calm", "冷静的", "Try to stay calm in an emergency.", "紧急情况下尽量保持冷静。"],
+  ["curious", "好奇的", "Children are curious about everything.", "孩子对一切都很好奇。"],
+  ["honest", "诚实的", "It's important to be honest.", "诚实很重要。"],
+  ["polite", "有礼貌的", "You should be polite to your elders.", "你应该对长辈有礼貌。"],
+  ["proud", "骄傲的", "Her parents are proud of her achievements.", "她的父母为她的成就感到骄傲。"],
+  ["rude", "粗鲁的", "It's rude to interrupt others.", "打断别人是不礼貌的。"],
+  ["serious", "严肃的", "He looks very serious today.", "他今天看起来很严肃。"],
+  ["strict", "严格的", "Our teacher is strict but fair.", "我们的老师严格但公平。"],
+  ["fetch", "去取", "Could you fetch me a glass of water?", "你能帮我拿杯水吗？"],
+  ["add", "添加", "Add some sugar to the coffee.", "往咖啡里加些糖。"],
+  ["allow", "允许", "Smoking is not allowed here.", "这里不允许吸烟。"],
+  ["break", "打破", "Be careful not to break the glass.", "小心别打破玻璃。"],
+  ["carry", "携带", "Can you carry this bag for me?", "你能帮我拿这个包吗？"],
+  ["change", "改变；更换", "You need to change your clothes.", "你需要换衣服。"],
+  ["check", "检查", "Check your answers before handing in.", "交卷前检查答案。"],
+  ["choose", "选择", "Which colour did you choose?", "你选了哪种颜色？"],
+  ["clean", "打扫", "We clean the house every Saturday.", "我们每周六打扫房子。"],
+  ["complete", "完成", "Have you completed the report?", "你完成报告了吗？"],
+  ["continue", "继续", "Let's continue the lesson after lunch.", "午饭后继续上课。"],
+  ["cook", "做饭", "My mother cooks dinner every evening.", "我妈妈每天晚上做晚饭。"],
+  ["correct", "改正", "Please correct the mistakes in your essay.", "请改正文中的错误。"],
+  ["count", "数", "Count from one to ten.", "从一数到十。"],
+  ["cross", "穿过", "Look both ways before crossing the road.", "过马路前两边看。"],
+  ["dry", "弄干", "Dry your hands with the towel.", "用毛巾擦干手。"],
+  ["empty", "清空", "Please empty the rubbish bin.", "请清空垃圾桶。"],
+  ["enjoy", "享受", "I enjoy reading books in my free time.", "我喜欢空闲时看书。"],
+  ["enter", "进入", "Please enter your name here.", "请在这里输入你的名字。"],
+  ["explain", "解释", "Can you explain this rule to me?", "你能给我解释这条规则吗？"],
+  ["follow", "跟随", "Follow me and I will show you the way.", "跟我来，我给你带路。"],
+  ["hang", "挂", "Hang your coat on the hook.", "把你的外套挂在钩子上。"],
+  ["hide", "隐藏", "The children like to hide behind the door.", "孩子们喜欢藏在门后面。"],
+  ["hold", "握住", "Hold my hand when crossing the street.", "过马路时抓住我的手。"],
+  ["keep", "保持", "Please keep quiet in the library.", "在图书馆请保持安静。"],
+  ["knock", "敲", "Someone is knocking at the door.", "有人在敲门。"],
+  ["last", "持续", "How long will the meeting last?", "会议会持续多久？"],
+  ["lead", "带领", "She can lead us to the classroom.", "她能带我们去教室。"],
+  ["leave", "离开", "The train leaves at six o'clock.", "火车六点离开。"],
+  ["lock", "锁", "Don't forget to lock the door.", "别忘了锁门。"],
+  ["miss", "错过", "I missed the bus this morning.", "我今天早上错过了公交车。"],
+  ["mix", "混合", "Mix the flour with water.", "把面粉和水混合。"],
+  ["pass", "传递；通过", "Please pass me the salt.", "请把盐递给我。"],
+  ["pick", "挑选", "Pick a card from the deck.", "从牌堆里选一张卡。"],
+  ["pour", "倒", "Pour some milk into the glass.", "往杯子里倒些牛奶。"],
+  ["press", "按", "Press the button to start.", "按按钮启动。"],
+  ["pull", "拉", "Pull the door to open it.", "拉门打开。"],
+  ["push", "推", "Push the door to close it.", "推门关上。"],
+  ["raise", "举起", "Raise your hand if you know the answer.", "知道答案就举手。"],
+  ["reach", "到达", "We reached the hotel at midnight.", "我们半夜到达了酒店。"],
+  ["refuse", "拒绝", "He refused to answer the question.", "他拒绝回答问题。"],
+  ["remove", "移除", "Remove your shoes before entering.", "进入前脱鞋。"],
+  ["repair", "修理", "Can you repair my bicycle?", "你能修我的自行车吗？"],
+  ["repeat", "重复", "Could you repeat that please?", "你能重复一遍吗？"],
+  ["replace", "替换", "I need to replace my old phone.", "我需要换掉旧手机。"],
+  ["save", "节省；救", "This will save us a lot of time.", "这会节省我们很多时间。"],
+  ["search", "搜索", "I searched for my keys everywhere.", "我到处找钥匙。"],
+  ["shake", "摇动", "Shake the bottle before use.", "使用前摇一摇。"],
+  ["shut", "关上", "Shut the door behind you.", "随手关门。"],
+  ["sign", "签名", "Sign your name at the bottom.", "在底部签上你的名字。"],
+  ["sort", "分类", "Sort the papers by date.", "按日期把文件分类。"],
+  ["stay", "停留", "Stay here until I come back.", "待在这里直到我回来。"],
+  ["store", "储存", "Store the food in a cool place.", "把食物存放在阴凉处。"],
+  ["supply", "供应", "The shop can supply all our needs.", "这家店能供应我们所有需求。"],
+  ["pay", "支付", "I need to pay twenty pounds for this book.", "我需要为这本书付二十英镑。"],
+  ["suppose", "假设", "I suppose you are right.", "我假设你是对的。"],
+  ["teach", "教", "She teaches English at a school.", "她在一所学校教英语。"],
+  ["test", "测试", "The teacher tested us on spelling.", "老师测试了我们的拼写。"],
+  ["throw", "扔", "Throw the ball to me.", "把球扔给我。"],
+  ["tie", "系", "Tie your shoelaces.", "系好鞋带。"],
+  ["touch", "触摸", "Don't touch the paintings.", "不要碰那些画。"],
+  ["turn", "转动", "Turn left at the traffic lights.", "在红绿灯处左转。"],
+  ["use", "使用", "Can I use your phone?", "我能用你的电话吗？"],
+  ["wait", "等待", "Wait for me here.", "在这里等我。"],
+  ["wash", "洗", "Wash your hands before eating.", "饭前洗手。"],
+  ["wave", "挥手", "She waved goodbye to us.", "她向我们挥手告别。"],
+  ["weigh", "称重", "The bag weighs about five kilos.", "这个包大约五公斤重。"],
+  ["wrap", "包裹", "Wrap the gift in pretty paper.", "用漂亮的纸把礼物包起来。"],
+  ["affordable", "负担得起的", "The prices here are very affordable.", "这里的价格很实惠。"],
+  ["bargain", "便宜货", "This jacket was a real bargain.", "这件夹克真的很划算。"],
+  ["bill", "账单", "Can I have the bill please?", "请给我账单好吗？"],
+  ["cash", "现金", "Do you have cash or card?", "你付现金还是刷卡？"],
+  ["cheap", "便宜的", "This is the cheapest hotel in town.", "这是城里最便宜的酒店。"],
+  ["cost", "花费", "How much does it cost?", "这个多少钱？"],
+  ["credit", "信用", "I paid by credit card.", "我用信用卡支付的。"],
+  ["discount", "折扣", "Students get a 10% discount.", "学生享受九折优惠。"],
+  ["expensive", "贵的", "The restaurant was too expensive.", "这家餐厅太贵了。"],
+  ["price", "价格", "The price includes tax.", "价格含税。"],
+  ["purchase", "购买", "I made a purchase online.", "我在网上买了东西。"],
+  ["receipt", "收据", "Keep your receipt in case you need a refund.", "保留收据以备退款。"],
+  ["refund", "退款", "I asked for a refund.", "我要求退款。"],
+  ["wallet", "钱包", "I left my wallet at home.", "我把钱包忘在家里了。"],
+  ["worth", "值得", "The film was worth watching.", "这部电影值得看。"],
+  ["arrival", "到达", "The arrival time is 8 pm.", "到达时间是晚上八点。"],
+  ["baggage", "行李", "Please collect your baggage from carousel 3.", "请到三号转盘取行李。"],
+  ["coach", "长途大巴", "We travelled by coach from London to Edinburgh.", "我们从伦敦坐长途大巴到爱丁堡。"],
+  ["cruise", "邮轮旅行", "They went on a cruise around the Mediterranean.", "他们乘邮轮环游了地中海。"],
+  ["customs", "海关", "You need to go through customs when you arrive.", "抵达时需要通过海关。"],
+  ["downtown", "市中心", "The hotel is located downtown.", "这家酒店位于市中心。"],
+  ["exchange", "兑换", "Where can I exchange foreign currency?", "我在哪里可以兑换外币？"],
+  ["guest", "客人", "The hotel can accommodate 200 guests.", "这家酒店可容纳200位客人。"],
+  ["hostel", "青年旅舍", "We stayed at a youth hostel.", "我们住在一家青年旅舍。"],
+  ["landing", "降落", "The plane made a smooth landing.", "飞机平稳降落。"],
+  ["local", "当地的", "We ate at a local restaurant.", "我们在当地一家餐厅吃饭。"],
+  ["route", "路线", "We took the shortest route.", "我们走了最短的路线。"],
+  ["sailing", "航行", "We went sailing on the lake.", "我们去湖上航行了。"],
+  ["terminal", "航站楼", "The flight departs from terminal 2.", "航班从2号航站楼出发。"],
+  ["tip", "小费", "We left a tip for the waiter.", "我们给服务员留了小费。"],
+  ["tourist", "游客", "The city is full of tourists in summer.", "夏天城里到处都是游客。"],
+  ["valuables", "贵重物品", "Keep your valuables in the safe.", "把贵重物品放在保险箱里。"],
+  ["view", "景色", "The room has a beautiful view of the sea.", "房间可以看到美丽的海景。"],
+  ["apartment", "公寓", "They live in a small apartment.", "他们住在一间小公寓里。"],
+  ["basement", "地下室", "We store old things in the basement.", "我们把旧东西存在地下室。"],
+  ["bathroom", "浴室", "The bathroom is upstairs.", "浴室在楼上。"],
+  ["bedroom", "卧室", "My bedroom is quite small.", "我的卧室很小。"],
+  ["carpet", "地毯", "We have a red carpet in the living room.", "我们客厅铺了红色地毯。"],
+  ["ceiling", "天花板", "The ceiling needs painting.", "天花板需要粉刷了。"],
+  ["cupboard", "橱柜", "Put the plates in the cupboard.", "把盘子放进橱柜里。"],
+  ["curtain", "窗帘", "Close the curtains before going to bed.", "睡觉前拉上窗帘。"],
+  ["decorate", "装饰", "We decorated the room for the party.", "我们装饰了房间准备派对。"],
+  ["fence", "栅栏", "The garden has a wooden fence.", "花园有木栅栏。"],
+  ["furniture", "家具", "We bought some new furniture.", "我们买了些新家具。"],
+  ["garage", "车库", "Dad parks the car in the garage.", "爸爸把车停在车库里。"],
+  ["gate", "大门", "Please close the garden gate.", "请关上花园门。"],
+  ["housework", "家务", "I help my mother with the housework.", "我帮妈妈做家务。"],
+  ["kitchen", "厨房", "We eat breakfast in the kitchen.", "我们在厨房吃早餐。"],
+  ["lamp", "灯", "I turned on the desk lamp.", "我打开了台灯。"],
+  ["neighbour", "邻居", "Our neighbours are very friendly.", "我们的邻居很友好。"],
+  ["rent", "租", "We rent a flat in the city centre.", "我们在市中心租了一套公寓。"],
+  ["roof", "屋顶", "The cat is sitting on the roof.", "猫坐在屋顶上。"],
+  ["shelf", "架子", "Put the books back on the shelf.", "把书放回架子上。"],
+  ["stair", "楼梯", "Be careful on the stairs.", "上下楼梯要小心。"],
+  ["tenant", "租客", "The tenant pays rent every month.", "租客每月付房租。"],
+  ["wardrobe", "衣柜", "Hang your suit in the wardrobe.", "把你的西装挂进衣柜里。"],
+  ["yard", "院子", "The children are playing in the yard.", "孩子们在院子里玩。"],
+  ["analyse", "分析", "We analysed the data in class.", "我们在课堂上分析了数据。"],
+  ["assignment", "作业", "We have a history assignment due on Friday.", "我们有历史作业周五要交。"],
+  ["biology", "生物", "She is studying biology at university.", "她在大学学生物。"],
+  ["certificate", "证书", "You will receive a certificate at the end.", "最后你会收到证书。"],
+  ["chemistry", "化学", "I really enjoy chemistry experiments.", "我很喜欢化学实验。"],
+  ["clever", "聪明的", "She is a very clever student.", "她是一个非常聪明的学生。"],
+  ["composition", "作文", "We have to write a composition in English.", "我们必须用英语写一篇作文。"],
+  ["comprehension", "理解", "The reading comprehension is quite difficult.", "阅读理解挺难的。"],
+  ["curriculum", "课程", "The curriculum includes maths and science.", "课程包括数学和科学。"],
+  ["deadline", "截止日期", "The deadline for the project is next Monday.", "项目的截止日期是下周一。"],
+  ["diploma", "文凭", "She earned a diploma in nursing.", "她获得了护理文凭。"],
+  ["discipline", "纪律", "Good discipline is important in class.", "良好的课堂纪律很重要。"],
+  ["draft", "草稿", "Write a first draft of your essay.", "写一篇论文的初稿。"],
+  ["essay", "短文", "I have an essay to write this weekend.", "我周末要写一篇短文。"],
+  ["fluent", "流利的", "She is fluent in three languages.", "她能流利说三种语言。"],
+  ["geography", "地理", "I learned about rivers in geography class.", "我在地理课上学了河流的知识。"],
+  ["grade", "成绩", "She got good grades in all subjects.", "她所有科目都得了好成绩。"],
+  ["grammar", "语法", "My grammar has improved a lot.", "我的语法进步了很多。"],
+  ["history", "历史", "I have a history test next week.", "我下周有历史考试。"],
+  ["homework", "家庭作业", "I have to finish my homework first.", "我必须先完成家庭作业。"],
+  ["instruction", "说明", "Read the instructions before you start.", "开始前先阅读说明。"],
+  ["literature", "文学", "We are studying English literature.", "我们在学习英国文学。"],
+  ["mark", "分数", "She got full marks in the test.", "她在测试中得了满分。"],
+  ["mathematics", "数学", "Mathematics is my favourite subject.", "数学是我最喜欢的科目。"],
+  ["memorise", "记住", "I need to memorise these words.", "我需要记住这些单词。"],
+  ["physics", "物理", "We did an experiment in physics class.", "我们在物理课上做了实验。"],
+  ["presentation", "展示", "We gave a presentation about pollution.", "我们做了关于污染的展示。"],
+  ["primary", "初级的", "My brother is in primary school.", "我弟弟在上小学。"],
+  ["professor", "教授", "The professor gave us a lecture.", "教授给我们做了一场讲座。"],
+  ["progress", "进步", "You have made great progress in English.", "你的英语进步很大。"],
+  ["pronounce", "发音", "How do you pronounce this word?", "这个单词怎么发音？"],
+  ["punctual", "准时的", "Please be punctual for class.", "上课请准时。"],
+  ["qualification", "资格", "Do you have any teaching qualifications?", "你有教学资格吗？"],
+  ["quiz", "小测验", "We had a quiz in class today.", "我们今天在课堂上做了小测验。"],
+  ["scholarship", "奖学金", "She won a scholarship to university.", "她获得了大学奖学金。"],
+  ["secondary", "中级的", "Secondary education is very important.", "中学教育非常重要。"],
+  ["semester", "学期", "The first semester starts in September.", "第一学期九月开始。"],
+  ["summary", "摘要", "Write a summary of the article.", "写一篇文章的摘要。"],
+  ["timetable", "时间表", "Check the timetable for the exam.", "查看考试时间表。"],
+  ["tuition", "学费", "The university raised the tuition fees.", "大学提高了学费。"],
+  ["tutor", "导师", "My tutor helped me with the essay.", "我的导师帮我修改了论文。"],
+  ["vocabulary", "词汇", "I need to expand my vocabulary.", "我需要扩大词汇量。"],
+  ["academic", "学术的", "She has a strong academic background.", "她有很强的学术背景。"],
+  ["advertise", "做广告", "They advertised the job online.", "他们在网上发布了招聘广告。"],
+  ["boss", "老板", "My boss is very understanding.", "我的老板很善解人意。"],
+  ["branch", "分公司", "The bank has branches all over the country.", "这家银行在全国都有分行。"],
+  ["client", "客户", "We have a meeting with a client.", "我们和客户有个会议。"],
+  ["conference", "会议", "She is attending a conference in Paris.", "她在巴黎参加一个会议。"],
+  ["contract", "合同", "He signed a three-year contract.", "他签了一份三年的合同。"],
+  ["co-worker", "同事", "My co-worker helped me finish the project.", "我的同事帮我完成了项目。"],
+  ["department", "部门", "She works in the sales department.", "她在销售部工作。"],
+  ["dismiss", "解雇", "The company dismissed ten workers.", "公司解雇了十名员工。"],
+  ["employee", "雇员", "The company has 500 employees.", "公司有500名员工。"],
+  ["employer", "雇主", "The employer offers good benefits.", "雇主提供很好的福利。"],
+  ["income", "收入", "Her annual income is about 30,000 pounds.", "她的年收入大约三万英镑。"],
+  ["industry", "行业", "The car industry is changing fast.", "汽车行业正在快速变化。"],
+  ["manager", "经理", "She is the manager of the store.", "她是这家店的经理。"],
+  ["occupation", "职业", "Please state your occupation on the form.", "请在表上填写你的职业。"],
+  ["overtime", "加班", "We get paid extra for overtime.", "加班会额外付钱。"],
+  ["position", "职位", "I applied for a position in marketing.", "我申请了市场部的职位。"],
+  ["receptionist", "前台", "The receptionist greeted us warmly.", "前台热情地迎接了我们。"],
+  ["resign", "辞职", "She resigned from her job last month.", "她上个月辞职了。"],
+  ["secretary", "秘书", "The secretary arranged the meeting.", "秘书安排了会议。"],
+  ["shift", "轮班", "I work the night shift this week.", "这周我上夜班。"],
+  ["task", "任务", "Complete each task before moving on.", "完成每个任务再继续。"],
+  ["uniform", "制服", "All staff must wear a uniform.", "所有员工必须穿制服。"],
+  ["wage", "工资", "The minimum wage has increased.", "最低工资提高了。"],
+  ["workplace", "工作场所", "Smoking is banned in the workplace.", "工作场所禁止吸烟。"],
+  ["artificial", "人工的", "Artificial intelligence is changing the world.", "人工智能正在改变世界。"],
+  ["attachment", "附件", "I sent the file as an attachment.", "我把文件作为附件发送了。"],
+  ["broadband", "宽带", "Do you have broadband at home?", "你家里有宽带吗？"],
+  ["button", "按钮", "Click the green button to start.", "点击绿色按钮开始。"],
+  ["cable", "电缆", "Connect the computer with a cable.", "用电缆连接电脑。"],
+  ["calculator", "计算器", "You can use a calculator in the test.", "你可以在考试中使用计算器。"],
+  ["communications", "通信", "Mobile communications have improved greatly.", "移动通信大大改善了。"],
+  ["compatible", "兼容的", "This software is compatible with Windows.", "这个软件与Windows兼容。"],
+  ["computer", "电脑", "I need to restart my computer.", "我需要重启电脑。"],
+  ["delete", "删除", "Delete the file when you are done.", "完成后删除文件。"],
+  ["document", "文档", "Save the document before closing.", "关闭前保存文档。"],
+  ["electronic", "电子的", "I prefer reading electronic books.", "我更喜欢读电子书。"],
+  ["email", "电子邮件", "Send me an email when you arrive.", "到了给我发邮件。"],
+  ["hardware", "硬件", "The store sells computer hardware.", "这家店卖电脑硬件。"],
+  ["internet", "互联网", "I found the information on the internet.", "我在互联网上找到的信息。"],
+  ["keyboard", "键盘", "I need a new keyboard for my computer.", "我需要一个新的电脑键盘。"],
+  ["laptop", "笔记本电脑", "She opened her laptop and started working.", "她打开笔记本电脑开始工作。"],
+  ["monitor", "显示器", "The monitor is too bright.", "显示器太亮了。"],
+  ["mouse", "鼠标", "The wireless mouse needs new batteries.", "无线鼠标需要换电池了。"],
+  ["password", "密码", "Choose a strong password.", "选择强密码。"],
+  ["printer", "打印机", "The printer has run out of ink.", "打印机没墨了。"],
+  ["program", "程序", "This program helps you edit photos.", "这个程序帮你编辑照片。"],
+  ["robot", "机器人", "The robot can clean the floor.", "机器人可以打扫地板。"],
+  ["scanner", "扫描仪", "Use the scanner to copy the document.", "用扫描仪复印文件。"],
+  ["search engine", "搜索引擎", "Google is a popular search engine.", "谷歌是一个受欢迎的搜索引擎。"],
+  ["server", "服务器", "The server is down for maintenance.", "服务器正在维护。"],
+  ["smartphone", "智能手机", "Most people own a smartphone now.", "现在大多数人都有一部智能手机。"],
+  ["tablet", "平板电脑", "She reads news on her tablet.", "她在平板电脑上看新闻。"],
+  ["technical", "技术的", "We provide technical support.", "我们提供技术支持。"],
+  ["username", "用户名", "Enter your username and password.", "输入你的用户名和密码。"],
+  ["virus", "病毒", "My computer got a virus.", "我的电脑中病毒了。"],
+  ["website", "网站", "Visit our website for more information.", "访问我们的网站获取更多信息。"],
+  ["wireless", "无线的", "The network is wireless.", "这个网络是无线的。"],
+  ["appetite", "食欲", "I have a big appetite today.", "我今天胃口很好。"],
+  ["baked", "烤的", "We had baked potatoes for dinner.", "我们晚餐吃了烤土豆。"],
+  ["bitter", "苦的", "The coffee tastes bitter.", "这咖啡尝起来是苦的。"],
+  ["calorie", "卡路里", "This drink contains a lot of calories.", "这种饮料含有很多卡路里。"],
+  ["chef", "厨师", "The chef prepared a wonderful meal.", "厨师准备了一顿美味的饭菜。"],
+  ["dairy", "乳制品", "I am allergic to dairy products.", "我对乳制品过敏。"],
+  ["dessert", "甜点", "What would you like for dessert?", "你想吃什么甜点？"],
+  ["digest", "消化", "It takes time to digest food.", "消化食物需要时间。"],
+  ["flavour", "味道", "This ice cream has a chocolate flavour.", "这个冰淇淋有巧克力味。"],
+  ["fried", "油炸的", "Fried food is not very healthy.", "油炸食品不太健康。"],
+  ["hungry", "饿的", "I am very hungry after school.", "放学后我很饿。"],
+  ["infection", "感染", "The wound must be cleaned to prevent infection.", "伤口必须清洗以防感染。"],
+  ["menu", "菜单", "Let me look at the menu first.", "让我先看看菜单。"],
+  ["mineral", "矿物质", "Mineral water is good for your health.", "矿泉水对健康有益。"],
+  ["nutrition", "营养", "Good nutrition is very important for children.", "良好的营养对孩子非常重要。"],
+  ["obey", "遵守", "You must obey the doctor's advice.", "你必须听从医生的建议。"],
+  ["operation", "手术", "She had an operation on her knee.", "她的膝盖做了手术。"],
+  ["portion", "份", "The restaurant serves large portions.", "这家餐厅的份量很大。"],
+  ["prescription", "处方", "The doctor wrote me a prescription.", "医生给我开了处方。"],
+  ["protein", "蛋白质", "Eggs are a good source of protein.", "鸡蛋是蛋白质的良好来源。"],
+  ["raw", "生的", "You should not eat raw meat.", "你不应该吃生肉。"],
+  ["recipe", "食谱", "Can you give me the recipe for this cake?", "你能给我这个蛋糕的食谱吗？"],
+  ["sour", "酸的", "These lemons taste sour.", "这些柠檬尝起来是酸的。"],
+  ["stomach", "胃", "I have a stomach ache.", "我胃痛。"],
+  ["swallow", "吞咽", "Take a sip and swallow slowly.", "喝一小口慢慢吞咽。"],
+  ["symptom", "症状", "The symptoms include fever and headache.", "症状包括发烧和头痛。"],
+  ["thermometer", "温度计", "The nurse used a thermometer to check my temperature.", "护士用温度计测了我的体温。"],
+  ["vitamin", "维生素", "Oranges contain a lot of vitamin C.", "橙子富含维生素C。"],
+  ["waiter", "服务员", "The waiter brought our food.", "服务员送来了我们的食物。"],
+  ["athlete", "运动员", "He is a professional athlete.", "他是一名职业运动员。"],
+  ["band", "乐队", "My favourite band is playing tonight.", "我最喜欢的乐队今晚演出。"],
+  ["baseball", "棒球", "Baseball is popular in the USA.", "棒球在美国很受欢迎。"],
+  ["basketball", "篮球", "We played basketball after school.", "我们放学后打了篮球。"],
+  ["bat", "球拍", "He bought a new baseball bat.", "他买了一个新棒球棒。"],
+  ["concert", "音乐会", "I went to a rock concert last weekend.", "我上周末去了一场摇滚音乐会。"],
+  ["court", "球场", "We played tennis on the court.", "我们在球场上打了网球。"],
+  ["drama", "戏剧", "She is interested in drama and theatre.", "她对戏剧和剧院很感兴趣。"],
+  ["film", "电影", "I watched a film about space exploration.", "我看了一部关于太空探索的电影。"],
+  ["gym", "健身房", "I go to the gym three times a week.", "我每周去健身房三次。"],
+  ["hobby", "爱好", "My hobby is collecting stamps.", "我的爱好是集邮。"],
+  ["instrument", "乐器", "Can you play a musical instrument?", "你会演奏乐器吗？"],
+  ["medal", "奖牌", "She won a gold medal in the competition.", "她在比赛中赢得了金牌。"],
+  ["movie", "电影", "Let's go and see a movie tonight.", "我们今晚去看电影吧。"],
+  ["museum", "博物馆", "We visited the Natural History Museum.", "我们参观了自然历史博物馆。"],
+  ["musician", "音乐家", "He is a talented musician.", "他是一位才华横溢的音乐家。"],
+  ["novel", "小说", "I am reading a novel about adventure.", "我在读一本关于冒险的小说。"],
+  ["painting", "绘画", "She took up painting as a hobby.", "她开始把绘画作为爱好。"],
+  ["photography", "摄影", "He is interested in photography.", "他对摄影感兴趣。"],
+  ["player", "球员", "He is a talented football player.", "他是一位有天赋的足球运动员。"],
+  ["prize", "奖品", "She won first prize in the competition.", "她在比赛中获得了一等奖。"],
+  ["race", "赛跑", "Who won the race?", "谁赢了赛跑？"],
+  ["record", "纪录", "She broke the world record.", "她打破了世界纪录。"],
+  ["song", "歌曲", "This is my favourite song.", "这是我最喜欢的歌。"],
+  ["spectator", "观众", "The spectators cheered for the team.", "观众为队伍加油。"],
+  ["sport", "运动", "What sport do you like best?", "你最喜欢什么运动？"],
+  ["stadium", "体育场", "The match was held at the stadium.", "比赛在体育场举行。"],
+  ["swimming", "游泳", "Swimming is good exercise.", "游泳是很好的锻炼。"],
+  ["team", "团队", "Our team won the match.", "我们队赢了比赛。"],
+  ["tennis", "网球", "I play tennis every Saturday.", "我每周六打网球。"],
+  ["theatre", "剧院", "We went to the theatre to see a play.", "我们去剧院看了一出戏。"],
+  ["ticket", "票", "I bought two tickets for the concert.", "我买了两张音乐会的票。"],
+  ["tournament", "锦标赛", "The tennis tournament starts next week.", "网球锦标赛下周开始。"],
+  ["trophy", "奖杯", "The team lifted the trophy.", "队伍举起了奖杯。"],
+  ["violin", "小提琴", "She plays the violin beautifully.", "她小提琴拉得很美。"],
+  ["atmosphere", "大气层", "The atmosphere protects the Earth.", "大气层保护着地球。"],
+  ["carbon", "碳", "We need to reduce carbon emissions.", "我们需要减少碳排放。"],
+  ["conservation", "保护", "Wildlife conservation is very important.", "野生动物保护非常重要。"],
+  ["earth", "地球", "The Earth revolves around the sun.", "地球围绕太阳转。"],
+  ["ecology", "生态", "The oil spill damaged the local ecology.", "石油泄漏破坏了当地生态。"],
+  ["electricity", "电", "We should save electricity.", "我们应该节约用电。"],
+  ["extinct", "灭绝的", "Many species are in danger of becoming extinct.", "许多物种面临灭绝的危险。"],
+  ["fossil", "化石", "Fossils tell us about life in the past.", "化石告诉我们过去的生活。"],
+  ["fuel", "燃料", "Cars run on fuel.", "汽车靠燃料运行。"],
+  ["gas", "气体", "Oxygen is a gas.", "氧气是一种气体。"],
+  ["global", "全球的", "Global warming is a serious issue.", "全球变暖是一个严重的问题。"],
+  ["greenhouse", "温室", "The greenhouse effect is causing temperatures to rise.", "温室效应正在导致温度上升。"],
+  ["habitat", "栖息地", "The forest is home to many habitats.", "森林是许多栖息地的家园。"],
+  ["landscape", "风景", "The landscape is very beautiful here.", "这里的风景非常美。"],
+  ["layer", "层", "The ozone layer protects us from the sun.", "臭氧层保护我们免受太阳伤害。"],
+  ["liquid", "液体", "Water is a liquid.", "水是一种液体。"],
+  ["oxygen", "氧气", "Trees produce oxygen.", "树木产生氧气。"],
+  ["planet", "行星", "There are eight planets in our solar system.", "我们的太阳系有八颗行星。"],
+  ["renewable", "可再生的", "Wind energy is a renewable resource.", "风能是可再生资源。"],
+  ["solar", "太阳的", "Solar panels produce electricity from sunlight.", "太阳能板利用阳光发电。"],
+  ["species", "物种", "This species of bird is rare.", "这种鸟类很稀有。"],
+  ["sunrise", "日出", "We watched the sunrise over the mountains.", "我们看了山上的日出。"],
+  ["sunset", "日落", "The sunset was beautiful last night.", "昨晚的日落很美。"],
+  ["wind", "风", "The wind blew the leaves off the trees.", "风吹落了树上的叶子。"],
+  ["adore", "喜爱", "She adores her younger brother.", "她非常喜爱她的弟弟。"],
+  ["affection", "感情", "The mother showed great affection for her child.", "母亲对孩子充满了感情。"],
+  ["amazed", "惊奇的", "I was amazed by the performance.", "我被表演惊呆了。"],
+  ["anger", "愤怒", "He could not hide his anger.", "他无法隐藏自己的愤怒。"],
+  ["appreciate", "感激", "I really appreciate your help.", "我非常感激你的帮助。"],
+  ["attitude", "态度", "She has a positive attitude towards life.", "她对生活有积极的态度。"],
+  ["behave", "表现", "Children should behave well in public.", "孩子在公共场合应该表现好。"],
+  ["blame", "责备", "Don't blame yourself for what happened.", "不要为发生的事责备自己。"],
+  ["careful", "小心的", "Be careful when crossing the street.", "过马路时要小心。"],
+  ["careless", "粗心的", "He made a careless mistake.", "他犯了一个粗心的错误。"],
+  ["character", "性格", "She has a strong character.", "她性格坚强。"],
+  ["cheerful", "快乐的", "She is always cheerful.", "她总是很快乐。"],
+  ["comfort", "安慰", "She comforted the crying child.", "她安慰了哭泣的孩子。"],
+  ["confidence", "信心", "You need to have confidence in yourself.", "你需要对自己有信心。"],
+  ["considerate", "体贴的", "He is a very considerate person.", "他是一个非常体贴的人。"],
+  ["courage", "勇气", "It takes courage to tell the truth.", "说实话需要勇气。"],
+  ["cruel", "残忍的", "It was cruel to leave the dog alone.", "把狗单独留下太残忍了。"],
+  ["culture", "文化", "We learned about Chinese culture.", "我们了解了中国文化。"],
+  ["decision", "决定", "I made a decision to study harder.", "我决定更加努力学习。"],
+  ["deserve", "值得", "You deserve a rest after all that hard work.", "经过这么辛苦的工作，你值得休息一下。"],
+  ["devote", "奉献", "She devoted herself to teaching.", "她全身心投入教学。"],
+  ["doubt", "怀疑", "I doubt that he will come.", "我怀疑他不会来。"],
+  ["duty", "责任", "It is my duty to help them.", "帮助他们是我的责任。"],
+  ["emotion", "情感", "She could not control her emotions.", "她无法控制自己的情感。"],
+  ["envy", "羡慕", "I envy your ability to speak French.", "我羡慕你能说法语。"],
+  ["excuse", "借口", "He made an excuse for being late.", "他为迟到找了个借口。"],
+  ["familiar", "熟悉的", "This place looks familiar.", "这个地方看起来很熟悉。"],
+  ["favour", "帮助", "Can you do me a favour?", "你能帮我一个忙吗？"],
+  ["forgive", "原谅", "She will forgive him for his mistake.", "她会原谅他的错误。"],
+  ["friendship", "友谊", "Our friendship has lasted for years.", "我们的友谊持续了很多年。"],
+  ["frightened", "害怕的", "The child was frightened by the loud noise.", "孩子被巨大的声音吓到了。"],
+  ["friendly", "友好的", "The locals are very friendly.", "当地人非常友好。"],
+  ["hate", "憎恨", "I hate waking up early.", "我讨厌早起。"],
+  ["helpful", "有帮助的", "Thank you for being so helpful.", "谢谢你这么帮忙。"],
+  ["hope", "希望", "I hope to pass the exam.", "我希望通过考试。"],
+  ["humble", "谦虚的", "He is very humble despite his success.", "尽管取得了成功，他还是很谦虚。"],
+  ["humour", "幽默", "She has a great sense of humour.", "她很有幽默感。"],
+  ["imagine", "想象", "Try to imagine living on another planet.", "尝试想象住在另一个星球上。"],
+  ["impression", "印象", "She made a good impression on everyone.", "她给每个人都留下了好印象。"],
+  ["jealous", "嫉妒的", "He was jealous of his brother's success.", "他嫉妒他哥哥的成功。"],
+  ["kindness", "善良", "She treated everyone with kindness.", "她善待每个人。"],
+  ["lonely", "孤独的", "She felt lonely in a new city.", "她在新城市感到孤独。"],
+  ["loyal", "忠诚的", "Dogs are very loyal animals.", "狗是非常忠诚的动物。"],
+  ["manner", "礼貌", "It is good manners to say thank you.", "说谢谢是有礼貌的表现。"],
+  ["modest", "谦虚的", "She is very modest about her achievements.", "她对自己的成就很谦虚。"],
+  ["nervous", "紧张的", "I feel nervous before exams.", "考试前我感到紧张。"],
+  ["patience", "耐心", "You need patience to learn a language.", "学语言需要耐心。"],
+  ["peace", "平静", "I enjoy the peace of the countryside.", "我享受乡村的平静。"],
+  ["personality", "个性", "She has a warm personality.", "她个性热情。"],
+  ["pleased", "高兴的", "I am very pleased with your progress.", "我对你的进步很满意。"],
+  ["pride", "自豪", "He takes pride in his work.", "他为自己的工作感到自豪。"],
+  ["rely", "依赖", "You can rely on me for help.", "你可以依赖我的帮助。"],
+  ["shame", "羞愧", "It's a shame that you missed the party.", "你错过了派对真可惜。"],
+  ["sincere", "真诚的", "She gave me a sincere apology.", "她真诚地向我道歉。"],
+  ["sympathy", "同情", "I have sympathy for the victims.", "我同情受害者。"],
+  ["tolerance", "宽容", "We should show tolerance towards others.", "我们应该对他人表示宽容。"],
+  ["truth", "真相", "You should always tell the truth.", "你应该总是说实话。"],
+  ["kind", "善良的", "She is a very kind person.", "她是一个很善良的人。"],
+  ["absent", "缺席的", "Three students are absent today.", "今天有三个学生缺席。"],
+  ["active", "活跃的", "My grandfather is still very active.", "我祖父仍然很活跃。"],
+  ["attractive", "有吸引力的", "She has an attractive smile.", "她有迷人的笑容。"],
+  ["available", "可用的", "The manager is not available right now.", "经理现在没空。"],
+  ["average", "平均的", "His grades are above average.", "他的成绩高于平均水平。"],
+  ["awful", "糟糕的", "The weather was awful yesterday.", "昨天的天气糟透了。"],
+  ["basic", "基本的", "These are the basic rules.", "这些是基本规则。"],
+  ["beautiful", "美丽的", "What a beautiful day!", "多美的一天啊！"],
+  ["blind", "盲的", "The organization helps blind people.", "这个组织帮助盲人。"],
+  ["bright", "明亮的", "The room is very bright.", "这个房间很明亮。"],
+  ["broad", "宽阔的", "The river is very broad here.", "这条河在这里很宽。"],
+  ["busy", "忙碌的", "I am very busy today.", "我今天很忙。"],
+  ["certain", "确定的", "Are you certain about that?", "你确定吗？"],
+  ["classic", "经典的", "This is a classic example.", "这是一个经典的例子。"],
+  ["common", "常见的", "This bird is common in this area.", "这种鸟在这个地区很常见。"],
+  ["complex", "复杂的", "The problem is very complex.", "这个问题非常复杂。"],
+  ["constant", "持续的", "There is constant noise from the traffic.", "交通持续不断的噪音。"],
+  ["convenient", "方便的", "The bus stop is very convenient.", "公交车站很方便。"],
+  ["criminal", "犯罪的", "He was involved in criminal activity.", "他参与了犯罪活动。"],
+  ["dangerous", "危险的", "This road is dangerous at night.", "这条路晚上很危险。"],
+  ["dark", "黑暗的", "It gets dark early in winter.", "冬天天黑得早。"],
+  ["deep", "深的", "The lake is very deep.", "这个湖很深。"],
+  ["delicious", "美味的", "The food was delicious.", "食物很美味。"],
+  ["different", "不同的", "The twins look very different.", "这对双胞胎看起来很不同。"],
+  ["difficult", "困难的", "The exam was very difficult.", "考试很难。"],
+  ["double", "双倍的", "I ordered a double portion.", "我点了双份。"],
+  ["eager", "渴望的", "She is eager to learn.", "她渴望学习。"],
+  ["elegant", "优雅的", "She wore an elegant dress.", "她穿着一件优雅的裙子。"],
+  ["essential", "必不可少的", "Water is essential for life.", "水对生命必不可少。"],
+  ["exact", "确切的", "I need the exact address.", "我需要确切的地址。"],
+  ["excellent", "优秀的", "You did an excellent job.", "你做得非常出色。"],
+  ["extra", "额外的", "I need some extra time.", "我需要一些额外的时间。"],
+  ["extreme", "极端的", "The weather conditions are extreme.", "天气条件很极端。"],
+  ["fair", "公平的", "That is not fair!", "这不公平！"],
+  ["famous", "著名的", "The city is famous for its cathedral.", "这个城市以其大教堂闻名。"],
+  ["fantastic", "极好的", "We had a fantastic holiday.", "我们度过了一个极好的假期。"],
+  ["fashionable", "时尚的", "She wears fashionable clothes.", "她穿着时尚的衣服。"],
+  ["fat", "胖的", "The cat is very fat.", "这只猫很胖。"],
+  ["favourite", "最喜欢的", "This is my favourite song.", "这是我最喜欢的歌。"],
+  ["fierce", "凶猛的", "The lion looks fierce.", "狮子看起来很凶猛。"],
+  ["flat", "平坦的", "The road is flat here.", "这里的路很平坦。"],
+  ["foreign", "外国的", "I want to learn a foreign language.", "我想学一门外语。"],
+  ["former", "以前的", "He is my former classmate.", "他是我以前的同学。"],
+  ["frequent", "频繁的", "There are frequent buses to the airport.", "去机场的巴士很频繁。"],
+  ["full", "满的", "The bus is full.", "公交车满了。"],
+  ["general", "一般的", "In general, the project was a success.", "总的来说，这个项目是成功的。"],
+  ["gentle", "温和的", "She has a gentle voice.", "她的声音很温和。"],
+  ["giant", "巨大的", "They built a giant statue.", "他们建了一座巨大的雕像。"],
+  ["gradual", "逐渐的", "There has been a gradual improvement.", "有了逐渐的改善。"],
+  ["guilty", "有罪的", "The court found him guilty.", "法院判决他有罪。"],
+  ["heavy", "重的", "The box is too heavy to carry.", "箱子太重搬不动。"],
+  ["hidden", "隐藏的", "There is a hidden path.", "有一条隐藏的小路。"],
+  ["huge", "巨大的", "The building is huge.", "这栋建筑很巨大。"],
+  ["ideal", "理想的", "This is an ideal location.", "这是一个理想的位置。"],
+  ["immediate", "立即的", "I need an immediate answer.", "我需要立即的答复。"],
+  ["important", "重要的", "This is very important.", "这非常重要。"],
+  ["impossible", "不可能的", "Nothing is impossible.", "没有什么是不可能的。"],
+  ["innocent", "无辜的", "He was innocent of the crime.", "他是无辜的。"],
+  ["instant", "立即的", "He gave an instant reply.", "他立即回答了。"],
+  ["international", "国际的", "She works for an international company.", "她在一家国际公司工作。"],
+  ["junior", "初级的", "He is a junior doctor.", "他是一名初级医生。"],
+  ["keen", "热衷的", "She is keen on learning English.", "她热衷于学英语。"],
+  ["lazy", "懒惰的", "Don't be so lazy!", "别这么懒！"],
+  ["legal", "合法的", "Is this legal?", "这合法吗？"],
+  ["light", "轻的", "The bag is very light.", "这个包很轻。"],
+  ["likely", "可能的", "It is likely to rain today.", "今天可能会下雨。"],
+  ["limited", "有限的", "We have limited time.", "我们时间有限。"],
+  ["loose", "松的", "The screw is loose.", "螺丝松了。"],
+  ["lovely", "可爱的", "What a lovely baby!", "多可爱的宝宝！"],
+  ["low", "低的", "The price is very low.", "价格很低。"],
+  ["lucky", "幸运的", "I was lucky to get a ticket.", "我很幸运弄到一张票。"],
+  ["massive", "大规模的", "There was a massive increase.", "有一个大规模的增涨。"],
+  ["mental", "精神的", "Mental health is very important.", "心理健康非常重要。"],
+  ["mild", "温和的", "The weather is mild today.", "今天天气温和。"],
+  ["minor", "次要的", "It is a minor problem.", "这是一个小问题。"],
+  ["missing", "丢失的", "My keys are missing.", "我的钥匙不见了。"],
+  ["national", "全国的", "This is a national holiday.", "这是一个全国性节日。"],
+  ["nearby", "附近的", "There is a supermarket nearby.", "附近有一家超市。"],
+  ["necessary", "必要的", "Is it really necessary?", "真的有必要吗？"],
+  ["negative", "消极的", "Don't be so negative.", "别这么消极。"],
+  ["normal", "正常的", "Everything is back to normal.", "一切恢复正常了。"],
+  ["numerous", "许多的", "There are numerous reasons.", "有很多原因。"],
+  ["obvious", "明显的", "It was obvious that he was lying.", "很明显他在撒谎。"],
+  ["occasional", "偶尔的", "We have occasional meetings.", "我们偶尔开会。"],
+  ["official", "官方的", "This is an official document.", "这是一份官方文件。"],
+  ["opposite", "相反的", "The answer is the opposite.", "答案相反。"],
+  ["original", "原始的", "This is the original painting.", "这是原作。"],
+  ["particular", "特别的", "Is there anything in particular?", "有什么特别的事吗？"],
+  ["peaceful", "平静的", "The lake is very peaceful.", "湖面很平静。"],
+  ["perfect", "完美的", "The weather is perfect.", "天气完美。"],
+  ["permanent", "永久的", "This is my permanent address.", "这是我的永久地址。"],
+  ["personal", "个人的", "This is personal information.", "这是个人信息。"],
+  ["physical", "身体的", "Regular physical exercise is important.", "定期体育锻炼很重要。"],
+  ["plain", "简单的", "She wore a plain dress.", "她穿着朴素连衣裙。"],
+  ["pleasant", "愉快的", "We had a pleasant evening.", "我们度过了一个愉快的晚上。"],
+  ["plenty", "大量的", "We have plenty of time.", "我们有充足的时间。"],
+  ["poor", "贫穷的", "The family was very poor.", "这家人很穷。"],
+  ["positive", "积极的", "Try to think positive.", "试着积极思考。"],
+  ["possible", "可能的", "Is it possible?", "可能吗？"],
+  ["powerful", "强大的", "The engine is very powerful.", "引擎非常强大。"],
+  ["precious", "珍贵的", "Time is precious.", "时间是宝贵的。"],
+  ["previous", "之前的", "His previous job was in banking.", "他之前的工作在银行业。"],
+  ["private", "私人的", "This is a private conversation.", "这是私人谈话。"],
+  ["probable", "可能的", "It is probable that he will win.", "他可能会赢。"],
+  ["proper", "适当的", "Make sure you wear proper shoes.", "确保穿着适当的鞋子。"],
+  ["public", "公共的", "This is a public library.", "这是一个公共图书馆。"],
+  ["pure", "纯净的", "The water is pure.", "水是纯净的。"],
+  ["quick", "快的", "Give me a quick answer.", "给我一个快速的回答。"],
+  ["quiet", "安静的", "The library is very quiet.", "图书馆很安静。"],
+  ["rapid", "迅速的", "There has been rapid growth.", "有了迅速的增长。"],
+  ["rare", "罕见的", "This bird is very rare.", "这种鸟很罕见。"],
+  ["reasonable", "合理的", "The price is reasonable.", "价格合理。"],
+  ["recent", "最近的", "Have you seen the recent news?", "你看最近的新闻了吗？"],
+  ["regular", "定期的", "We have regular meetings.", "我们有定期会议。"],
+  ["relative", "相对的", "Everything is relative.", "一切都是相对的。"],
+  ["relevant", "相关的", "Is this relevant to the discussion?", "这和讨论有关吗？"],
+  ["reliable", "可靠的", "He is a reliable person.", "他是一个可靠的人。"],
+  ["religious", "宗教的", "She has strong religious beliefs.", "她有很强的宗教信仰。"],
+  ["remote", "遥远的", "They live in a remote village.", "他们住在一个遥远的村庄。"],
+  ["rich", "富有的", "He comes from a rich family.", "他来自一个富裕的家庭。"],
+  ["rough", "粗糙的", "The surface is rough.", "表面很粗糙。"],
+  ["royal", "皇室的", "The royal family lives there.", "皇室住在那。"],
+  ["rural", "乡村的", "The countryside is very rural.", "这里是非常乡村的地区。"],
+  ["safe", "安全的", "Keep your money in a safe place.", "把钱放在安全的地方。"],
+  ["satisfactory", "令人满意的", "His work is satisfactory.", "他的工作令人满意。"],
+  ["scientific", "科学的", "We need scientific evidence.", "我们需要科学证据。"],
+  ["secret", "秘密的", "Please keep it secret.", "请保密。"],
+  ["secure", "安全的", "Make sure the door is secure.", "确保门锁好了。"],
+  ["senior", "高级的", "She is a senior manager.", "她是一位高级经理。"],
+  ["sensitive", "敏感的", "She is very sensitive.", "她非常敏感。"],
+  ["severe", "严重的", "The storm was severe.", "暴风雨很严重。"],
+  ["shallow", "浅的", "The water is shallow here.", "这里水很浅。"],
+  ["sharp", "锋利的", "The knife is very sharp.", "刀很锋利。"],
+  ["shiny", "闪亮的", "Her hair is shiny.", "她的头发很闪亮。"],
+  ["short", "短的", "The film was too short.", "电影太短了。"],
+  ["significant", "显著的", "There has been a significant change.", "有了显著变化。"],
+  ["silent", "沉默的", "The room fell silent.", "房间安静了下来。"],
+  ["silly", "愚蠢的", "That was a silly thing to do.", "那是一件蠢事。"],
+  ["similar", "相似的", "Our ideas are similar.", "我们的想法相似。"],
+  ["simple", "简单的", "The instructions are simple.", "说明很简单。"],
+  ["single", "单一的", "I made a single mistake.", "我只犯了一个错误。"],
+  ["slight", "轻微的", "There is a slight difference.", "有轻微的差别。"],
+  ["slow", "慢的", "The service was very slow.", "服务很慢。"],
+  ["smooth", "光滑的", "The surface is smooth.", "表面很光滑。"],
+  ["social", "社会的", "We should address social problems.", "我们应该解决社会问题。"],
+  ["soft", "柔软的", "The bed is very soft.", "床很软。"],
+  ["solid", "坚固的", "The table is made of solid wood.", "桌子是实木做的。"],
+  ["special", "特别的", "This is a special day.", "这是特别的一天。"],
+  ["specific", "特定的", "I need a specific answer.", "我需要一个具体的回答。"],
+  ["steady", "稳定的", "The progress has been steady.", "进展一直很稳定。"],
+  ["steep", "陡峭的", "The hill is very steep.", "山坡很陡。"],
+  ["straight", "直的", "Go straight ahead.", "一直往前走。"],
+  ["strange", "奇怪的", "I heard a strange noise.", "我听到了一个奇怪的声音。"],
+  ["stupid", "愚蠢的", "That was a stupid idea.", "那是个愚蠢的主意。"],
+  ["substantial", "大量的", "They made substantial changes.", "他们做了大量的改变。"],
+  ["successful", "成功的", "The event was very successful.", "活动很成功。"],
+  ["sudden", "突然的", "There was a sudden change.", "突然发生了变化。"],
+  ["sufficient", "足够的", "We have sufficient food.", "我们有足够的食物。"],
+  ["sunny", "晴朗的", "It's a sunny day.", "今天是晴天。"],
+  ["superior", "优越的", "This product is superior.", "这个产品更优越。"],
+  ["surprised", "惊讶的", "I was surprised by the news.", "我对这个消息感到惊讶。"],
+  ["suspicious", "可疑的", "He saw something suspicious.", "他看到了可疑的东西。"],
+  ["sweet", "甜的", "The cake is very sweet.", "蛋糕很甜。"],
+  ["swift", "迅速的", "She gave a swift reply.", "她迅速回答了。"],
+  ["tall", "高的", "The building is very tall.", "建筑很高。"],
+  ["temporary", "临时的", "This is a temporary solution.", "这是一个临时的解决方案。"],
+  ["terrible", "可怕的", "The weather was terrible.", "天气很可怕。"],
+  ["thick", "厚的", "The book is very thick.", "这本书很厚。"],
+  ["thin", "薄的", "The ice is too thin.", "冰太薄了。"],
+  ["tight", "紧的", "These shoes are too tight.", "这双鞋太紧了。"],
+  ["tiny", "微小的", "There is a tiny insect on the leaf.", "叶子上有一只微小的昆虫。"],
+  ["tough", "艰难的", "It was a tough decision.", "这是一个艰难的决定。"],
+  ["traditional", "传统的", "We ate traditional food.", "我们吃了传统食物。"],
+  ["typical", "典型的", "This is a typical example.", "这是一个典型的例子。"],
+  ["ugly", "丑陋的", "The building is quite ugly.", "这栋建筑挺丑的。"],
+  ["unable", "不能的", "I am unable to attend the meeting.", "我不能参加会议。"],
+  ["unexpected", "意外的", "The news was unexpected.", "消息很意外。"],
+  ["unfair", "不公平的", "Life is sometimes unfair.", "生活有时候不公平。"],
+  ["united", "联合的", "They presented a united front.", "他们展现了联合阵线。"],
+  ["unlikely", "不太可能的", "It is unlikely to rain.", "不太可能下雨。"],
+  ["unusual", "不寻常的", "I saw something unusual.", "我看到了不寻常的东西。"],
+  ["upper", "上层的", "She lives on the upper floor.", "她住在楼上。"],
+  ["urgent", "紧急的", "This is an urgent message.", "这是一个紧急消息。"],
+  ["useless", "无用的", "This tool is useless.", "这个工具有用。"],
+  ["vacant", "空着的", "The seat is vacant.", "这个座位是空的。"],
+  ["various", "各种各样的", "There are various options.", "有各种各样的选择。"],
+  ["vast", "广阔的", "The desert is vast.", "沙漠很广阔。"],
+  ["violent", "暴力的", "The film was very violent.", "这部电影很暴力。"],
+  ["visible", "可见的", "The stars are visible tonight.", "今晚星星可见。"],
+  ["vital", "至关重要的", "Clean water is vital for health.", "干净的水对健康至关重要。"],
+  ["warm", "温暖的", "The weather is warm today.", "今天天气温暖。"],
+  ["wealthy", "富有的", "He comes from a wealthy family.", "他来自富有的家庭。"],
+  ["weak", "虚弱的", "She felt weak after the illness.", "病后她感到虚弱。"],
+  ["wet", "湿的", "My clothes are wet.", "我的衣服湿了。"],
+  ["wide", "宽的", "The river is very wide.", "河很宽。"],
+  ["willing", "愿意的", "I am willing to help.", "我愿意帮忙。"],
+  ["wise", "明智的", "That was a wise decision.", "那是一个明智的决定。"],
+  ["wonderful", "精彩的", "We had a wonderful time.", "我们度过了美好的时光。"],
+  ["wooden", "木制的", "The table is wooden.", "桌子是木制的。"],
+  ["worried", "担心的", "I am worried about the exam.", "我担心考试。"],
+  ["worthless", "无价值的", "This old coin is worthless.", "这枚旧硬币没有价值。"],
+  ["young", "年轻的", "She is very young.", "她很年轻。"]
+];
+// ── App State ──
+const DATA_KEY = 'pet_word_detective_data';
+let data = loadData();
+let currentUser = data.currentUser || null;
+let gameState = null; // { words:[], idx, score, streak, maxStreak, correct, wrong, wrongWords, answered }
+
+function loadData() {
+  try { return JSON.parse(localStorage.getItem(DATA_KEY)) || { users: {}, currentUser: null }; }
+  catch(e) { return { users: {}, currentUser: null }; }
+}
+function saveData() {
+  data.currentUser = currentUser;
+  try { localStorage.setItem(DATA_KEY, JSON.stringify(data)); } catch(e) {}
+}
+
+function getUsers() { return Object.keys(data.users).sort(); }
+function getUser(name) { return data.users[name]; }
+function createUser(name) {
+  name = name.trim();
+  if (!name) return false;
+  if (!data.users[name]) {
+    data.users[name] = { totalScore: 0, gamesPlayed: 0, bestScore: 0, maxStreak: 0, totalCorrect: 0, totalWrong: 0, achievements: [], history: [] };
+  }
+  currentUser = name;
+  saveData();
+  return true;
+}
+function deleteUser(name) {
+  delete data.users[name];
+  if (currentUser === name) {
+    const users = getUsers();
+    currentUser = users.length > 0 ? users[0] : null;
+  }
+  saveData();
+}
+
+// ══════════════════════════════════════════
+// VIEWS
+// ══════════════════════════════════════════
+const $ = id => document.getElementById(id);
+const body = () => document.getElementById('appBody');
+
+function render(html) {
+  body().innerHTML = html;
+}
+
+// ── Login View ──
+function showLogin() {
+  const users = getUsers();
+  let userCards = users.map(u => {
+    const d = data.users[u];
+    const isCurrent = u === currentUser;
+    return `<div class="card flex-center" style="justify-content:space-between;cursor:pointer;${isCurrent?'border-color:rgba(0,122,255,0.3);':''}" onclick="selectUser('${u}')">
+      <span style="color:#fff;font-weight:500;">🐾 ${u}</span>
+      <span style="display:flex;align-items:center;gap:8px;">
+        <span class="muted">${d.totalScore} 分 | ${d.gamesPlayed} 局</span>
+        ${isCurrent ? '<span class="badge badge-green">当前</span>' : ''}
+        <span style="color:rgba(255,255,255,0.2);font-size:18px;">›</span>
+      </span>
+    </div>`;
+  }).join('');
+
+  render(`<div class="fade-in">
+    <div class="text-center mb-12">
+      <div style="font-size:48px;margin-bottom:4px;">🐾</div>
+      <p class="muted">选一个名字，开始你的单词冒险</p>
+    </div>
+    ${userCards ? `<div class="flex" style="flex-direction:column;gap:6px;margin-bottom:16px;">${userCards}</div>` : ''}
+    <div class="card" style="text-align:center;">
+      <p class="muted mb-8">✨ 新同学</p>
+      <div class="flex" style="gap:8px;">
+        <input class="input" id="newUserName" placeholder="输入你的名字" onkeydown="if(event.key==='Enter')createUserBtn()">
+        <button class="btn btn-primary" onclick="createUserBtn()">出发 →</button>
+      </div>
+    </div>
+  </div>`);
+  setTimeout(() => {
+    const inp = document.getElementById('newUserName');
+    if (inp) inp.focus();
+  }, 100);
+}
+
+function selectUser(name) {
+  currentUser = name;
+  saveData();
+  showMenu();
+}
+
+function createUserBtn() {
+  const inp = document.getElementById('newUserName');
+  if (!inp) return;
+  const name = inp.value.trim();
+  if (!name) return;
+  createUser(name);
+  showMenu();
+}
+
+// ── Menu View ──
+function showMenu() {
+  const u = getUser(currentUser);
+  if (!u) { showLogin(); return; }
+
+  const unlocked = u.achievements || [];
+  const allAchievements = [
+    { id: 'first_game', name: '初次挑战', icon: '🎯', desc: '完成第一轮游戏', check: u => u.gamesPlayed >= 1 },
+    { id: 'newbie', name: '单词新手', icon: '🌱', desc: '累计获得 200 分', check: u => u.totalScore >= 200 },
+    { id: 'apprentice', name: '英语学徒', icon: '🥈', desc: '累计获得 500 分', check: u => u.totalScore >= 500 },
+    { id: 'master', name: '词汇达人', icon: '🥇', desc: '累计获得 1000 分', check: u => u.totalScore >= 1000 },
+    { id: 'combo5', name: '连击高手', icon: '⚡', desc: '单局连击达到 5 次', check: u => u.maxStreak >= 5 },
+    { id: 'combo10', name: '火热爱学习', icon: '🔥', desc: '单局连击达到 10 次', check: u => u.maxStreak >= 10 },
+    { id: 'scholar', name: '学霸', icon: '🏆', desc: '累计获得 1500 分', check: u => u.totalScore >= 1500 },
+    { id: 'linguist', name: '语言大师', icon: '👑', desc: '累计获得 2000 分', check: u => u.totalScore >= 2000 },
+  ];
+  let badges = allAchievements.filter(a => unlocked.includes(a.id)).slice(0, 4).map(a => a.icon).join(' ');
+
+  render(`<div class="fade-in">
+    <div class="card" style="background:rgba(0,122,255,0.08);border-color:rgba(0,122,255,0.15);margin-bottom:16px;">
+      <div class="flex" style="justify-content:space-between;align-items:center;">
+        <span style="color:#fff;font-weight:600;font-size:16px;">🐾 ${currentUser}</span>
+        <span style="color:rgba(255,255,255,0.4);font-size:12px;">${u.totalScore} 分 | ${u.gamesPlayed} 局</span>
+      </div>
+      ${badges ? `<div style="margin-top:4px;">${badges}</div>` : ''}
+    </div>
+
+    <div class="text-center mb-12">
+      <div style="font-size:32px;margin-bottom:4px;">🔍</div>
+      <div style="color:#fff;font-size:18px;font-weight:700;">单词侦探</div>
+      <p class="muted">在阅读中识词 · 在语境中理解</p>
+    </div>
+
+    <button class="btn btn-primary btn-block btn-lg mb-12" onclick="startGame()">▶ 开始挑战</button>
+    <button class="btn btn-secondary btn-block mb-12" onclick="showAchievements()">🏆 成就墙</button>
+
+    <div class="card text-center" style="margin-bottom:12px;">
+      <span class="muted">📚 ${WORDS.length} 词 | 📝 每轮 20 题 | 🎯 剑桥 PET (B1)</span>
+    </div>
+
+    <div class="flex" style="justify-content:center;">
+      <button class="btn btn-sm btn-secondary" onclick="showLogin()">🔄 切换用户</button>
+      <button class="btn btn-sm btn-secondary" onclick="showUserMgr()">👥 用户管理</button>
+    </div>
+  </div>`);
+}
+
+// ── Game View ──
+function startGame() {
+  const round = [...WORDS].sort(() => Math.random() - 0.5).slice(0, 20);
+  gameState = { words: round, idx: 0, score: 0, streak: 0, maxStreak: 0, correct: 0, wrong: 0, wrongWords: [], answered: false };
+  showQuestion();
+}
+
+function showQuestion() {
+  if (!gameState) return;
+  const { words, idx, score, streak } = gameState;
+  if (idx >= words.length) { showResult(); return; }
+
+  const word = words[idx];
+  const sentence = word[2].replace(new RegExp(word[0], 'i'), '____');
+  const others = WORDS.filter(w => w[1] !== word[1]).sort(() => Math.random() - 0.5).slice(0, 3);
+  let options = [word[1], ...others.map(w => w[1])].sort(() => Math.random() - 0.5);
+  gameState.answered = false;
+
+  const streakText = streak >= 3 ? `🔥🔥 ${streak}连击` : streak >= 2 ? `🔥 ${streak}` : '';
+
+  render(`<div class="fade-in">
+    <div class="flex" style="justify-content:space-between;align-items:center;margin-bottom:8px;">
+      <button class="btn btn-sm btn-secondary" onclick="confirmBack()">← 返回</button>
+      <span style="color:#fff;font-weight:600;">第 ${idx+1}/${words.length} 题</span>
+      <div class="flex" style="gap:8px;">
+        ${streakText ? `<span style="color:#FF9F0A;font-size:12px;">${streakText}</span>` : ''}
+        <span style="color:#FFD700;font-weight:700;">${score} 分</span>
+      </div>
+    </div>
+    <div class="progress-bar"><div class="fill" style="width:${(idx/words.length)*100}%"></div></div>
+
+    <div class="card" style="margin-bottom:12px;border-left:3px solid #007AFF;">
+      <p class="muted" style="font-size:11px;margin-bottom:6px;">📖 读句子，选出划线词的意思</p>
+      <p style="color:#fff;font-size:17px;line-height:1.6;margin-bottom:8px;">${sentence}</p>
+      <p style="color:#4facfe;font-size:20px;font-weight:700;">🔍 ${word[0]}</p>
+    </div>
+
+    <div id="optionsArea" style="display:flex;flex-direction:column;gap:8px;">
+      ${options.map((o, i) => `<div class="option-btn"><button class="btn" id="opt${i}" onclick="selectOption(${i},'${o}','${word[1]}')">${o}</button></div>`).join('')}
+    </div>
+    <div id="feedback" style="margin-top:10px;text-align:center;min-height:24px;"></div>
+  </div>`);
+  window.currentOptions = options;
+  window.currentAnswer = word[1];
+}
+
+function selectOption(idx, chosen, answer) {
+  if (gameState.answered) return;
+  gameState.answered = true;
+
+  const correct = chosen === answer;
+  const opts = document.querySelectorAll('.option-btn .btn');
+  opts.forEach((btn, i) => {
+    btn.disabled = true;
+    const txt = window.currentOptions[i];
+    if (txt === answer) btn.classList.add('correct');
+    else if (i === idx && !correct) btn.classList.add('wrong');
+  });
+
+  if (correct) {
+    gameState.streak++;
+    gameState.correct++;
+    const bonus = gameState.streak >= 2 ? gameState.streak * 2 : 0;
+    gameState.score += 10 + bonus;
+    gameState.maxStreak = Math.max(gameState.maxStreak, gameState.streak);
+    const msgs = ['🎉 正确！', '✨ 太棒了！', '👏 答对了！', '⭐ 非常好！', '🌟 继续加油！'];
+    let fb = msgs[Math.floor(Math.random() * msgs.length)];
+    if (bonus > 0) fb += ` 连击 +${bonus}`;
+    document.getElementById('feedback').innerHTML = `<span style="color:#34C759;font-weight:500;">${fb}</span>`;
+  } else {
+    gameState.streak = 0;
+    gameState.wrong++;
+    gameState.score = Math.max(0, gameState.score - 5);
+    gameState.wrongWords.push({ en: window.currentAnswer, zh: answer });
+    document.getElementById('feedback').innerHTML = `<span style="color:#FF453A;font-weight:500;">✗ ${answer}（-5）</span>`;
+  }
+
+  setTimeout(() => {
+    gameState.idx++;
+    showQuestion();
+  }, 1200);
+}
+
+function confirmBack() {
+  if (confirm('当前进度不会保存，确定退出吗？')) showMenu();
+}
+
+// ── Result View ──
+function showResult() {
+  const g = gameState;
+  if (!g) return;
+  const u = getUser(currentUser);
+  if (!u) return;
+
+  const total = g.words.length;
+  const pct = g.correct / total;
+  const stars = Math.round(pct * 5);
+
+  // Save
+  u.totalScore = Math.max(0, u.totalScore + g.score);
+  u.gamesPlayed++;
+  u.bestScore = Math.max(u.bestScore, g.score);
+  u.maxStreak = Math.max(u.maxStreak, g.maxStreak);
+  u.totalCorrect += g.correct;
+  u.totalWrong += g.wrong;
+  u.history = u.history || [];
+  u.history.push({ date: new Date().toISOString().slice(0,10), score: g.score, correct: g.correct, wrong: g.wrong });
+
+  // Check achievements
+  const allAch = [
+    { id: 'first_game', name: '初次挑战', icon: '🎯', check: u => u.gamesPlayed >= 1 },
+    { id: 'newbie', name: '单词新手', icon: '🌱', check: u => u.totalScore >= 200 },
+    { id: 'apprentice', name: '英语学徒', icon: '🥈', check: u => u.totalScore >= 500 },
+    { id: 'master', name: '词汇达人', icon: '🥇', check: u => u.totalScore >= 1000 },
+    { id: 'combo5', name: '连击高手', icon: '⚡', check: u => u.maxStreak >= 5 },
+    { id: 'combo10', name: '火热爱学习', icon: '🔥', check: u => u.maxStreak >= 10 },
+    { id: 'scholar', name: '学霸', icon: '🏆', check: u => u.totalScore >= 1500 },
+    { id: 'linguist', name: '语言大师', icon: '👑', check: u => u.totalScore >= 2000 },
+  ];
+  u.achievements = u.achievements || [];
+  let newAch = [];
+  allAch.forEach(a => {
+    if (!u.achievements.includes(a.id) && a.check(u)) {
+      u.achievements.push(a.id);
+      newAch.push(a);
+    }
+  });
+  saveData();
+
+  const starHTML = Array(5).fill(0).map((_, i) => i < stars ? '⭐' : '☆').join('');
+
+  render(`<div class="slide-up">
+    <div style="text-align:center;margin-bottom:12px;">
+      ${newAch.length > 0 ? `<div class="card" style="background:rgba(255,215,0,0.08);border-color:rgba(255,215,0,0.2);margin-bottom:12px;text-align:center;">
+        <div style="font-size:40px;">${newAch[0].icon}</div>
+        <div style="color:#FFD700;font-weight:600;">🎉 解锁成就: ${newAch[0].name}</div>
+      </div>` : ''}
+      <div style="font-size:36px;margin-bottom:4px;">${starHTML}</div>
+      <div style="color:#fff;font-size:24px;font-weight:700;">${g.score} 分</div>
+    </div>
+
+    <div class="stats mb-12">
+      <div class="stat-card"><span class="num" style="color:#34C759;">${g.correct}</span><span class="label">✅ 正确</span></div>
+      <div class="stat-card"><span class="num" style="color:#FF453A;">${g.wrong}</span><span class="label">❌ 错误</span></div>
+      <div class="stat-card"><span class="num" style="color:#FF9F0A;">${g.maxStreak}</span><span class="label">⚡ 最高连击</span></div>
+    </div>
+
+    <div class="text-center muted" style="margin-bottom:12px;">累计: ${u.totalScore} 分 | 共 ${u.gamesPlayed} 局</div>
+
+    ${g.wrongWords.length > 0 ? `<div class="card" style="margin-bottom:12px;">
+      <p style="color:#FF453A;font-size:12px;font-weight:600;margin-bottom:6px;">📝 需要复习的词:</p>
+      ${g.wrongWords.slice(0,10).map(w => `<div style="color:rgba(255,255,255,0.7);font-size:13px;padding:2px 0;">${w.en} — ${w.zh}</div>`).join('')}
+    </div>` : `<div class="text-center" style="color:#34C759;font-size:15px;margin-bottom:12px;">全部正确！太棒了 🎉</div>`}
+
+    <div class="flex" style="gap:8px;">
+      <button class="btn btn-primary btn-block btn-lg" onclick="startGame()">再来一轮 ▶</button>
+      <button class="btn btn-secondary btn-block btn-lg" onclick="showMenu()">返回主页</button>
+    </div>
+  </div>`);
+}
+
+// ── Achievements View ──
+function showAchievements() {
+  const u = getUser(currentUser);
+  if (!u) return;
+  const unlocked = u.achievements || [];
+  const allAch = [
+    { id: 'first_game', name: '初次挑战', icon: '🎯', desc: '完成第一轮游戏' },
+    { id: 'newbie', name: '单词新手', icon: '🌱', desc: '累计获得 200 分' },
+    { id: 'apprentice', name: '英语学徒', icon: '🥈', desc: '累计获得 500 分' },
+    { id: 'master', name: '词汇达人', icon: '🥇', desc: '累计获得 1000 分' },
+    { id: 'combo5', name: '连击高手', icon: '⚡', desc: '单局连击达到 5 次' },
+    { id: 'combo10', name: '火热爱学习', icon: '🔥', desc: '单局连击达到 10 次' },
+    { id: 'scholar', name: '学霸', icon: '🏆', desc: '累计获得 1500 分' },
+    { id: 'linguist', name: '语言大师', icon: '👑', desc: '累计获得 2000 分' },
+  ];
+
+  render(`<div class="fade-in">
+    <div style="text-align:center;margin-bottom:12px;">
+      <div style="font-size:32px;">🏆</div>
+      <div style="color:#fff;font-size:18px;font-weight:700;">成就墙</div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px;">
+      ${allAch.map(a => {
+        const has = unlocked.includes(a.id);
+        return `<div class="card" style="text-align:center;${has?'border-color:rgba(255,215,0,0.2);':'opacity:0.4;'}">
+          <div style="font-size:28px;margin-bottom:4px;">${a.icon}</div>
+          <div style="color:#fff;font-size:13px;font-weight:600;">${a.name}</div>
+          <div style="font-size:11px;color:rgba(255,255,255,0.35);">${a.desc}</div>
+          <div style="margin-top:4px;"><span class="badge ${has?'badge-green':'badge-blue'}">${has?'✅ 已获得':'🔒 未解锁'}</span></div>
+        </div>`;
+      }).join('')}
+    </div>
+    <button class="btn btn-secondary btn-block" onclick="showMenu()">← 返回</button>
+  </div>`);
+}
+
+// ── User Management View ──
+function showUserMgr() {
+  const users = getUsers();
+  render(`<div class="fade-in">
+    <div style="text-align:center;margin-bottom:12px;">
+      <div style="font-size:32px;">👥</div>
+      <div style="color:#fff;font-size:18px;font-weight:700;">用户管理</div>
+    </div>
+    ${users.length > 0 ? users.map(u => {
+      const d = data.users[u];
+      const isCurrent = u === currentUser;
+      return `<div class="card" style="margin-bottom:8px;">
+        <div class="flex" style="justify-content:space-between;align-items:center;">
+          <span style="color:#fff;font-weight:500;">🐾 ${u} ${isCurrent?'<span class="badge badge-green">当前</span>':''}</span>
+          <span class="muted">${d.totalScore} 分 | ${d.gamesPlayed} 局</span>
+        </div>
+        <div class="flex mt-8" style="gap:6px;">
+          ${!isCurrent ? `<button class="btn btn-sm btn-secondary" onclick="switchUser('${u}')">切换</button>` : ''}
+          <button class="btn btn-sm btn-danger" onclick="deleteUserConfirm('${u}')">🗑 删除</button>
+        </div>
+      </div>`;
+    }).join('') : '<p class="text-center muted">还没有用户</p>'}
+    <div class="text-center muted mt-8" style="font-size:11px;">共 ${users.length} 个用户</div>
+    <div class="flex mt-12">
+      <button class="btn btn-secondary btn-block" onclick="showMenu()">← 返回</button>
+      <button class="btn btn-primary btn-block" onclick="showCreateUser()">➕ 新建用户</button>
+    </div>
+  </div>`);
+}
+
+function switchUser(name) {
+  currentUser = name;
+  saveData();
+  showUserMgr();
+}
+
+function deleteUserConfirm(name) {
+  if (!confirm(`确定要删除用户「${name}」吗？\n所有学习记录将永久丢失。`)) return;
+  deleteUser(name);
+  showUserMgr();
+}
+
+function showCreateUser() {
+  render(`<div class="fade-in">
+    <div class="text-center mb-12">
+      <div style="font-size:32px;">✨</div>
+      <div style="color:#fff;font-size:18px;font-weight:700;">新建用户</div>
+    </div>
+    <div class="card">
+      <input class="input" id="newUserMgr" placeholder="输入用户名" onkeydown="if(event.key==='Enter')createMgrUser()">
+      <div class="flex mt-8">
+        <button class="btn btn-secondary btn-block" onclick="showUserMgr()">取消</button>
+        <button class="btn btn-primary btn-block" onclick="createMgrUser()">创建</button>
+      </div>
+    </div>
+  </div>`);
+  setTimeout(() => { const i = document.getElementById('newUserMgr'); if (i) i.focus(); }, 100);
+}
+
+function createMgrUser() {
+  const inp = document.getElementById('newUserMgr');
+  if (!inp) return;
+  const name = inp.value.trim();
+  if (!name) return;
+  createUser(name);
+  showMenu();
+}
+
+// ── Init ──
+if (currentUser && getUser(currentUser)) showMenu();
+else showLogin();
+</script>
+</body>
+</html>

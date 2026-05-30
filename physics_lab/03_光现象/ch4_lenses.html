@@ -1,0 +1,1138 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>物理实验室 · 透镜</title>
+<style>
+/* NB_LAB */
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "PingFang SC", "Helvetica Neue", sans-serif;
+    min-height: 100dvh;
+    background: linear-gradient(135deg, #0c0e1a 0%, #1a1e3a 30%, #0d1b2a 60%, #0a0e1a 100%) !important;
+    display: flex; justify-content: center; align-items: center; margin: 0; position: relative;
+  }
+  body::before {
+    content: ''; position: fixed; top: -50%; left: -50%; width: 200%; height: 200%;
+    background: radial-gradient(ellipse at 20% 50%, rgba(0,122,255,0.08) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 20%, rgba(0,122,255,0.05) 0%, transparent 50%);
+    pointer-events: none; z-index: 0;
+  }
+
+  /* COMPACT_V5 - balanced layout */
+  .app { height: 100dvh !important; max-height: 100dvh !important; }
+  .top-bar { padding: 6px 12px !important; min-height: 34px !important; }
+  .top-bar h1 { font-size: 12px !important; }
+  .top-bar .back { font-size: 14px !important; }
+  .top-bar .progress-dots .dot { width: 6px !important; height: 6px !important; }
+  .main-area { padding: 6px !important; gap: 6px !important; flex: 1 !important; min-height: 0 !important; overflow: hidden !important; }
+  .canvas-wrap { flex: 1 !important; min-height: 200px !important; max-height: none !important; overflow: hidden !important; position: relative !important; }
+  .canvas-wrap canvas { width: 100% !important; height: 100% !important; display: block !important; }
+.canvas-wrap.quiz-active { flex-shrink: 1 !important; min-height: 55dvh !important; max-height: 75dvh !important; }
+  .canvas-wrap.quiz-active canvas { display: none !important; }
+  .info-panel { padding: 4px 10px !important; flex-shrink: 0 !important; min-height: 50px !important; max-height: 30dvh !important; overflow-y: auto !important; }
+  .info-panel .mission-label { font-size: 9px !important; line-height: 14px !important; }
+  .info-panel .mission-title { font-size: 12px !important; line-height: 16px !important; margin: 0 !important; }
+  .info-panel .mission-desc { font-size: 11px !important; line-height: 15px !important; }
+  .info-panel .mission-desc button { padding: 3px 10px !important; font-size: 10px !important; border-radius: 6px !important; }
+  .info-panel .data-display, .info-panel .speed-display,
+  .info-panel .noise-display, .info-panel .sonar-display,
+  .info-panel .wave-controls, .info-panel .angle-display { margin-top: 2px !important; padding-top: 2px !important; gap: 6px !important; }
+  .info-panel .data-item, .info-panel .speed-item,
+  .info-panel .noise-item, .info-panel .sonar-item { font-size: 10px !important; }
+  .info-panel .data-item .value, .info-panel .speed-item .value { font-size: 12px !important; }
+  .info-panel .wave-controls input[type=range] { width: 60px !important; }
+  .mission-tabs { padding: 2px 8px 6px !important; flex-shrink: 0 !important; }
+  .mission-tabs .tab { padding: 5px 4px !important; font-size: 11px !important; border-radius: 6px !important; }
+  .mission-tabs .tab .tab-check { font-size: 9px !important; margin-top: 1px !important; }
+  .knowledge-box { padding: 3px 8px !important; }
+  .knowledge-box .kb-title { font-size: 9px !important; }
+  .knowledge-box .kb-body { font-size: 10px !important; line-height: 1.3 !important; }
+  .challenge-hud { padding: 4px 8px !important; font-size: 10px !important; top: 8px !important; right: 8px !important; }
+  .challenge-hud .ch-restart { padding: 2px 8px !important; font-size: 10px !important; }
+  .mode-toggle { padding: 3px 8px !important; font-size: 9px !important; top: 8px !important; left: 8px !important; }
+  .noise-btn, .timbre-btn, .app-btn, .lens-btn { padding: 4px 10px !important; font-size: 10px !important; }
+
+  .top-bar { padding: 6px 12px !important; min-height: 36px !important; }
+  .top-bar h1 { font-size: 12px !important; }
+  .top-bar .back { font-size: 14px !important; line-height: 20px !important; }
+  .top-bar .progress-dots .dot { width: 6px !important; height: 6px !important; }
+  .main-area { padding: 4px !important; gap: 4px !important; flex: 1 !important; min-height: 0 !important; }
+  .canvas-wrap { flex-shrink: 0 !important; }
+.info-panel { padding: 4px 8px !important; flex: 1 !important; min-height: 30px !important; overflow-y: auto !important; }
+  .info-panel .mission-label { font-size: 9px !important; line-height: 14px !important; }
+  .info-panel .mission-title { font-size: 12px !important; line-height: 16px !important; margin: 0 !important; }
+  .info-panel .mission-desc { font-size: 11px !important; line-height: 15px !important; }
+  .info-panel .mission-desc button { padding: 3px 10px !important; font-size: 10px !important; border-radius: 6px !important; }
+  .info-panel .data-display, .info-panel .speed-display,
+  .info-panel .noise-display, .info-panel .sonar-display,
+  .info-panel .wave-controls, .info-panel .angle-display { margin-top: 3px !important; padding-top: 3px !important; gap: 6px !important; }
+  .info-panel .data-item, .info-panel .speed-item,
+  .info-panel .noise-item, .info-panel .sonar-item { font-size: 10px !important; }
+  .info-panel .data-item .value, .info-panel .speed-item .value { font-size: 12px !important; }
+  .info-panel .wave-controls input[type=range] { width: 60px !important; }
+  .mission-tabs { padding: 1px 6px 4px !important; flex-shrink: 0 !important; }
+  .mission-tabs .tab { padding: 4px 3px !important; font-size: 10px !important; border-radius: 6px !important; }
+  .mission-tabs .tab .tab-check { font-size: 9px !important; margin-top: 1px !important; }
+  .knowledge-box { padding: 3px 8px !important; }
+  .knowledge-box .kb-title { font-size: 9px !important; }
+  .challenge-hud { padding: 4px 8px !important; font-size: 10px !important; top: 8px !important; right: 8px !important; }
+  .challenge-hud .ch-restart { padding: 2px 8px !important; font-size: 10px !important; }
+  .mode-toggle { padding: 3px 8px !important; font-size: 9px !important; top: 8px !important; left: 8px !important; }
+  .noise-btn, .timbre-btn, .app-btn, .lens-btn { padding: 4px 10px !important; font-size: 10px !important; }
+
+  .app { background: rgba(255,255,255,0.04) !important; border: 1px solid rgba(255,255,255,0.06) !important; backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); position: relative; z-index: 1; }
+  .top-bar { background: rgba(255,255,255,0.03) !important; border-bottom: 1px solid rgba(255,255,255,0.06) !important; }
+  .top-bar h1, .top-bar h2 { color: #fff !important; }
+  .top-bar .back { color: rgba(255,255,255,0.5) !important; }
+  .top-bar .back:hover { color: #fff !important; }
+  .top-bar .progress-dots .dot { background: rgba(255,255,255,0.1) !important; }
+  .top-bar .progress-dots .dot.active { background: #007AFF !important; }
+  .top-bar .progress-dots .dot.done { background: #34C759 !important; }
+  .canvas-wrap { background: rgba(10,12,26,0.6) !important; border-color: rgba(255,255,255,0.06) !important; }
+  .canvas-wrap canvas { filter: brightness(1.05) contrast(1.05); }
+  .info-panel { background: rgba(255,255,255,0.03) !important; border-color: rgba(255,255,255,0.06) !important; }
+  .info-panel .mission-label, .card .num { color: #007AFF !important; }
+  .info-panel .mission-title, .card h3, .hero h1, .top-bar h1 { color: #fff !important; }
+  .info-panel .mission-desc, p, .card p, .hero p { color: rgba(255,255,255,0.4) !important; }
+  .info-panel .mission-desc button, .card .status.new, .tab.active { background: #007AFF !important; color: #fff !important; border: none !important; }
+  .mission-tabs .tab { background: rgba(255,255,255,0.03) !important; border-color: rgba(255,255,255,0.08) !important; color: rgba(255,255,255,0.3) !important; }
+  .mission-tabs .tab:hover { border-color: #007AFF !important; color: #007AFF !important; }
+  .mission-tabs .tab.active { background: #007AFF !important; color: #fff !important; border-color: #007AFF !important; }
+  .mission-tabs .tab.done { border-color: #34C759 !important; color: #34C759 !important; }
+  .challenge-hud, .mode-toggle { background: rgba(0,0,0,0.5) !important; backdrop-filter: blur(10px) !important; }
+
+  .knowledge-box { background: rgba(0,122,255,0.08) !important; border-left-color: #007AFF !important; }
+  .knowledge-box .kb-title, .knowledge-box .kb-toggle { color: #007AFF !important; }
+  .knowledge-box .kb-body, .card p, .hero p { color: rgba(255,255,255,0.7) !important; }
+  .knowledge-box .kb-body em { color: #007AFF !important; }
+  .knowledge-box .kb-formula { background: rgba(255,255,255,0.06) !important; border-color: rgba(255,255,255,0.1) !important; color: #fff !important; }
+  .card { background: rgba(255,255,255,0.04) !important; border: 1px solid rgba(255,255,255,0.06) !important; backdrop-filter: blur(20px) !important; color: #fff !important; }
+  .card:hover { border-color: #007AFF !important; transform: translateY(-2px); }
+  .card .status.done { background: rgba(52,199,89,0.12) !important; color: #34C759 !important; border: 1px solid rgba(52,199,89,0.15) !important; }
+  .card .status.new { background: rgba(0,122,255,0.1) !important; color: #007AFF !important; border: 1px solid rgba(0,122,255,0.15) !important; }
+  .card .status.partial { background: rgba(255,255,255,0.05) !important; color: rgba(255,255,255,0.4) !important; border: 1px solid rgba(255,255,255,0.08) !important; }
+  .hero .progress-module, .module-progress { color: #007AFF !important; background: rgba(0,122,255,0.1) !important; border: 1px solid rgba(0,122,255,0.15) !important; }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", sans-serif; background: #f5f5f7; color: #1d1d1f; height: 100dvh; display: flex; justify-content: center; align-items: center; margin: 0; }
+
+  .app { width: 820px; max-width: 96vw; height: 100dvh; max-height: 100dvh; background: #fff; border-radius: 20px; box-shadow: 0 20px 60px rgba(0,0,0,0.08); display: flex; flex-direction: column; overflow: hidden; }
+  .top-bar { display: flex; align-items: center; padding: 14px 20px; flex-shrink: 0; background: #fafafa; border-bottom: 1px solid #e8e8ed; }
+  .top-bar .back { font-size: 20px; cursor: pointer; opacity: 0.6; }
+  .top-bar .back:hover { opacity: 1; }
+  .top-bar h1 { font-size: 15px; font-weight: 600; margin-left: 10px; flex:1; }
+  .top-bar .progress-dots { font-size: 13px; color: #86868b; display: flex; gap: 6px; align-items: center; }
+  .top-bar .progress-dots .dot { width: 8px; height: 8px; border-radius: 50%; background: #e8e8ed; }
+  .top-bar .progress-dots .dot.active { background: #007AFF; }
+  .top-bar .progress-dots .dot.done { background: #34C759; }
+
+  .main-area { padding: 10px; flex: 1; display: flex; flex-direction: column; overflow: hidden; gap: 8px; }
+  .canvas-wrap { position: relative; background: #fff; border-radius: 14px; border: 1px solid #e8e8ed; overflow: hidden; flex-shrink: 0; }
+  .canvas-wrap canvas { display: block; width: 100%; height: auto; cursor: grab; touch-action: none; }
+  .canvas-wrap canvas:active { cursor: grabbing; }
+
+  .info-panel { background: #fafafa; border-radius: 14px; border: 1px solid #e8e8ed; padding: 10px 16px; overflow-y: auto; min-height: 0; }
+  .info-panel .mission-label { font-size: 11px; font-weight: 600; color: #007AFF; letter-spacing: 0.5px; text-transform: uppercase; }
+  .info-panel .mission-title { font-size: 15px; font-weight: 600; margin: 0 0 2px; }
+  .info-panel .mission-desc { font-size: 13px; color: #86868b; line-height: 1.4; }
+
+  .lens-controls { display: flex; gap: 10px; margin-top: 6px; padding-top: 6px; border-top: 1px solid #e8e8ed; align-items: center; }
+  .lens-btn { padding: 6px 14px; border-radius: 8px; border: 1px solid #007AFF; background: #fff; color: #007AFF; font-size: 12px; font-weight: 500; cursor: pointer; transition: all 0.2s; }
+  .lens-btn:hover { background: #007AFF; color: #fff; }
+  .focal-display { font-size: 12px; color: #86868b; }
+  .focal-display .value { font-weight: 600; color: #007AFF; font-size: 15px; }
+
+  .mission-tabs { display: flex; gap: 4px; padding: 2px 10px 8px; flex-shrink: 0; }
+  .mission-tabs .tab { flex: 1; padding: 8px 4px; border-radius: 8px; border: 1px solid #e8e8ed; background: #fff; text-align: center; cursor: pointer; font-size: 12px; font-weight: 500; color: #86868b; transition: all 0.2s; }
+  .mission-tabs .tab:hover { border-color: #007AFF; color: #007AFF; }
+  .mission-tabs .tab.active { background: #007AFF; color: #fff; border-color: #007AFF; }
+  .mission-tabs .tab.done { border-color: #34C759; color: #34C759; }
+  .mission-tabs .tab .tab-check { font-size: 11px; display: block; margin-top: 2px; }
+
+  /* Challenge overlay */
+  .challenge-hud { position: absolute; top: 12px; right: 12px; background: rgba(0,0,0,0.7); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border-radius: 10px; padding: 8px 14px; color: #fff; font-size: 13px; display: none; }
+  .challenge-hud.show { display: block; }
+  .challenge-hud .ch-level { font-weight: 600; margin-bottom: 2px; }
+  .challenge-hud .ch-goal { color: #aaa; font-size: 12px; }
+  .challenge-hud .ch-restart { margin-top: 6px; padding: 4px 10px; background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.25); border-radius: 6px; color: #fff; font-size: 11px; cursor: pointer; }
+
+  /* Success toast */
+  .toast { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0.8); background: rgba(0,0,0,0.8); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border-radius: 16px; padding: 20px 32px; color: #fff; text-align: center; opacity: 0; pointer-events: none; transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); }
+  .toast.show { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  .toast .toast-icon { font-size: 40px; }
+  .toast .toast-text { font-size: 17px; font-weight: 600; margin-top: 6px; }
+  .toast .toast-sub { font-size: 13px; color: #aaa; margin-top: 3px; }
+
+  /* Quiz overlay */
+  .quiz-overlay { position: absolute; inset: 0; background: rgba(255,255,255,0.85); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); display: none; flex-direction: column; align-items: center; justify-content: center; padding: 30px; z-index: 10; }
+  .quiz-overlay.show { display: flex; background: rgba(10,12,26,0.92) !important; backdrop-filter: blur(20px) !important; -webkit-backdrop-filter: blur(20px) !important; }
+  .quiz-overlay .quiz-q { font-size: 18px; font-weight: 600; text-align: center; max-width: 480px; margin-bottom: 20px; line-height: 1.5; }
+  .quiz-overlay .quiz-options { display: flex; flex-direction: column; gap: 10px; width: 100%; max-width: 400px; }
+  .quiz-overlay .quiz-opt { padding: 14px 20px; background: #fff; border: 1.5px solid #e8e8ed; border-radius: 12px; font-size: 15px; cursor: pointer; transition: all 0.2s; text-align: left; }
+  .quiz-overlay .quiz-opt:hover { border-color: #007AFF; background: #f0f7ff; }
+  .quiz-overlay .quiz-opt.correct { border-color: #34C759; background: #e8f8ee; color: #1d1d1f; }
+  .quiz-overlay .quiz-opt.wrong { border-color: #FF3B30; background: #ffe8e6; color: #1d1d1f; }
+  .quiz-overlay .quiz-result { margin-top: 16px; font-size: 15px; font-weight: 500; }
+  .quiz-overlay .quiz-next { margin-top: 14px; padding: 10px 30px; background: #007AFF; color: #fff; border: none; border-radius: 10px; font-size: 15px; font-weight: 500; cursor: pointer; }
+
+  .knowledge-box { padding: 6px 12px; background: #f0f7ff; border-radius: 10px; border-left: 3px solid #007AFF; flex-shrink: 0; cursor: pointer; user-select: none; }
+  .knowledge-box .kb-title { font-weight: 600; font-size: 11px; color: #007AFF; letter-spacing: 0.3px; display: flex; align-items: center; gap: 4px; }
+  .knowledge-box .kb-toggle { font-size: 9px; color: #007AFF; opacity: 0.5; transition: transform 0.2s; }
+  .knowledge-box .kb-toggle.open { transform: rotate(90deg); }
+  .knowledge-box .kb-body { font-size: 11.5px; color: #1d1d1f; line-height: 1.5; margin-top: 3px; }
+  .knowledge-box .kb-body em { color: #007AFF; font-style: normal; font-weight: 500; }
+  .knowledge-box .kb-formula { display: inline-block; background: #fff; border: 1px solid #dce8f5; border-radius: 5px; padding: 1px 8px; font-family: "SF Mono", monospace; font-size: 12px; font-weight: 600; color: #1d1d1f; margin: 0 2px; }
+  .knowledge-box.collapsed .kb-body { display: none; }
+
+  @media (max-width: 600px) {
+    .app { border-radius: 0; max-width: 100vw; max-height: 100dvh; }
+    .main-area { padding: 6px; gap: 6px; }
+    .mission-tabs .tab { font-size: 11px; padding: 8px 4px; }
+    .mission-tabs { padding: 2px 6px 6px; }
+    .info-panel { padding: 8px 10px; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- Top Bar -->
+  <div class="top-bar">
+    <span class="back" onclick="location.href='index.html'">←</span>
+    <h1>透镜 · 凸透镜与凹透镜</h1>
+    <div class="progress-dots">
+      进度 <span id="progressText">0/4</span>
+      <span id="dotsContainer"></span>
+    </div>
+  </div>
+
+  <!-- Main Area -->
+  <div class="main-area">
+    <div class="canvas-wrap" id="canvasWrap">
+      <canvas id="simCanvas" width="760" height="240"></canvas>
+      <div class="challenge-hud" id="challengeHud">
+        <div class="ch-level" id="chLevel">第 1 关</div>
+        <div class="ch-goal" id="chGoal">调整焦距使光线汇聚到目标点</div>
+        <button class="ch-restart" onclick="resetChallenges()">↺ 重新挑战</button>
+        <button class="quiz-close" id="quizClose" onclick="closeQuiz()" style="margin-top:10px;padding:6px 16px;background:rgba(255,255,255,0.1);color:rgba(255,255,255,0.6);border:1px solid rgba(255,255,255,0.15);border-radius:8px;cursor:pointer;font-size:12px;">✕ 关闭</button>
+      </div>
+      <div class="toast" id="toast">
+        <div class="toast-icon" id="toastIcon">✅</div>
+        <div class="toast-text" id="toastText">任务完成！</div>
+        <div class="toast-sub" id="toastSub">真棒！继续下一关</div>
+      </div>
+      <div class="quiz-overlay" id="quizOverlay">
+
+    showQuiz();        <div class="quiz-q" id="quizQ">题目加载中...</div>
+        <div class="quiz-options" id="quizOptions"></div>
+        <div class="quiz-result" id="quizResult"></div>
+        <button class="quiz-next" id="quizNext" style="display:none" onclick="quizNext()">下一题 →</button>
+      </div>
+    </div>
+
+    <div class="info-panel">
+      <div class="mission-label" id="missionLabel">🔬 观察</div>
+      <div class="mission-title" id="missionTitle">凸透镜与凹透镜</div>
+      <div class="mission-desc" id="missionDesc">观看光线经过透镜后的偏折现象</div>
+      <div class="lens-controls" id="lensControls" style="display:none">
+        <button class="lens-btn" id="lensToggle" onclick="toggleLensType()">切换到凹透镜</button>
+        <span class="focal-display">焦距: <span class="value" id="focalValue">80</span> px</span>
+      </div>
+      <div class="knowledge-box collapsed" id="knowledgeBox" onclick="toggleKnowledge()">
+        <div class="kb-title"><span class="kb-toggle" id="kbToggle">▶</span> 💡 <span id="kbTitle">知识要点</span></div>
+        <div class="kb-body" id="kbBody"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Mission Tabs -->
+  <div class="mission-tabs" id="missionTabs"></div>
+</div>
+
+<script>
+// ══════════════════════════════════════════
+// 1. DATA
+// ══════════════════════════════════════════
+const MISSIONS = [
+  {
+    id: 'observe', label: '🔬 观察', title: '透镜演示',
+    desc: '观看平行光线经过凸透镜和凹透镜后的偏折现象。',
+    doneLabel: '已观看'
+  },
+  {
+    id: 'explore', label: '✋ 探索', title: '拖拽焦点',
+    desc: '拖拽焦点 F 改变焦距，观察光线汇聚/发散的变化规律。',
+    doneLabel: '已探索'
+  },
+  {
+    id: 'challenge', label: '🎯 挑战', title: '透镜闯关',
+    desc: '调整焦距和透镜类型，完成各项透镜挑战任务！',
+    doneLabel: '已闯关'
+  },
+  {
+    id: 'quiz', label: '⭐ 测验', title: '知识检测',
+    desc: '完成几道选择题，巩固今天学的透镜知识。',
+    doneLabel: '已完成'
+  }
+];
+
+const CHALLENGES = [
+  { goal: '凸透镜：调整焦距使光线精准汇聚到目标点（f=130px）', targetF: 130, tolerance: 10, requireType: 'convex', showTarget: true },
+  { goal: '凹透镜：切换到凹透镜模式，调整焦距到 100px', targetF: 100, tolerance: 8, requireType: 'concave', showTarget: true },
+  { goal: '调整焦点到红色标记处（焦距 = 90px）', targetF: 90, tolerance: 6, requireType: null, showTarget: true },
+  { goal: '精确设置焦距为 65px', targetF: 65, tolerance: 4, requireType: null, showTarget: false },
+  { goal: '精确设置焦距为 75px（最终挑战）', targetF: 75, tolerance: 3, requireType: null, showTarget: false }
+];
+
+const QUIZ_POOL = [
+  { q: '凸透镜对光有___作用？', opts: ['会聚', '发散', '反射', '折射'], ans: 0,
+    explain: '凸透镜中间厚、边缘薄，对光有会聚作用，能将平行光会聚到焦点。' },
+  { q: '凹透镜对光有___作用？', opts: ['会聚', '发散', '反射', '折射'], ans: 1,
+    explain: '凹透镜中间薄、边缘厚，对光有发散作用，平行光通过后向外发散。' },
+  { q: '平行于主光轴的光通过凸透镜后会聚在？', opts: ['光心', '焦点', '两倍焦距点', '无限远'], ans: 1,
+    explain: '平行于主光轴的光通过凸透镜后会聚在焦点（F），这是凸透镜的基本特性。' },
+  { q: '近视眼镜的镜片是？', opts: ['凸透镜', '凹透镜', '平面镜', '三棱镜'], ans: 1,
+    explain: '近视眼镜用凹透镜矫正，因为凹透镜对光有发散作用，能帮助近视眼看清楚远处物体。' },
+  { q: '远视眼镜（老花镜）的镜片是？', opts: ['凸透镜', '凹透镜', '平面镜', '三棱镜'], ans: 0,
+    explain: '远视眼镜（老花镜）用凸透镜矫正，凸透镜对光有会聚作用。' },
+  { q: '凸透镜的焦距越短，说明它对光的会聚能力？', opts: ['越强', '越弱', '不变', '无法确定'], ans: 0,
+    explain: '焦距越短，光线偏折越剧烈，会聚能力越强。焦距越长的凸透镜会聚能力越弱。' },
+  { q: '过光心的光线方向？', opts: ['不变', '会聚', '发散', '反射'], ans: 0,
+    explain: '过光心的光线方向不变，这是透镜的三条特殊光线之一。因为光心处透镜很薄，偏折可忽略。' },
+  { q: '照相机镜头相当于一个？', opts: ['凹透镜', '凸透镜', '平面镜', '三棱镜'], ans: 1,
+    explain: '照相机镜头相当于一个凸透镜，利用凸透镜成倒立、缩小的实像原理工作。' },
+  { q: '放大镜是一个？', opts: ['凹透镜', '凸透镜', '平面镜', '凹面镜'], ans: 1,
+    explain: '放大镜是一个凸透镜，利用凸透镜成放大虚像的原理，物体放在焦点以内。' },
+  { q: '下列哪个是凸透镜的应用？', opts: ['近视镜', '老花镜', '汽车后视镜', '潜望镜'], ans: 1,
+    explain: '老花镜（远视眼镜）是凸透镜的应用。近视镜是凹透镜，后视镜是凸面镜，潜望镜用平面镜。' },
+  { q: '凸透镜的三条特殊光线中，说法正确的是？', opts: [
+    '平行过焦点、过焦点平行、过光心不变',
+    '平行过光心、过焦点汇聚、过光心发散',
+    '平行发散、过焦点反射、过光心会聚',
+    '平行不变、过焦点发散、过光心反射'
+  ], ans: 0,
+    explain: '三条特殊光线：①平行于主光轴的光过焦点 ②过焦点的光平行于主光轴 ③过光心的光方向不变。' },
+  { q: '凹透镜的焦距越短，说明它对光的发散能力？', opts: ['越强', '越弱', '不变', '无法确定'], ans: 0,
+    explain: '凹透镜的焦距越短，光线偏折越剧烈，发散作用越明显。' },
+  { q: '下列有关透镜的说法，错误的是？', opts: ['凸透镜对光有会聚作用', '凹透镜对光有发散作用', '凸透镜的焦距越短，会聚能力越弱', '过光心的光线方向不变'], ans: 2,
+    explain: '凸透镜的焦距越短，会聚能力越强（不是越弱）。焦距越短意味着光线会聚得越快。' }
+];
+
+const QUIZ_PER_ROUND = 5;
+let quizQuestions = [];
+
+// ══════════════════════════════════════════
+// 2. STATE
+// ══════════════════════════════════════════
+const STORAGE_KEY = 'physics_optics_ch4';
+let state = loadState();
+
+function defaultState() {
+  return { done: [], currentMission: 0, challengeIdx: 0, quizIdx: 0, quizDone: [] };
+}
+function loadState() {
+  try { const d = JSON.parse(localStorage.getItem(STORAGE_KEY)); return d && typeof d === 'object' ? d : defaultState(); }
+  catch { return defaultState(); }
+}
+function saveState() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+}
+
+// ══════════════════════════════════════════
+// 3. CANVAS SETUP
+// ══════════════════════════════════════════
+const canvas = document.getElementById('simCanvas');
+const ctx = canvas.getContext('2d');
+const W = canvas.width, H = canvas.height;
+const CX = W / 2, CY = H / 2; // 380, 120
+
+const RAY_SPACING = 30;
+const LENS_HEIGHT = 75;
+const LENS_BULGE = 13;
+const RAY_COLORS = ['#FF9500', '#FFD60A', '#FF9500'];
+const FOCUS_MIN = 25;
+const FOCUS_MAX = 240;
+
+let lensType = 'convex';
+let focalLength = 80;
+let isDraggingFocus = false;
+let mouseOverCanvas = false;
+
+let currentMission = state.currentMission;
+let challengeIdx = state.challengeIdx;
+let quizIdx = state.quizIdx;
+let quizAnswered = false;
+let animeId = null;
+let observePhase = 0;
+
+// ══════════════════════════════════════════
+// 4. SOUND
+// ══════════════════════════════════════════
+let audioCtx = null;
+
+function getAudioCtx() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  return audioCtx;
+}
+
+function playTone(freq, duration, type, volume) {
+  try {
+    const ctx = getAudioCtx();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = type || 'sine';
+    osc.frequency.value = freq;
+    gain.gain.setValueAtTime(volume || 0.3, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + duration);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + duration);
+  } catch (e) { /* silent fail */ }
+}
+
+function playHit() {
+  playTone(880, 0.15, 'sine', 0.25);
+  setTimeout(() => playTone(1320, 0.2, 'sine', 0.2), 80);
+}
+
+function playComplete() {
+  playTone(523, 0.15, 'sine', 0.25);
+  setTimeout(() => playTone(659, 0.15, 'sine', 0.25), 120);
+  setTimeout(() => playTone(784, 0.15, 'sine', 0.25), 240);
+  setTimeout(() => playTone(1047, 0.3, 'sine', 0.3), 360);
+}
+
+// ══════════════════════════════════════════
+// 5. DRAWING
+// ══════════════════════════════════════════
+function drawScene(highlight) {
+  ctx.clearRect(0, 0, W, H);
+
+  // Grid dots (subtle)
+  ctx.fillStyle = 'rgba(255,255,255,0.04)';
+  for (let x = 40; x < W; x += 40) {
+    ctx.beginPath(); ctx.arc(x, 40, 1, 0, Math.PI*2); ctx.fill();
+  }
+
+  // Main optical axis (horizontal dashed)
+  ctx.save();
+  ctx.setLineDash([4, 6]); ctx.strokeStyle = '#c7c7cc'; ctx.lineWidth = 1.2;
+  ctx.beginPath(); ctx.moveTo(20, CY); ctx.lineTo(W-20, CY); ctx.stroke();
+  ctx.restore();
+  ctx.fillStyle = 'rgba(255,255,255,0.35)'; ctx.font = '11px -apple-system, sans-serif';
+  ctx.textAlign = 'left'; ctx.fillText('主光轴', W-65, CY-6);
+
+  // Draw rays (before lens: horizontal; after lens: refracted)
+  drawRays();
+
+  // Draw lens
+  drawLens();
+
+  // Draw optical center O
+  ctx.fillStyle = 'rgba(255,255,255,0.35)';
+  ctx.beginPath(); ctx.arc(CX, CY, 3, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = 'rgba(255,255,255,0.35)'; ctx.font = '11px -apple-system, sans-serif'; ctx.textAlign = 'center';
+  ctx.fillText('O', CX, CY + 16);
+
+  // Draw focus and focal length
+  drawFocus();
+
+  // Draw challenge targets
+  if (currentMission === 2) drawChallengeTargets();
+
+  // Highlight for observe mode
+  if (highlight) {
+    ctx.fillStyle = 'rgba(0,122,255,0.05)';
+    ctx.fillRect(0, 0, W, H);
+  }
+}
+
+function drawLens() {
+  ctx.save();
+  ctx.strokeStyle = '#007AFF'; ctx.lineWidth = 2.8;
+  ctx.shadowColor = 'rgba(0,122,255,0.12)'; ctx.shadowBlur = 6;
+
+  if (lensType === 'convex') {
+    // Convex: two arcs bulging outward
+    ctx.beginPath();
+    ctx.moveTo(CX, CY - LENS_HEIGHT);
+    ctx.quadraticCurveTo(CX - LENS_BULGE, CY, CX, CY + LENS_HEIGHT);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(CX, CY - LENS_HEIGHT);
+    ctx.quadraticCurveTo(CX + LENS_BULGE, CY, CX, CY + LENS_HEIGHT);
+    ctx.stroke();
+  } else {
+    // Concave: two arcs bulging inward
+    ctx.beginPath();
+    ctx.moveTo(CX, CY - LENS_HEIGHT);
+    ctx.quadraticCurveTo(CX + LENS_BULGE, CY, CX, CY + LENS_HEIGHT);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(CX, CY - LENS_HEIGHT);
+    ctx.quadraticCurveTo(CX - LENS_BULGE, CY, CX, CY + LENS_HEIGHT);
+    ctx.stroke();
+  }
+
+  ctx.restore();
+
+  ctx.fillStyle = '#007AFF'; ctx.font = '11px -apple-system, sans-serif'; ctx.textAlign = 'center';
+  ctx.fillText(lensType === 'convex' ? '凸透镜' : '凹透镜', CX, CY + LENS_HEIGHT + 18);
+}
+
+function drawRays() {
+  const heights = [-RAY_SPACING, 0, RAY_SPACING];
+
+  for (let i = 0; i < heights.length; i++) {
+    const h = heights[i];
+    const yAtLens = CY + h;
+    const color = RAY_COLORS[i];
+
+    // Ray before lens (horizontal from left to lens)
+    ctx.save();
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2;
+    ctx.globalAlpha = 0.65;
+    ctx.beginPath();
+    ctx.moveTo(10, yAtLens);
+    ctx.lineTo(CX, yAtLens);
+    ctx.stroke();
+    ctx.restore();
+
+    if (Math.abs(h) < 1) {
+      // Middle ray: goes straight through optical center
+      ctx.save();
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 2;
+      ctx.globalAlpha = 0.85;
+      ctx.beginPath();
+      ctx.moveTo(CX, yAtLens);
+      ctx.lineTo(W - 10, yAtLens);
+      ctx.stroke();
+      ctx.restore();
+    } else if (lensType === 'convex') {
+      // Convex: ray bends toward focus (CX+f, CY)
+      // Slope = -h/f (from lens point toward focus)
+      const slope = -h / focalLength;
+      const endX = W - 10;
+      const endY = yAtLens + slope * (endX - CX);
+      const clipEndY = Math.max(8, Math.min(H - 8, endY));
+
+      ctx.save();
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 2;
+      ctx.globalAlpha = 0.85;
+      ctx.beginPath();
+      ctx.moveTo(CX, yAtLens);
+      ctx.lineTo(endX, clipEndY);
+      ctx.stroke();
+      ctx.restore();
+    } else {
+      // Concave: ray diverges, appears from virtual focus (CX-f, CY)
+      // Slope = h/f (away from axis)
+      const slope = h / focalLength;
+      const endX = W - 10;
+      const endY = yAtLens + slope * (endX - CX);
+      const clipEndY = Math.max(8, Math.min(H - 8, endY));
+
+      ctx.save();
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 2;
+      ctx.globalAlpha = 0.85;
+      ctx.beginPath();
+      ctx.moveTo(CX, yAtLens);
+      ctx.lineTo(endX, clipEndY);
+      ctx.stroke();
+      ctx.restore();
+
+      // Dashed extension backward to virtual focus
+      ctx.save();
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 1.2;
+      ctx.globalAlpha = 0.3;
+      ctx.setLineDash([3, 5]);
+      ctx.beginPath();
+      ctx.moveTo(CX, yAtLens);
+      ctx.lineTo(CX - focalLength, CY);
+      ctx.stroke();
+      ctx.restore();
+    }
+  }
+}
+
+function drawFocus() {
+  const fPos = lensType === 'convex' ? CX + focalLength : CX - focalLength;
+  const isVirtual = lensType === 'concave';
+
+  // Focal length bracket (from CX to focus)
+  ctx.save();
+  ctx.strokeStyle = '#c7c7cc'; ctx.lineWidth = 1;
+  const bracketY = CY + 6;
+  const fEnd = lensType === 'convex' ? CX + focalLength : CX - focalLength;
+  ctx.beginPath();
+  ctx.moveTo(CX, bracketY);
+  ctx.lineTo(fEnd, bracketY);
+  ctx.stroke();
+  // Small ticks
+  ctx.beginPath();
+  ctx.moveTo(CX, bracketY - 3); ctx.lineTo(CX, bracketY + 3);
+  ctx.moveTo(fEnd, bracketY - 3); ctx.lineTo(fEnd, bracketY + 3);
+  ctx.stroke();
+  ctx.restore();
+
+  // Focal length label
+  ctx.fillStyle = 'rgba(255,255,255,0.35)';
+  ctx.font = '11px -apple-system, sans-serif';
+  ctx.textAlign = 'center';
+  const labelX = (CX + fEnd) / 2;
+  ctx.fillText(`f = ${Math.round(focalLength)}px`, labelX, bracketY + 16);
+
+  // Focus point
+  ctx.save();
+  if (isVirtual) {
+    ctx.strokeStyle = '#007AFF'; ctx.lineWidth = 2.5;
+    ctx.shadowColor = 'rgba(0,122,255,0.2)'; ctx.shadowBlur = 6;
+    ctx.beginPath(); ctx.arc(fPos, CY, 7, 0, Math.PI*2); ctx.stroke();
+    ctx.fillStyle = '#007AFF'; ctx.beginPath(); ctx.arc(fPos, CY, 3, 0, Math.PI*2); ctx.fill();
+  } else {
+    ctx.fillStyle = '#007AFF';
+    ctx.shadowColor = 'rgba(0,122,255,0.3)'; ctx.shadowBlur = 8;
+    ctx.beginPath(); ctx.arc(fPos, CY, 7, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(fPos, CY, 3, 0, Math.PI*2); ctx.fill();
+  }
+  ctx.restore();
+
+  // F label (above)
+  ctx.fillStyle = '#007AFF';
+  ctx.font = 'bold 13px -apple-system, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('F', fPos, CY - 12);
+
+  // Virtual focus label for concave
+  if (isVirtual) {
+    ctx.fillStyle = 'rgba(255,255,255,0.35)';
+    ctx.font = '10px -apple-system, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('(虚焦点)', fPos, CY + 32);
+  }
+}
+
+function drawChallengeTargets() {
+  if (challengeIdx >= CHALLENGES.length) return;
+  const ch = CHALLENGES[challengeIdx];
+  if (!ch.showTarget) return;
+
+  let tx;
+  if (ch.requireType === 'concave') {
+    tx = CX - ch.targetF;
+  } else {
+    tx = CX + ch.targetF;
+  }
+
+  // Draw target marker
+  ctx.save();
+  ctx.fillStyle = '#FF3B30';
+  ctx.shadowColor = 'rgba(255,59,48,0.3)'; ctx.shadowBlur = 8;
+  ctx.beginPath(); ctx.arc(tx, CY, 6, 0, Math.PI*2); ctx.fill();
+  ctx.restore();
+
+  ctx.fillStyle = '#FF3B30';
+  ctx.font = 'bold 11px -apple-system, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('▼ 目标位置', tx, CY + 38);
+}
+
+// ══════════════════════════════════════════
+// 6. DRAG INTERACTION
+// ══════════════════════════════════════════
+function getCanvasPos(e) {
+  const rect = canvas.getBoundingClientRect();
+  const scaleX = canvas.width / rect.width;
+  const scaleY = canvas.height / rect.height;
+  const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+  const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+  return { x: (clientX - rect.left) * scaleX, y: (clientY - rect.top) * scaleY };
+}
+
+function onPointerDown(e) {
+  if (currentMission === 0 || currentMission === 3) return;
+  const pos = getCanvasPos(e);
+
+  // Check if near focus point (mainly horizontal detection)
+  const fPos = lensType === 'convex' ? CX + focalLength : CX - focalLength;
+  if (Math.abs(pos.x - fPos) < 18 && Math.abs(pos.y - CY) < 25) {
+    isDraggingFocus = true;
+    e.preventDefault();
+  }
+}
+
+function onPointerMove(e) {
+  e.preventDefault();
+  const pos = getCanvasPos(e);
+  mouseOverCanvas = true;
+
+  if (isDraggingFocus && (currentMission === 1 || currentMission === 2)) {
+    // Update focal length from drag position
+    let newF = Math.abs(pos.x - CX);
+    newF = Math.max(FOCUS_MIN, Math.min(FOCUS_MAX, newF));
+    focalLength = newF;
+    drawScene(false);
+    updateFocalDisplay();
+
+    if (currentMission === 2) checkChallenge();
+  }
+}
+
+function onPointerUp(e) {
+  if (isDraggingFocus) {
+    isDraggingFocus = false;
+    if (currentMission === 2) checkChallenge();
+  }
+}
+
+canvas.addEventListener('mousedown', onPointerDown);
+canvas.addEventListener('mousemove', onPointerMove);
+canvas.addEventListener('mouseup', onPointerUp);
+canvas.addEventListener('mouseleave', onPointerUp);
+canvas.addEventListener('touchstart', onPointerDown, { passive: true });
+canvas.addEventListener('touchmove', onPointerMove, { passive: false });
+canvas.addEventListener('touchend', onPointerUp, { passive: true });
+
+// ══════════════════════════════════════════
+// 7. UI UPDATES
+// ══════════════════════════════════════════
+function updateFocalDisplay() {
+  document.getElementById('focalValue').textContent = Math.round(focalLength);
+}
+
+function toggleLensType() {
+  lensType = lensType === 'convex' ? 'concave' : 'convex';
+  document.getElementById('lensToggle').textContent =
+    lensType === 'convex' ? '切换到凹透镜' : '切换到凸透镜';
+  drawScene(false);
+  updateFocalDisplay();
+  if (currentMission === 2) checkChallenge();
+}
+
+function showLensControls(show) {
+  document.getElementById('lensControls').style.display = show ? 'flex' : 'none';
+}
+
+function showToast(icon, text, sub) {
+  const t = document.getElementById('toast');
+  document.getElementById('toastIcon').textContent = icon;
+  document.getElementById('toastText').textContent = text;
+  document.getElementById('toastSub').textContent = sub || '';
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 1800);
+}
+
+function markMissionDone(idx) {
+  if (!state.done.includes(idx)) {
+    state.done.push(idx);
+    saveState();
+    updateTabs();
+    updateDots();
+  }
+}
+
+// ══════════════════════════════════════════
+// 8. OBSERVE MISSION
+// ══════════════════════════════════════════
+let observeTimer = null;
+
+function startObserve() {
+  if (observePhase === 1) return;
+  observePhase = 1;
+
+  const steps = [
+    { f: 100, type: 'convex', delay: 1600, label: '凸透镜：平行光线会聚到焦点 F' },
+    { f: 60, type: 'convex', delay: 1300, label: '焦距越短，会聚能力越强（偏折更剧烈）' },
+    { f: 160, type: 'convex', delay: 1300, label: '焦距越长，会聚点离透镜越远' },
+    { f: 80, type: 'concave', delay: 1600, label: '凹透镜：平行光线发散，反向延长线过虚焦点' },
+    { f: 50, type: 'concave', delay: 1300, label: '焦距越短，发散越明显' },
+    { f: 150, type: 'concave', delay: 1300, label: '焦距越长，发散越平缓' },
+  ];
+
+  let stepIdx = 0;
+
+  function step() {
+    if (stepIdx >= steps.length) {
+      observePhase = 2;
+      markMissionDone(0);
+      const desc = document.getElementById('missionDesc');
+      desc.innerHTML = '✅ 演示完成！凸透镜会聚光线，凹透镜发散光线。<br><br> <button onclick="startObserve()" style="padding:6px 16px;background:#007AFF;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:13px;">▶ 再看一次</button>';
+      showToast('✅', '观察完成', '试试"探索"任务拖拽焦点吧！');
+
+      // Reset to default
+      lensType = 'convex';
+      focalLength = 80;
+      document.getElementById('lensToggle').textContent = '切换到凹透镜';
+      drawScene(false);
+      updateFocalDisplay();
+      return;
+    }
+
+    const s = steps[stepIdx];
+    lensType = s.type;
+    focalLength = s.f;
+    document.getElementById('lensToggle').textContent =
+      lensType === 'convex' ? '切换到凹透镜' : '切换到凸透镜';
+    drawScene(true);
+    updateFocalDisplay();
+    document.getElementById('missionDesc').textContent = s.label;
+
+    stepIdx++;
+    observeTimer = setTimeout(step, s.delay);
+  }
+
+  step();
+}
+
+// ══════════════════════════════════════════
+// 9. EXPLORE MISSION
+// ══════════════════════════════════════════
+
+// ══════════════════════════════════════════
+// 10. CHALLENGE MISSION
+// ══════════════════════════════════════════
+function checkChallenge() {
+  if (currentMission !== 2) return;
+  const ch = CHALLENGES[challengeIdx];
+  if (!ch) return;
+
+  let passed = true;
+
+  // Check required lens type
+  if (ch.requireType && lensType !== ch.requireType) {
+    passed = false;
+  }
+
+  // Check focal length tolerance
+  if (Math.abs(focalLength - ch.targetF) > ch.tolerance) {
+    passed = false;
+  }
+
+  if (passed) {
+    challengeIdx++;
+    state.challengeIdx = challengeIdx;
+    saveState();
+
+    if (challengeIdx >= CHALLENGES.length) {
+      playComplete();
+      markMissionDone(2);
+      updateChallengeHud();
+      const desc = document.getElementById('missionDesc');
+      desc.innerHTML = '🎉 所有关卡挑战成功！你掌握了透镜的焦距调节！<br><br> <button onclick="resetChallenges()" style="padding:6px 16px;background:#007AFF;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:13px;">🔄 重新挑战</button>';
+      showToast('🏆', '全部通关！', '恭喜完成透镜闯关！');
+    } else {
+      playHit();
+      const nextGoal = CHALLENGES[challengeIdx] ? CHALLENGES[challengeIdx].goal : '';
+      showToast('⭐', '闯关成功！', nextGoal);
+      updateChallengeHud();
+
+      drawScene(false);
+      updateFocalDisplay();
+      const nextCh = CHALLENGES[challengeIdx];
+      document.getElementById('missionDesc').textContent = nextCh ? nextCh.goal : '';
+    }
+  }
+}
+
+function updateChallengeHud() {
+  const hud = document.getElementById('challengeHud');
+  if (currentMission === 2) {
+    hud.classList.add('show');
+    if (challengeIdx < CHALLENGES.length) {
+      document.getElementById('chLevel').textContent = `第 ${challengeIdx + 1}/${CHALLENGES.length} 关`;
+      document.getElementById('chGoal').textContent = CHALLENGES[challengeIdx].goal;
+    } else {
+      document.getElementById('chLevel').textContent = '🏆 全部通关';
+      document.getElementById('chGoal').textContent = '点击"↺ 重新挑战"再来一次';
+    }
+  } else {
+    hud.classList.remove('show');
+  }
+}
+
+function resetChallenges() {
+  challengeIdx = 0;
+  state.challengeIdx = 0;
+  state.done = state.done.filter(i => i !== 2);
+  saveState();
+  lensType = 'convex';
+  focalLength = 80;
+  document.getElementById('lensToggle').textContent = '切换到凹透镜';
+  document.getElementById('missionDesc').textContent = CHALLENGES[0].goal;
+  updateChallengeHud();
+  drawScene(false);
+  updateFocalDisplay();
+  updateTabs();
+  updateDots();
+}
+
+// ══════════════════════════════════════════
+// 11. QUIZ MISSION
+// ══════════════════════════════════════════
+function shuffle(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+function startQuiz() {
+  quizQuestions = shuffle([...QUIZ_POOL]).slice(0, QUIZ_PER_ROUND);
+  quizIdx = 0;
+  const overlay = document.getElementById('quizOverlay');
+  overlay.classList.add('show');
+  showQuestion();
+}
+
+function showQuestion() {
+  if (quizIdx >= quizQuestions.length) {
+    document.getElementById('quizOverlay').classList.remove('show');
+    document.querySelector('.canvas-wrap').classList.remove('quiz-active');
+    markMissionDone(3);
+    document.getElementById('missionDesc').innerHTML = '✅ 测验完成！ <button onclick="startQuiz()" style="padding:6px 16px;background:#007AFF;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:13px;">🔄 再来一轮</button>';
+    showToast('🎉', '全部完成！', '透镜知识已学完！');
+    return;
+  }
+
+  quizAnswered = false;
+  const q = quizQuestions[quizIdx];
+  document.getElementById('quizQ').innerHTML = `<span style="color:#007AFF;font-weight:400;">${quizIdx + 1}/${quizQuestions.length}</span> ${q.q}`;
+  document.getElementById('quizResult').textContent = '';
+  document.getElementById('quizNext').style.display = 'none';
+
+  const container = document.getElementById('quizOptions');
+  container.innerHTML = '';
+  q.opts.forEach((opt, i) => {
+    const el = document.createElement('div');
+    el.className = 'quiz-opt';
+    el.textContent = `${String.fromCharCode(65 + i)}) ${opt}`;
+    el.onclick = () => answerQuiz(i);
+    container.appendChild(el);
+  });
+}
+
+function answerQuiz(idx) {
+  if (quizAnswered) return;
+  quizAnswered = true;
+  const q = quizQuestions[quizIdx];
+  const opts = document.querySelectorAll('.quiz-opt');
+
+  opts.forEach((el, i) => {
+    if (i === q.ans) el.classList.add('correct');
+    else if (i === idx && i !== q.ans) el.classList.add('wrong');
+    el.onclick = null;
+  });
+
+  const resultDiv = document.getElementById('quizResult');
+  if (idx === q.ans) {
+    resultDiv.innerHTML = `<span style="color:#34C759;">✅ 正确！</span> ${q.explain}`;
+  } else {
+    resultDiv.innerHTML = `<span style="color:#FF3B30;">❌ 选错了。</span> 正确答案是 ${String.fromCharCode(65 + q.ans)}。${q.explain}`;
+  }
+
+  document.getElementById('quizNext').style.display = 'inline-block';
+}
+
+function quizNext() {
+  quizIdx++;
+  showQuestion();
+}
+
+// ══════════════════════════════════════════
+// 12. MISSION NAVIGATION
+// ══════════════════════════════════════════
+const KNOWLEDGE = {
+  0: {
+    title: '💡 认识透镜',
+    body: '📌 <em>凸透镜</em>：中间厚、边缘薄，对光有<em>会聚作用</em>。<br><br>' +
+         '📌 <em>凹透镜</em>：中间薄、边缘厚，对光有<em>发散作用</em>。<br><br>' +
+         '📌 <em>主光轴</em>：过透镜两个球面球心的直线。<br>' +
+         '📌 <em>光心（O）</em>：透镜的中心点。<br>' +
+         '📌 <em>焦点（F）</em>：平行于主光轴的光通过凸透镜后会聚的点。<br>' +
+         '📌 <em>焦距（f）</em>：焦点到光心的距离。'
+  },
+  1: {
+    title: '💡 透镜的焦距',
+    body: '🔑 <em>焦距（f）</em>是焦点到光心的距离，决定了透镜对光的偏折能力。<br><br>' +
+         '• 凸透镜的焦距越<em>短</em> → 会聚能力越<em>强</em><br>' +
+         '• 凹透镜的焦距越<em>短</em> → 发散作用越<em>明显</em><br><br>' +
+         '拖拽 🟠 <strong>F</strong> 点可以改变焦距，观察光线如何变化！'
+  },
+  2: {
+    title: '💡 三条特殊光线 & 透镜应用',
+    body: '🔦 <em>三条特殊光线</em>：<br>' +
+         '① 平行于主光轴 → <em>过焦点</em><br>' +
+         '② 过焦点 → <em>平行于主光轴</em><br>' +
+         '③ 过光心 → <em>方向不变</em><br><br>' +
+         '📷 <em>透镜在生活中的应用</em>：<br>' +
+         '• 照相机 → 凸透镜<br>' +
+         '• 近视眼镜 → 凹透镜<br>' +
+         '• 远视眼镜（老花镜）→ 凸透镜<br>' +
+         '• 放大镜 → 凸透镜'
+  },
+  3: {
+    title: '💡 检测你的掌握',
+    body: '通过几道选择题来检验你是否真正理解了透镜的知识。<br><br>' +
+         '记得关键点：凸透镜<em>会聚</em>、凹透镜<em>发散</em>、三条特殊光线：①平行过焦点 ②过焦点平行 ③过光心不变。'
+  }
+};
+
+function toggleKnowledge() {
+  const box = document.getElementById('knowledgeBox');
+  const toggle = document.getElementById('kbToggle');
+  box.classList.toggle('collapsed');
+  toggle.classList.toggle('open');
+}
+
+function setKnowledge(idx) {
+  const k = KNOWLEDGE[idx];
+  if (k) {
+    document.getElementById('kbTitle').textContent = k.title;
+    document.getElementById('kbBody').innerHTML = k.body;
+    const box = document.getElementById('knowledgeBox');
+    if (box.classList.contains('collapsed')) {
+      box.classList.remove('collapsed');
+      document.getElementById('kbToggle').classList.add('open');
+    }
+  }
+}
+
+function switchMission(idx) {
+  if (idx === currentMission) return;
+  if (observeTimer) { clearTimeout(observeTimer); observeTimer = null; }
+
+  currentMission = idx;
+  state.currentMission = idx;
+  saveState();
+  updateTabs();
+  updateDots();
+
+  document.getElementById('challengeHud').classList.remove('show');
+  document.getElementById('quizOverlay').classList.remove('show');
+    document.querySelector('.canvas-wrap').classList.remove('quiz-active');
+
+  const m = MISSIONS[idx];
+  document.getElementById('missionLabel').textContent = m.label;
+  document.getElementById('missionTitle').textContent = m.title;
+
+  const descEl = document.getElementById('missionDesc');
+
+  switch (idx) {
+    case 0: // Observe
+      showLensControls(false);
+      setKnowledge(0);
+      observePhase = state.done.includes(0) ? 2 : 0;
+      lensType = 'convex';
+      focalLength = 80;
+      document.getElementById('lensToggle').textContent = '切换到凹透镜';
+      if (observePhase === 2) {
+        descEl.innerHTML = '✅ 已观看过演示。 <button onclick="startObserve()" style="padding:6px 16px;background:#007AFF;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:13px;">▶ 再看一次</button>';
+      } else {
+        descEl.innerHTML = `${m.desc} <button onclick="startObserve()" style="padding:6px 16px;background:#007AFF;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:13px;">▶ 播放演示</button>`;
+      }
+      drawScene(false);
+      break;
+
+    case 1: // Explore
+      showLensControls(true);
+      setKnowledge(1);
+      lensType = 'convex';
+      focalLength = 80;
+      document.getElementById('lensToggle').textContent = '切换到凹透镜';
+      descEl.textContent = '拖拽 🟠 F 点改变焦距，或者点击按钮切换透镜类型，观察光线变化！';
+      drawScene(false);
+      updateFocalDisplay();
+      // Auto-mark as done after exploration
+      setTimeout(() => {
+        if (currentMission === 1 && !state.done.includes(1)) {
+          markMissionDone(1);
+          descEl.innerHTML = '✅ 探索完成！你了解了焦距对光线偏折的影响！<br><br>试试 "🎯 挑战" 任务吧！';
+          showToast('✅', '探索完成', '了解了焦距的作用！');
+        }
+      }, 10000);
+      break;
+
+    case 2: // Challenge
+      showLensControls(true);
+      setKnowledge(2);
+      challengeIdx = state.challengeIdx || 0;
+      focalLength = 80;
+      lensType = 'convex';
+      document.getElementById('lensToggle').textContent = '切换到凹透镜';
+      if (challengeIdx >= CHALLENGES.length) {
+        descEl.innerHTML = '🎉 所有关卡已通关！ <button onclick="resetChallenges()" style="padding:6px 16px;background:#007AFF;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:13px;">🔄 重新挑战</button>';
+      } else {
+        descEl.textContent = CHALLENGES[challengeIdx].goal;
+      }
+      updateChallengeHud();
+      drawScene(false);
+      updateFocalDisplay();
+      break;
+
+    case 3: // Quiz
+      showLensControls(false);
+      setKnowledge(3);
+      drawScene(false);
+      if (state.done.includes(3)) {
+        descEl.innerHTML = '✅ 测验已完成！ <button onclick="startQuiz()" style="padding:6px 16px;background:#007AFF;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:13px;">🔄 再来一轮</button>';
+      } else {
+        descEl.textContent = m.desc;
+        startQuiz();
+      }
+      break;
+  }
+}
+
+// ══════════════════════════════════════════
+// 13. TABS & DOTS
+// ══════════════════════════════════════════
+function updateTabs() {
+  const container = document.getElementById('missionTabs');
+  container.innerHTML = '';
+  MISSIONS.forEach((m, i) => {
+    const el = document.createElement('div');
+    el.className = 'tab';
+    if (i === currentMission) el.classList.add('active');
+    else if (state.done.includes(i)) el.classList.add('done');
+    el.innerHTML = `${m.label}<span class="tab-check">${state.done.includes(i) ? '✅' : ''}</span>`;
+    el.onclick = () => switchMission(i);
+    container.appendChild(el);
+  });
+}
+
+function updateDots() {
+  document.getElementById('progressText').textContent = `${state.done.length}/${MISSIONS.length}`;
+  const container = document.getElementById('dotsContainer');
+  container.innerHTML = '';
+  MISSIONS.forEach((m, i) => {
+    const dot = document.createElement('span');
+    dot.className = 'dot';
+    if (state.done.includes(i)) dot.classList.add('done');
+    else if (i === currentMission) dot.classList.add('active');
+    container.appendChild(dot);
+  });
+}
+
+// ══════════════════════════════════════════
+// 14. INIT
+// ══════════════════════════════════════════
+function init() {
+  updateTabs();
+  updateDots();
+  switchMission(state.currentMission || 0);
+}
+
+init();
+
+function closeQuiz() { switchMission(0); }
+</script>
+</body>
+</html>

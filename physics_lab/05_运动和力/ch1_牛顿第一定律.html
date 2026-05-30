@@ -1,0 +1,686 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>物理实验室 · 牛顿第一定律</title>
+<style>
+/* NB_LAB */
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "PingFang SC", "Helvetica Neue", sans-serif;
+    min-height: 100dvh;
+    background: linear-gradient(135deg, #0c0e1a 0%, #1a1e3a 30%, #0d1b2a 60%, #0a0e1a 100%) !important;
+    display: flex; justify-content: center; align-items: center; margin: 0; position: relative;
+  }
+  body::before {
+    content: ''; position: fixed; top: -50%; left: -50%; width: 200%; height: 200%;
+    background: radial-gradient(ellipse at 20% 50%, rgba(52,199,89,0.08) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 20%, rgba(52,199,89,0.05) 0%, transparent 50%);
+    pointer-events: none; z-index: 0;
+  }
+
+  /* COMPACT_V5 - balanced layout */
+  .app { height: 100dvh !important; max-height: 100dvh !important; }
+  .top-bar { padding: 6px 12px !important; min-height: 34px !important; }
+  .top-bar h1 { font-size: 12px !important; }
+  .top-bar .back { font-size: 14px !important; }
+  .top-bar .progress-dots .dot { width: 6px !important; height: 6px !important; }
+  .main-area { padding: 6px !important; gap: 6px !important; flex: 1 !important; min-height: 0 !important; overflow: hidden !important; }
+  .canvas-wrap { flex: 1 !important; min-height: 200px !important; max-height: none !important; overflow: hidden !important; position: relative !important; }
+  .canvas-wrap canvas { width: 100% !important; height: 100% !important; display: block !important; }
+.canvas-wrap.quiz-active { flex-shrink: 1 !important; min-height: 55dvh !important; max-height: 75dvh !important; }
+  .canvas-wrap.quiz-active canvas { display: none !important; }
+  .info-panel { padding: 4px 10px !important; flex-shrink: 0 !important; min-height: 50px !important; max-height: 30dvh !important; overflow-y: auto !important; }
+  .info-panel .mission-label { font-size: 9px !important; line-height: 14px !important; }
+  .info-panel .mission-title { font-size: 12px !important; line-height: 16px !important; margin: 0 !important; }
+  .info-panel .mission-desc { font-size: 11px !important; line-height: 15px !important; }
+  .info-panel .mission-desc button { padding: 3px 10px !important; font-size: 10px !important; border-radius: 6px !important; }
+  .info-panel .data-display, .info-panel .speed-display,
+  .info-panel .noise-display, .info-panel .sonar-display,
+  .info-panel .wave-controls, .info-panel .angle-display { margin-top: 2px !important; padding-top: 2px !important; gap: 6px !important; }
+  .info-panel .data-item, .info-panel .speed-item,
+  .info-panel .noise-item, .info-panel .sonar-item { font-size: 10px !important; }
+  .info-panel .data-item .value, .info-panel .speed-item .value { font-size: 12px !important; }
+  .info-panel .wave-controls input[type=range] { width: 60px !important; }
+  .mission-tabs { padding: 2px 8px 6px !important; flex-shrink: 0 !important; }
+  .mission-tabs .tab { padding: 5px 4px !important; font-size: 11px !important; border-radius: 6px !important; }
+  .mission-tabs .tab .tab-check { font-size: 9px !important; margin-top: 1px !important; }
+  .knowledge-box { padding: 3px 8px !important; }
+  .knowledge-box .kb-title { font-size: 9px !important; }
+  .knowledge-box .kb-body { font-size: 10px !important; line-height: 1.3 !important; }
+  .challenge-hud { padding: 4px 8px !important; font-size: 10px !important; top: 8px !important; right: 8px !important; }
+  .challenge-hud .ch-restart { padding: 2px 8px !important; font-size: 10px !important; }
+  .mode-toggle { padding: 3px 8px !important; font-size: 9px !important; top: 8px !important; left: 8px !important; }
+  .noise-btn, .timbre-btn, .app-btn, .lens-btn { padding: 4px 10px !important; font-size: 10px !important; }
+
+  .top-bar { padding: 6px 12px !important; min-height: 36px !important; }
+  .top-bar h1 { font-size: 12px !important; }
+  .top-bar .back { font-size: 14px !important; line-height: 20px !important; }
+  .top-bar .progress-dots .dot { width: 6px !important; height: 6px !important; }
+  .main-area { padding: 4px !important; gap: 4px !important; flex: 1 !important; min-height: 0 !important; }
+  .canvas-wrap { flex-shrink: 0 !important; }
+.info-panel { padding: 4px 8px !important; flex: 1 !important; min-height: 30px !important; overflow-y: auto !important; }
+  .info-panel .mission-label { font-size: 9px !important; line-height: 14px !important; }
+  .info-panel .mission-title { font-size: 12px !important; line-height: 16px !important; margin: 0 !important; }
+  .info-panel .mission-desc { font-size: 11px !important; line-height: 15px !important; }
+  .info-panel .mission-desc button { padding: 3px 10px !important; font-size: 10px !important; border-radius: 6px !important; }
+  .info-panel .data-display, .info-panel .speed-display,
+  .info-panel .noise-display, .info-panel .sonar-display,
+  .info-panel .wave-controls, .info-panel .angle-display { margin-top: 3px !important; padding-top: 3px !important; gap: 6px !important; }
+  .info-panel .data-item, .info-panel .speed-item,
+  .info-panel .noise-item, .info-panel .sonar-item { font-size: 10px !important; }
+  .info-panel .data-item .value, .info-panel .speed-item .value { font-size: 12px !important; }
+  .info-panel .wave-controls input[type=range] { width: 60px !important; }
+  .mission-tabs { padding: 1px 6px 4px !important; flex-shrink: 0 !important; }
+  .mission-tabs .tab { padding: 4px 3px !important; font-size: 10px !important; border-radius: 6px !important; }
+  .mission-tabs .tab .tab-check { font-size: 9px !important; margin-top: 1px !important; }
+  .knowledge-box { padding: 3px 8px !important; }
+  .knowledge-box .kb-title { font-size: 9px !important; }
+  .canvas-wrap.quiz-active { min-height: 60dvh !important; flex-shrink: 1 !important; }
+  .canvas-wrap.quiz-active canvas { display: none !important; }
+  .challenge-hud { padding: 4px 8px !important; font-size: 10px !important; top: 8px !important; right: 8px !important; }
+  .challenge-hud .ch-restart { padding: 2px 8px !important; font-size: 10px !important; }
+  .mode-toggle { padding: 3px 8px !important; font-size: 9px !important; top: 8px !important; left: 8px !important; }
+  .noise-btn, .timbre-btn, .app-btn, .lens-btn { padding: 4px 10px !important; font-size: 10px !important; }
+
+  .app { background: rgba(255,255,255,0.04) !important; border: 1px solid rgba(255,255,255,0.06) !important; backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); position: relative; z-index: 1; }
+  .top-bar { background: rgba(255,255,255,0.03) !important; border-bottom: 1px solid rgba(255,255,255,0.06) !important; }
+  .top-bar h1, .top-bar h2 { color: #fff !important; }
+  .top-bar .back { color: rgba(255,255,255,0.5) !important; }
+  .top-bar .back:hover { color: #fff !important; }
+  .top-bar .progress-dots .dot { background: rgba(255,255,255,0.1) !important; }
+  .top-bar .progress-dots .dot.active { background: #34C759 !important; }
+  .top-bar .progress-dots .dot.done { background: #34C759 !important; }
+  .canvas-wrap { background: rgba(10,12,26,0.6) !important; border-color: rgba(255,255,255,0.06) !important; }
+  .canvas-wrap canvas { filter: brightness(1.05) contrast(1.05); }
+  .info-panel { background: rgba(255,255,255,0.03) !important; border-color: rgba(255,255,255,0.06) !important; }
+  .info-panel .mission-label, .card .num { color: #34C759 !important; }
+  .info-panel .mission-title, .card h3, .hero h1, .top-bar h1 { color: #fff !important; }
+  .info-panel .mission-desc, p, .card p, .hero p { color: rgba(255,255,255,0.4) !important; }
+  .info-panel .mission-desc button, .card .status.new, .tab.active { background: #34C759 !important; color: #fff !important; border: none !important; }
+  .mission-tabs .tab { background: rgba(255,255,255,0.03) !important; border-color: rgba(255,255,255,0.08) !important; color: rgba(255,255,255,0.3) !important; }
+  .mission-tabs .tab:hover { border-color: #34C759 !important; color: #34C759 !important; }
+  .mission-tabs .tab.active { background: #34C759 !important; color: #fff !important; border-color: #34C759 !important; }
+  .mission-tabs .tab.done { border-color: #34C759 !important; color: #34C759 !important; }
+  .challenge-hud, .mode-toggle { background: rgba(0,0,0,0.5) !important; backdrop-filter: blur(10px) !important; }
+
+  .knowledge-box { background: rgba(52,199,89,0.08) !important; border-left-color: #34C759 !important; }
+  .knowledge-box .kb-title, .knowledge-box .kb-toggle { color: #34C759 !important; }
+  .knowledge-box .kb-body, .card p, .hero p { color: rgba(255,255,255,0.7) !important; }
+  .knowledge-box .kb-body em { color: #34C759 !important; }
+  .knowledge-box .kb-formula { background: rgba(255,255,255,0.06) !important; border-color: rgba(255,255,255,0.1) !important; color: #fff !important; }
+  .card { background: rgba(255,255,255,0.04) !important; border: 1px solid rgba(255,255,255,0.06) !important; backdrop-filter: blur(20px) !important; color: #fff !important; }
+  .card:hover { border-color: #34C759 !important; transform: translateY(-2px); }
+  .card .status.done { background: rgba(52,199,89,0.12) !important; color: #34C759 !important; border: 1px solid rgba(52,199,89,0.15) !important; }
+  .card .status.new { background: rgba(52,199,89,0.1) !important; color: #34C759 !important; border: 1px solid rgba(52,199,89,0.15) !important; }
+  .card .status.partial { background: rgba(255,255,255,0.05) !important; color: rgba(255,255,255,0.4) !important; border: 1px solid rgba(255,255,255,0.08) !important; }
+  .hero .progress-module, .module-progress { color: #34C759 !important; background: rgba(52,199,89,0.1) !important; border: 1px solid rgba(52,199,89,0.15) !important; }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", sans-serif; background: #f5f5f7; color: #1d1d1f; height: 100dvh; display: flex; justify-content: center; align-items: center; margin: 0; }
+  .app { width: 820px; max-width: 96vw; height: 100dvh; max-height: 100dvh; background: #fff; border-radius: 20px; box-shadow: 0 20px 60px rgba(0,0,0,0.08); display: flex; flex-direction: column; overflow: hidden; }
+  .top-bar { display: flex; align-items: center; padding: 14px 20px; flex-shrink: 0; background: #fafafa; border-bottom: 1px solid #e8e8ed; }
+  .top-bar .back { font-size: 20px; cursor: pointer; opacity: 0.6; }
+  .top-bar .back:hover { opacity: 1; }
+  .top-bar h1 { font-size: 15px; font-weight: 600; margin-left: 10px; flex:1; }
+  .top-bar .progress-dots { font-size: 13px; color: #86868b; display: flex; gap: 6px; align-items: center; }
+  .top-bar .progress-dots .dot { width: 8px; height: 8px; border-radius: 50%; background: #e8e8ed; }
+  .top-bar .progress-dots .dot.active { background: #34C759; }
+  .top-bar .progress-dots .dot.done { background: #34C759; }
+  .main-area { padding: 10px; flex: 1; display: flex; flex-direction: column; overflow: hidden; gap: 8px; }
+  .canvas-wrap { position: relative; background: #fff; border-radius: 14px; border: 1px solid #e8e8ed; overflow: hidden; flex-shrink: 0; }
+  .canvas-wrap canvas { display: block; width: 100%; height: auto; cursor: grab; touch-action: none; }
+  .canvas-wrap canvas:active { cursor: grabbing; }
+  .info-panel { background: #fafafa; border-radius: 14px; border: 1px solid #e8e8ed; padding: 10px 16px; overflow-y: auto; min-height: 0; }
+  .info-panel .mission-label { font-size: 11px; font-weight: 600; color: #34C759; letter-spacing: 0.5px; text-transform: uppercase; }
+  .info-panel .mission-title { font-size: 15px; font-weight: 600; margin: 0 0 2px; }
+  .info-panel .mission-desc { font-size: 13px; color: #86868b; line-height: 1.4; }
+  .info-panel .data-display { display: flex; gap: 16px; margin-top: 6px; padding-top: 6px; border-top: 1px solid #e8e8ed; flex-wrap: wrap; }
+  .info-panel .data-item { font-size: 12px; }
+  .info-panel .data-item .label { color: #86868b; }
+  .info-panel .data-item .value { font-weight: 600; font-size: 15px; }
+  .info-panel .data-item .value.green { color: #34C759; }
+  .info-panel .data-item .value.blue { color: #007AFF; }
+  .mission-tabs { display: flex; gap: 4px; padding: 2px 10px 8px; flex-shrink: 0; }
+  .mission-tabs .tab { flex: 1; padding: 8px 4px; border-radius: 8px; border: 1px solid #e8e8ed; background: #fff; text-align: center; cursor: pointer; font-size: 12px; font-weight: 500; color: #86868b; transition: all 0.2s; }
+  .mission-tabs .tab:hover { border-color: #34C759; color: #34C759; }
+  .mission-tabs .tab.active { background: #34C759; color: #fff; border-color: #34C759; }
+  .mission-tabs .tab.done { border-color: #34C759; color: #34C759; }
+  .mission-tabs .tab .tab-check { font-size: 11px; display: block; margin-top: 2px; }
+  .mode-toggle { position: absolute; top: 12px; left: 12px; background: rgba(0,0,0,0.7); backdrop-filter: blur(10px); border-radius: 8px; padding: 5px 12px; color: #fff; font-size: 11px; cursor: pointer; display: none; transition: all 0.2s; white-space: nowrap; }
+  .mode-toggle.show { display: block; }
+  .mode-toggle:hover { background: rgba(52,199,89,0.8); }
+  .challenge-hud { position: absolute; top: 12px; right: 12px; background: rgba(0,0,0,0.7); backdrop-filter: blur(10px); border-radius: 10px; padding: 8px 14px; color: #fff; font-size: 13px; display: none; }
+  .challenge-hud.show { display: block; }
+  .challenge-hud .ch-level { font-weight: 600; margin-bottom: 2px; }
+  .challenge-hud .ch-goal { color: #aaa; font-size: 12px; }
+  .challenge-hud .ch-restart { margin-top: 6px; padding: 4px 10px; background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.25); border-radius: 6px; color: #fff; font-size: 11px; cursor: pointer; }
+  .quiz-overlay { position: absolute; inset: 0; background: rgba(255,255,255,0.85); backdrop-filter: blur(20px); display: none; flex-direction: column; align-items: center; justify-content: center; padding: 30px; z-index: 10; }
+  .quiz-overlay.show { display: flex; background: rgba(10,12,26,0.92) !important; backdrop-filter: blur(20px) !important; -webkit-backdrop-filter: blur(20px) !important; }
+  .quiz-overlay .quiz-q { font-size: 18px; font-weight: 600; text-align: center; max-width: 480px; margin-bottom: 20px; line-height: 1.5; }
+  .quiz-overlay .quiz-options { display: flex; flex-direction: column; gap: 10px; width: 100%; max-width: 400px; }
+  .quiz-overlay .quiz-opt { padding: 14px 20px; background: #fff; border: 1.5px solid #e8e8ed; border-radius: 12px; font-size: 15px; cursor: pointer; transition: all 0.2s; text-align: left; }
+  .quiz-overlay .quiz-opt:hover { border-color: #34C759; background: #f0faf2; }
+  .quiz-overlay .quiz-opt.correct { border-color: #34C759; background: #e8f8ee; }
+  .quiz-overlay .quiz-opt.wrong { border-color: #FF3B30; background: #ffe8e6; }
+  .quiz-overlay .quiz-result { margin-top: 16px; font-size: 15px; font-weight: 500; max-width: 480px; line-height: 1.5; }
+  .quiz-overlay .quiz-next { margin-top: 14px; padding: 10px 30px; background: #34C759; color: #fff; border: none; border-radius: 10px; font-size: 15px; font-weight: 500; cursor: pointer; }
+  @media (max-width: 600px) { .mission-tabs .tab { font-size: 11px; padding: 8px 4px; } .mission-tabs { padding: 2px 6px 6px; } }
+  .knowledge-box { padding: 6px 12px; background: #f0faf2; border-radius: 10px; border-left: 3px solid #34C759; flex-shrink: 0; cursor: pointer; user-select: none; }
+  .knowledge-box .kb-title { font-weight: 600; font-size: 11px; color: #34C759; letter-spacing: 0.3px; display: flex; align-items: center; gap: 4px; }
+  .knowledge-box .kb-toggle { font-size: 9px; color: #34C759; opacity: 0.5; transition: transform 0.2s; }
+  .knowledge-box .kb-toggle.open { transform: rotate(90deg); }
+  .knowledge-box .kb-body { font-size: 11.5px; color: #1d1d1f; line-height: 1.5; margin-top: 3px; }
+  .knowledge-box .kb-body em { color: #34C759; font-style: normal; font-weight: 500; }
+  .knowledge-box .kb-formula { display: inline-block; background: #fff; border: 1px solid #d0ead8; border-radius: 5px; padding: 1px 8px; font-family: "SF Mono", monospace; font-size: 12px; font-weight: 600; color: #1d1d1f; margin: 0 2px; }
+  .knowledge-box.collapsed .kb-body { display: none; }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="top-bar">
+    <span class="back" onclick="location.href='index.html'">←</span>
+    <h1>牛顿第一定律</h1>
+    <div class="progress-dots" id="progressDots">
+      <span class="dot" id="pdot0"></span>
+      <span class="dot" id="pdot1"></span>
+      <span class="dot" id="pdot2"></span>
+      <span class="dot" id="pdot3"></span>
+    </div>
+  </div>
+
+  <div class="main-area">
+    <div class="canvas-wrap">
+      <canvas id="labCanvas" width="780" height="300"></canvas>
+      <div class="mode-toggle" id="modeToggle">切换为毛巾表面</div>
+      <div class="challenge-hud" id="challengeHud">
+        <div class="ch-level" id="chLevel">🎯 第 1/5 关</div>
+        <div class="ch-goal" id="chGoal">目标加载中...</div>
+        <div class="ch-restart" onclick="resetChallenges()">🔄 重来</div>
+      </div>
+      <div class="quiz-overlay" id="quizOverlay">
+        <div class="quiz-q" id="quizQ">题目加载中...</div>
+        <div class="quiz-options" id="quizOptions"></div>
+        <div class="quiz-result" id="quizResult"></div>
+        <button class="quiz-next" id="quizNext" onclick="nextQuiz()">下一题</button>
+        <button class="quiz-close" id="quizClose" onclick="closeQuiz()" style="margin-top:10px;padding:6px 16px;background:rgba(255,255,255,0.1);color:rgba(255,255,255,0.6);border:1px solid rgba(255,255,255,0.15);border-radius:8px;cursor:pointer;font-size:12px;">✕ 关闭</button>
+      </div>
+    </div>
+    <div class="info-panel">
+      <div class="mission-label" id="missionLabel">🔬 观察</div>
+      <div class="mission-title" id="missionTitle">斜面小车实验</div>
+      <div class="mission-desc" id="missionDesc">观察小车在不同表面滑行的距离。</div>
+      <div class="data-display" id="dataDisplay" style="display:none">
+        <div class="data-item"><span class="label">表面: </span><span class="value green" id="dispSurface">木板</span></div>
+        <div class="data-item"><span class="label">距离: </span><span class="value blue" id="dispDistance">0 cm</span></div>
+      </div>
+      <div class="knowledge-box collapsed" id="knowledgeBox" onclick="toggleKnowledge()">
+        <div class="kb-title"><span class="kb-toggle" id="kbToggle">▶</span> 💡 <span id="kbTitle">知识要点</span></div>
+        <div class="kb-body" id="kbBody"></div>
+      </div>
+    </div>
+  </div>
+  <div class="mission-tabs" id="missionTabs"></div>
+</div>
+
+<script>
+const STORAGE_KEY = 'physics_yun_dong_he_li_ch1';
+const saved = (() => { try { return JSON.parse(localStorage.getItem(STORAGE_KEY)); } catch(e) {} return null; })() || {};
+let state = {
+  done: saved.done || [],
+  currentMission: saved.currentMission || 0,
+  challengeIdx: saved.challengeIdx || 0,
+  quizIdx: saved.quizIdx || 0,
+  quizDone: saved.quizDone || []
+};
+function saveState() { try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch(e) {} }
+
+const MISSIONS = [
+  { id: 'observe', label: '🔬 观察', title: '斜面小车不同表面实验', desc: '观察小车在不同粗糙程度的表面滑行的距离不同。', doneLabel: '已观看' },
+  { id: 'explore', label: '✋ 探索', title: '阻力对运动的影响', desc: '拖拽改变表面类型，观察阻力对小车的滑行距离的影响。', doneLabel: '已探索' },
+  { id: 'challenge', label: '🎯 挑战', title: '理想实验推理', desc: '根据实验现象推理：如果没有阻力，小车会怎样运动？', doneLabel: '已闯关' },
+  { id: 'quiz', label: '⭐ 测验', title: '知识检测', desc: '完成几道选择题，巩固牛顿第一定律的知识。', doneLabel: '已完成' }
+];
+
+const CHALLENGES = [
+  { goal: '小车在哪种表面滑行最远？(0=毛巾 1=棉布 2=木板 3=玻璃)', answer: 3, unit: '', tolerance: 0 },
+  { goal: '小车在木板表面受到的阻力比毛巾表面大还是小？(0=大 1=小)', answer: 1, unit: '', tolerance: 0 },
+  { goal: '如果表面绝对光滑（无阻力），小车会怎样运动？(0=停下来 1=匀速直线运动 2=加速运动 3=减速运动)', answer: 1, unit: '', tolerance: 0 },
+  { goal: '牛顿第一定律是通过什么方式得出的？(0=直接实验 1=实验+推理 2=凭空想象 3=数学推导)', answer: 1, unit: '', tolerance: 0 },
+  { goal: '小车从同一斜面同一高度滑下，目的是什么？(0=速度相同 1=质量相同 2=颜色相同 3=形状相同)', answer: 0, unit: '', tolerance: 0 }
+];
+
+const QUIZ_POOL = [
+  { q: '牛顿第一定律的内容是？', opts: ['A. 力是维持运动的原因', 'B. 一切物体在不受力时总保持静止或匀速直线运动', 'C. 力越大运动越快', 'D. 物体运动需要力来维持'], ans: 1, explain: '牛顿第一定律：一切物体在没有受到力的作用时，总保持静止状态或匀速直线运动状态。' },
+  { q: '牛顿第一定律是通过什么得出的？', opts: ['A. 直接实验验证', 'B. 实验加理想化推理', 'C. 数学推导', 'D. 生活经验'], ans: 1, explain: '牛顿第一定律是在实验的基础上，通过进一步推理概括得出的理想规律，不能用实验直接验证。' },
+  { q: '物体不受力时，其运动状态？', opts: ['A. 一定改变', 'B. 一定不变', 'C. 可能改变可能不变', 'D. 无法确定'], ans: 1, explain: '物体不受力时，运动状态一定不变——原来静止的保持静止，原来运动的做匀速直线运动。' },
+  { q: '伽利略斜面实验的结论是？', opts: ['A. 力是维持运动的原因', 'B. 运动不需要力来维持', 'C. 力越大速度越大', 'D. 物体的运动需要力'], ans: 1, explain: '伽利略通过斜面实验发现：阻力越小，物体滑行越远，推理出物体不受力时将匀速运动下去，说明运动不需要力来维持。' },
+  { q: '下列说法正确的是？', opts: ['A. 物体受力才会运动', 'B. 力是改变物体运动状态的原因', 'C. 不受力的物体一定静止', 'D. 运动的物体一定受力'], ans: 1, explain: '力不是维持运动的原因，而是改变物体运动状态的原因。物体不受力时可以保持匀速直线运动。' }
+];
+
+const canvas = document.getElementById('labCanvas');
+const ctx = canvas.getContext('2d');
+const W = canvas.width, H = canvas.height;
+let animId = null, animTime = 0;
+let isPlaying = false;
+let surfaceIdx = 0; // 0=毛巾, 1=棉布, 2=木板, 3=玻璃
+let carX = 0, moving = false;
+
+const SURFACES = [
+  { name: '毛巾', friction: 0.8, color: '#f0d0c0', distMax: 0.25 },
+  { name: '棉布', friction: 0.5, color: '#d0e0d0', distMax: 0.45 },
+  { name: '木板', friction: 0.3, color: '#e8d8b8', distMax: 0.65 },
+  { name: '玻璃', friction: 0.15, color: '#d8e8f0', distMax: 0.90 }
+];
+
+function drawScene() {
+  ctx.clearRect(0, 0, W, H);
+  const mission = state.currentMission;
+  if (mission === 0) drawObserve(W, H);
+  else if (mission === 1) drawExplore(W, H);
+  else if (mission === 2) drawChallenge(W, H);
+  else { ctx.fillStyle = '#141626'; ctx.fillRect(0,0,W,H); }
+}
+
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath(); ctx.moveTo(x+r,y); ctx.lineTo(x+w-r,y); ctx.arcTo(x+w,y,x+w,y+r,r);
+  ctx.lineTo(x+w,y+h-r); ctx.arcTo(x+w,y+h,x+w-r,y+h,r); ctx.lineTo(x+r,y+h);
+  ctx.arcTo(x,y+h,x,y+h-r,r); ctx.lineTo(x,y+r); ctx.arcTo(x,y,x+r,y,r); ctx.closePath();
+}
+
+function drawRampAndCar(W, H, surface) {
+  const surf = SURFACES[surface];
+  const rampX = 80, rampY = 200;
+  const carStartX = 160, carY = 188;
+
+  // Ground line
+  ctx.fillStyle = surf.color;
+  ctx.fillRect(rampX + 80, carY + 30, W - rampX - 80, 40);
+  // Ground label
+  ctx.fillStyle = 'rgba(255,255,255,0.35)';
+  ctx.font = '11px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'top';
+  ctx.fillText(surf.name + '表面', W/2, carY + 35);
+
+  // Ramp
+  ctx.fillStyle = '#c0a060';
+  ctx.beginPath();
+  ctx.moveTo(rampX, rampY + 30);
+  ctx.lineTo(rampX + 80, carY + 30);
+  ctx.lineTo(rampX, rampY - 20);
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillStyle = 'rgba(255,255,255,0.35)';
+  ctx.font = '10px sans-serif';
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'bottom';
+  ctx.fillText('斜面', rampX, rampY + 25);
+
+  // Car position
+  let carDisplayX = carStartX;
+  if (moving) {
+    const progress = Math.min(1, (animTime * 2) / 100);
+    const maxDist = surf.distMax * (W - carStartX - 80);
+    carDisplayX = carStartX + progress * maxDist - (progress * progress) * 30;
+  }
+
+  // Car
+  ctx.fillStyle = '#FF9500';
+  roundRect(ctx, carDisplayX, carY, 40, 24, 4);
+  ctx.fill();
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(carDisplayX + 6, carY + 24, 8, 8);
+  ctx.fillRect(carDisplayX + 26, carY + 24, 8, 8);
+  // Windows
+  ctx.fillStyle = '#a0d0ff';
+  ctx.fillRect(carDisplayX + 10, carY + 4, 8, 8);
+  ctx.fillRect(carDisplayX + 22, carY + 4, 8, 8);
+
+  // Distance marker
+  if (moving) {
+    const dist = (carDisplayX - carStartX) / (W - carStartX - 80);
+    const distCm = Math.round(dist * 100);
+    ctx.fillStyle = '#007AFF';
+    ctx.font = '12px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'bottom';
+    ctx.fillText('滑行: ' + distCm + ' cm', carDisplayX + 20, carY - 5);
+  }
+}
+
+function drawObserve(W, H) {
+  ctx.fillStyle = '#141626';
+  ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = '#ffffff';
+  ctx.font = '15px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'top';
+  ctx.fillText('斜面小车实验 — 探究阻力对运动的影响', W/2, 10);
+  drawRampAndCar(W, H, surfaceIdx);
+  if (!isPlaying && !moving) {
+    ctx.fillStyle = 'rgba(255,255,255,0.35)';
+    ctx.font = '12px sans-serif';
+    ctx.textBaseline = 'bottom';
+    ctx.fillText('▶ 点击"播放"按钮释放小车', W/2, H-5);
+  }
+}
+
+function drawExplore(W, H) {
+  ctx.fillStyle = '#141626';
+  ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = '#ffffff';
+  ctx.font = '15px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'top';
+  ctx.fillText('点击切换表面，观察阻力对运动的影响', W/2, 10);
+
+  // Surface buttons
+  const btnW = 90;
+  const startX = (W - SURFACES.length * btnW) / 2;
+  for (let i = 0; i < SURFACES.length; i++) {
+    const bx = startX + i * btnW;
+    ctx.fillStyle = i === surfaceIdx ? '#34C759' : '#eee';
+    roundRect(ctx, bx + 2, 35, btnW - 4, 30, 8);
+    ctx.fill();
+    ctx.fillStyle = i === surfaceIdx ? '#fff' : '#666';
+    ctx.font = '12px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(SURFACES[i].name, bx + btnW / 2, 50);
+  }
+
+  drawRampAndCar(W, H, surfaceIdx);
+
+  if (moving) {
+    ctx.fillStyle = '#34C759';
+    ctx.font = '13px sans-serif';
+    ctx.textBaseline = 'bottom';
+    ctx.fillText('表面越光滑，阻力越小，滑行距离越远！', W/2, H-5);
+  } else {
+    ctx.fillStyle = 'rgba(255,255,255,0.35)';
+    ctx.font = '12px sans-serif';
+    ctx.textBaseline = 'bottom';
+    ctx.fillText('点击上方按钮切换表面后，点击小车释放', W/2, H-5);
+  }
+}
+
+function drawChallenge(W, H) {
+  ctx.fillStyle = '#141626';
+  ctx.fillRect(0, 0, W, H);
+  const ch = CHALLENGES[state.challengeIdx] || CHALLENGES[0];
+  ctx.fillStyle = '#ffffff';
+  ctx.font = '15px sans-serif';
+  ctx.textAlign = 'center';
+  const maxW = W - 40;
+  let lines = []; let line = '';
+  for (let c of ch.goal) { line += c; if (ctx.measureText(line).width > maxW) { lines.push(line); line = ''; } }
+  if (line) lines.push(line);
+  let y = 40;
+  lines.forEach(l => { ctx.fillText(l.trim(), W/2, y); y += 28; });
+  ctx.fillStyle = 'rgba(255,255,255,0.35)';
+  ctx.font = '13px sans-serif';
+  ctx.textBaseline = 'bottom';
+  ctx.fillText('推理：阻力越小，滑行越远 → 无阻力则永远运动下去', W/2, H-10);
+}
+
+function animate() {
+  if (isPlaying) animTime += 1;
+  drawScene();
+  animId = requestAnimationFrame(animate);
+}
+
+function switchMission(idx) {
+  state.currentMission = idx;
+  saveState();
+  updateUI();
+  drawScene();
+  setKnowledge(idx);
+}
+
+function updateUI() {
+  const m = MISSIONS[state.currentMission];
+  document.getElementById('missionLabel').textContent = m.label;
+  document.getElementById('missionTitle').textContent = m.title;
+  const desc = document.getElementById('missionDesc');
+  const done = state.done.includes(state.currentMission);
+
+  if (state.currentMission === 0) {
+    if (done) desc.innerHTML = '✅ 已观看过演示。 <button onclick="startObserve()" style="padding:6px 16px;background:#34C759;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:13px;">▶ 再看一次</button>';
+    else desc.innerHTML = m.desc + ' <button onclick="startObserve()" style="padding:6px 16px;background:#34C759;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:13px;">▶ 播放演示</button>';
+    document.getElementById('modeToggle').className = 'mode-toggle show';
+    document.getElementById('dataDisplay').style.display = 'none';
+  } else if (state.currentMission === 1) {
+    if (done) desc.innerHTML = '✅ 已探索过。 <button onclick="startExplore()" style="padding:6px 16px;background:#34C759;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:13px;">▶ 重新探索</button>';
+    else desc.innerHTML = m.desc + ' <button onclick="startExplore()" style="padding:6px 16px;background:#34C759;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:13px;">▶ 开始探索</button>';
+    document.getElementById('modeToggle').className = 'mode-toggle';
+    document.getElementById('dataDisplay').style.display = 'flex';
+  } else if (state.currentMission === 2) {
+    if (state.done.includes(2))
+      desc.innerHTML = '🎉 所有关卡挑战成功！ <button onclick="resetChallenges()" style="padding:6px 16px;background:#34C759;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:13px;">🔄 重新挑战</button>';
+    else desc.innerHTML = m.desc + ' 当前第 ' + (state.challengeIdx + 1) + '/' + CHALLENGES.length + ' 关。';
+    document.getElementById('modeToggle').className = 'mode-toggle';
+    document.getElementById('dataDisplay').style.display = 'none';
+  } else if (state.currentMission === 3) {
+    if (state.done.includes(3))
+      desc.innerHTML = '✅ 测验已完成！ <button onclick="startQuiz()" style="padding:6px 16px;background:#34C759;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:13px;">🔄 再来一轮</button>';
+    else desc.innerHTML = m.desc + ' 点击下方按钮开始。';
+    document.getElementById('modeToggle').className = 'mode-toggle';
+    document.getElementById('dataDisplay').style.display = 'none';
+  }
+
+  if (state.currentMission === 1) {
+    document.getElementById('dispSurface').textContent = SURFACES[surfaceIdx].name;
+    document.getElementById('dispDistance').textContent = Math.round(surfaceIdx * 25) + ' cm';
+  }
+
+  const tabs = document.getElementById('missionTabs');
+  tabs.innerHTML = MISSIONS.map((mt, i) => {
+    const isActive = i === state.currentMission;
+    const isDone = state.done.includes(i);
+    const cls = isActive ? 'tab active' : isDone ? 'tab done' : 'tab';
+    const check = isDone ? '<span class="tab-check">✅</span>' : '';
+    return '<div class="' + cls + '" onclick="switchMission(' + i + ')">' + mt.label + check + '</div>';
+  }).join('');
+
+  MISSIONS.forEach((_, i) => {
+    const dot = document.getElementById('pdot' + i);
+    if (state.done.includes(i)) dot.className = 'dot done';
+    else if (i === state.currentMission) dot.className = 'dot active';
+    else dot.className = 'dot';
+  });
+
+  document.getElementById('challengeHud').className = state.currentMission === 2 ? 'challenge-hud show' : 'challenge-hud';
+  if (state.currentMission === 2) {
+    document.getElementById('chLevel').textContent = '🎯 第 ' + (state.challengeIdx + 1) + '/' + CHALLENGES.length + ' 关';
+    document.getElementById('chGoal').textContent = (CHALLENGES[state.challengeIdx]?.goal.slice(0, 40) || '') + '...';
+  }
+  document.getElementById('quizOverlay').className = state.currentMission === 3 && state.quizIdx < QUIZ_POOL.length ? 'quiz-overlay show' : 'quiz-overlay';
+  document.querySelector('.canvas-wrap').className = state.currentMission === 3 && state.quizIdx < QUIZ_POOL.length ? 'canvas-wrap quiz-active' : 'canvas-wrap';
+
+  if (state.currentMission === 3 && state.quizIdx < QUIZ_POOL.length) showQuiz();}
+
+// ── Observe ──
+function startObserve() {
+  surfaceIdx = 0;
+  moving = true;
+  isPlaying = true;
+  animTime = 0;
+  document.getElementById('modeToggle').textContent = '切换为棉布表面';
+  // Cycle through surfaces
+  let surfCount = 0;
+  const interval = setInterval(() => {
+    if (state.currentMission !== 0) { clearInterval(interval); return; }
+    surfCount++;
+    if (surfCount < 4) {
+      surfaceIdx = surfCount;
+      document.getElementById('modeToggle').textContent = '切换为' + SURFACES[surfCount % 4].name + '表面';
+      animTime = 0;
+      moving = true;
+    } else {
+      clearInterval(interval);
+      moving = false;
+      isPlaying = false;
+      if (!state.done.includes(0)) { state.done.push(0); saveState(); updateUI(); }
+    }
+  }, 2000);
+}
+
+document.getElementById('modeToggle').addEventListener('click', () => {
+  if (state.currentMission !== 0) return;
+  surfaceIdx = (surfaceIdx + 1) % 4;
+  document.getElementById('modeToggle').textContent = '切换为' + SURFACES[(surfaceIdx + 1) % 4].name + '表面';
+  animTime = 0;
+  moving = true;
+  isPlaying = true;
+});
+
+// ── Explore ──
+function startExplore() {
+  surfaceIdx = 0;
+  moving = false;
+  isPlaying = true;
+  animTime = 0;
+}
+
+canvas.addEventListener('click', (e) => {
+  if (state.currentMission === 1) {
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const x = (e.clientX - rect.left) * scaleX;
+    const y = (e.clientY - rect.top) * scaleX;
+    // Check surface buttons
+    const btnW = 90;
+    const startX2 = (W - SURFACES.length * btnW) / 2;
+    if (y >= 35 && y <= 65) {
+      for (let i = 0; i < SURFACES.length; i++) {
+        const bx = startX2 + i * btnW;
+        if (x >= bx + 2 && x <= bx + btnW - 2) {
+          surfaceIdx = i;
+          animTime = 0;
+          moving = false;
+          document.getElementById('dispSurface').textContent = SURFACES[i].name;
+          document.getElementById('dispDistance').textContent = Math.round(i * 25) + ' cm';
+          drawScene();
+          return;
+        }
+      }
+    }
+    // Click on car to release
+    const carStartX2 = 160, carY2 = 188;
+    if (x >= carStartX2 && x <= carStartX2 + 40 && y >= carY2 && y <= carY2 + 24) {
+      moving = true;
+      animTime = 0;
+      if (!state.done.includes(1)) { state.done.push(1); saveState(); updateUI(); }
+    }
+    return;
+  }
+  if (state.currentMission !== 2) return;
+  const userInput = prompt('输入答案（选择题输入对应数字）:', '');
+  if (userInput === null) return;
+  const num = parseFloat(userInput);
+  if (isNaN(num)) return;
+  const ch = CHALLENGES[state.challengeIdx];
+  if (Math.abs(num - ch.answer) <= ch.tolerance) {
+    state.challengeIdx++;
+    if (state.challengeIdx >= CHALLENGES.length) {
+      if (!state.done.includes(2)) state.done.push(2);
+      saveState(); updateUI();
+      alert('🎉 恭喜通关！牛顿第一定律掌握得很好！');
+    } else { saveState(); updateUI(); }
+  } else {
+    alert('❌ 答案不对，再想想！');
+  }
+});
+
+function resetChallenges() {
+  state.challengeIdx = 0;
+  const idx = state.done.indexOf(2);
+  if (idx >= 0) state.done.splice(idx, 1);
+  saveState(); updateUI();
+}
+
+// ── Quiz ──
+function startQuiz() { state.quizIdx = 0; state.quizDone = []; saveState(); showQuiz(); }
+
+function showQuiz() {
+  if (state.quizIdx >= QUIZ_POOL.length) {
+    if (!state.done.includes(3)) { state.done.push(3); saveState(); }
+    updateUI(); return;
+  }
+  const q = QUIZ_POOL[state.quizIdx];
+  document.getElementById('quizQ').textContent = (state.quizIdx + 1) + '. ' + q.q;
+  document.getElementById('quizOptions').innerHTML = q.opts.map((o,i) => '<div class="quiz-opt" onclick="selectQuiz('+i+')">'+o+'</div>').join('');
+  document.getElementById('quizResult').textContent = '';
+  document.getElementById('quizNext').style.display = 'none';
+  document.getElementById('quizOverlay').className = 'quiz-overlay show';
+  document.querySelector('.canvas-wrap').className = state.currentMission === 3 && state.quizIdx < QUIZ_POOL.length ? 'canvas-wrap quiz-active' : 'canvas-wrap';
+}
+
+function selectQuiz(idx) {
+  const q = QUIZ_POOL[state.quizIdx];
+  const opts = document.querySelectorAll('.quiz-opt');
+  opts.forEach((el, i) => {
+    el.style.pointerEvents = 'none';
+    if (i === q.ans) el.className = 'quiz-opt correct';
+    else if (i === idx && idx !== q.ans) el.className = 'quiz-opt wrong';
+  });
+  document.getElementById('quizResult').textContent = idx === q.ans ? '✅ 正确！'+q.explain : '❌ 正确答案是 '+q.opts[q.ans]+'。'+q.explain;
+  document.getElementById('quizNext').style.display = 'block';
+}
+const KNOWLEDGE = {
+  0: {
+    title: '💡 牛顿第一定律',
+    body: '<em>牛顿第一定律（惯性定律）</em>：一切物体在没有受到力的作用时，总保持静止状态或匀速直线运动状态。\n\n' +
+         '该定律是在实验基础上通过 <em>理想化推理</em> 得出的，不能用实验直接验证。'
+  },
+  1: {
+    title: '💡 阻力对运动的影响',
+    body: '阻力越小，物体滑行的距离 <em>越远</em>。\n\n' +
+         '• 毛巾表面：阻力大，滑行近\n' +
+         '• 木板表面：阻力较小，滑行较远\n' +
+         '• 玻璃表面：阻力最小，滑行最远\n\n' +
+         '推理：如果表面绝对光滑（无阻力），物体将 <em>一直匀速运动下去</em>。'
+  },
+  2: {
+    title: '💡 力与运动的关系',
+    body: '亚里士多德的观点（错误）：力是 <em>维持</em> 运动的原因。\n' +
+         '伽利略的观点（正确）：力是 <em>改变</em> 物体运动状态的原因。\n\n' +
+         '物体不受力时，运动状态 <em>一定不变</em>。\n' +
+         '物体受力时，运动状态 <em>可能改变</em>。'
+  },
+  3: {
+    title: '💡 检测你的掌握',
+    body: '通过几道选择题来检验你对牛顿第一定律的理解。\n\n' +
+         '关键点：运动 <em>不需要</em> 力来维持；力是 <em>改变</em> 运动状态的原因；定律是 <em>实验+推理</em> 得出的。'
+  }
+};
+
+function toggleKnowledge() {
+  const box = document.getElementById('knowledgeBox');
+  const toggle = document.getElementById('kbToggle');
+  box.classList.toggle('collapsed');
+  toggle.classList.toggle('open');
+}
+
+function setKnowledge(idx) {
+  const k = KNOWLEDGE[idx];
+  if (k) {
+    document.getElementById('kbTitle').textContent = k.title;
+    document.getElementById('kbBody').innerHTML = k.body.replace(/\n/g, '<br>');
+    const box = document.getElementById('knowledgeBox');
+    if (box.classList.contains('collapsed')) {
+      box.classList.remove('collapsed');
+      document.getElementById('kbToggle').classList.add('open');
+    }
+  }
+}
+
+switchMission(state.currentMission);
+animate();
+
+function closeQuiz() { switchMission(0); }
+</script>
+</body>
+</html>

@@ -1,0 +1,1104 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>物理实验室 · 声音的产生与传播</title>
+<style>
+/* NB_LAB */
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "PingFang SC", "Helvetica Neue", sans-serif;
+    min-height: 100dvh;
+    background: linear-gradient(135deg, #0c0e1a 0%, #1a1e3a 30%, #0d1b2a 60%, #0a0e1a 100%) !important;
+    display: flex; justify-content: center; align-items: center; margin: 0; position: relative;
+  }
+  body::before {
+    content: ''; position: fixed; top: -50%; left: -50%; width: 200%; height: 200%;
+    background: radial-gradient(ellipse at 20% 50%, rgba(255,149,0,0.08) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 20%, rgba(255,149,0,0.05) 0%, transparent 50%);
+    pointer-events: none; z-index: 0;
+  }
+
+  /* COMPACT_V5 - balanced layout */
+  .app { height: 100dvh !important; max-height: 100dvh !important; }
+  .top-bar { padding: 6px 12px !important; min-height: 34px !important; }
+  .top-bar h1 { font-size: 12px !important; }
+  .top-bar .back { font-size: 14px !important; }
+  .top-bar .progress-dots .dot { width: 6px !important; height: 6px !important; }
+  .main-area { padding: 6px !important; gap: 6px !important; flex: 1 !important; min-height: 0 !important; overflow: hidden !important; }
+  .canvas-wrap { flex: 1 !important; min-height: 200px !important; max-height: none !important; overflow: hidden !important; position: relative !important; }
+  .canvas-wrap canvas { width: 100% !important; height: 100% !important; display: block !important; }
+.canvas-wrap.quiz-active { flex-shrink: 1 !important; min-height: 55dvh !important; max-height: 75dvh !important; }
+  .canvas-wrap.quiz-active canvas { display: none !important; }
+  .info-panel { padding: 4px 10px !important; flex-shrink: 0 !important; min-height: 50px !important; max-height: 30dvh !important; overflow-y: auto !important; }
+  .info-panel .mission-label { font-size: 9px !important; line-height: 14px !important; }
+  .info-panel .mission-title { font-size: 12px !important; line-height: 16px !important; margin: 0 !important; }
+  .info-panel .mission-desc { font-size: 11px !important; line-height: 15px !important; }
+  .info-panel .mission-desc button { padding: 3px 10px !important; font-size: 10px !important; border-radius: 6px !important; }
+  .info-panel .data-display, .info-panel .speed-display,
+  .info-panel .noise-display, .info-panel .sonar-display,
+  .info-panel .wave-controls, .info-panel .angle-display { margin-top: 2px !important; padding-top: 2px !important; gap: 6px !important; }
+  .info-panel .data-item, .info-panel .speed-item,
+  .info-panel .noise-item, .info-panel .sonar-item { font-size: 10px !important; }
+  .info-panel .data-item .value, .info-panel .speed-item .value { font-size: 12px !important; }
+  .info-panel .wave-controls input[type=range] { width: 60px !important; }
+  .mission-tabs { padding: 2px 8px 6px !important; flex-shrink: 0 !important; }
+  .mission-tabs .tab { padding: 5px 4px !important; font-size: 11px !important; border-radius: 6px !important; }
+  .mission-tabs .tab .tab-check { font-size: 9px !important; margin-top: 1px !important; }
+  .knowledge-box { padding: 3px 8px !important; }
+  .knowledge-box .kb-title { font-size: 9px !important; }
+  .knowledge-box .kb-body { font-size: 10px !important; line-height: 1.3 !important; }
+  .challenge-hud { padding: 4px 8px !important; font-size: 10px !important; top: 8px !important; right: 8px !important; }
+  .challenge-hud .ch-restart { padding: 2px 8px !important; font-size: 10px !important; }
+  .mode-toggle { padding: 3px 8px !important; font-size: 9px !important; top: 8px !important; left: 8px !important; }
+  .noise-btn, .timbre-btn, .app-btn, .lens-btn { padding: 4px 10px !important; font-size: 10px !important; }
+
+  .top-bar { padding: 6px 12px !important; min-height: 36px !important; }
+  .top-bar h1 { font-size: 12px !important; }
+  .top-bar .back { font-size: 14px !important; line-height: 20px !important; }
+  .top-bar .progress-dots .dot { width: 6px !important; height: 6px !important; }
+  .main-area { padding: 4px !important; gap: 4px !important; flex: 1 !important; min-height: 0 !important; }
+  .canvas-wrap { flex-shrink: 0 !important; }
+.info-panel { padding: 4px 8px !important; flex: 1 !important; min-height: 30px !important; overflow-y: auto !important; }
+  .info-panel .mission-label { font-size: 9px !important; line-height: 14px !important; }
+  .info-panel .mission-title { font-size: 12px !important; line-height: 16px !important; margin: 0 !important; }
+  .info-panel .mission-desc { font-size: 11px !important; line-height: 15px !important; }
+  .info-panel .mission-desc button { padding: 3px 10px !important; font-size: 10px !important; border-radius: 6px !important; }
+  .info-panel .data-display, .info-panel .speed-display,
+  .info-panel .noise-display, .info-panel .sonar-display,
+  .info-panel .wave-controls, .info-panel .angle-display { margin-top: 3px !important; padding-top: 3px !important; gap: 6px !important; }
+  .info-panel .data-item, .info-panel .speed-item,
+  .info-panel .noise-item, .info-panel .sonar-item { font-size: 10px !important; }
+  .info-panel .data-item .value, .info-panel .speed-item .value { font-size: 12px !important; }
+  .info-panel .wave-controls input[type=range] { width: 60px !important; }
+  .mission-tabs { padding: 1px 6px 4px !important; flex-shrink: 0 !important; }
+  .mission-tabs .tab { padding: 4px 3px !important; font-size: 10px !important; border-radius: 6px !important; }
+  .mission-tabs .tab .tab-check { font-size: 9px !important; margin-top: 1px !important; }
+  .knowledge-box { padding: 3px 8px !important; }
+  .knowledge-box .kb-title { font-size: 9px !important; }
+  .canvas-wrap.quiz-active { min-height: 60dvh !important; flex-shrink: 1 !important; }
+  .canvas-wrap.quiz-active canvas { display: none !important; }
+  .challenge-hud { padding: 4px 8px !important; font-size: 10px !important; top: 8px !important; right: 8px !important; }
+  .challenge-hud .ch-restart { padding: 2px 8px !important; font-size: 10px !important; }
+  .mode-toggle { padding: 3px 8px !important; font-size: 9px !important; top: 8px !important; left: 8px !important; }
+  .noise-btn, .timbre-btn, .app-btn, .lens-btn { padding: 4px 10px !important; font-size: 10px !important; }
+
+  .app { background: rgba(255,255,255,0.04) !important; border: 1px solid rgba(255,255,255,0.06) !important; backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); position: relative; z-index: 1; }
+  .top-bar { background: rgba(255,255,255,0.03) !important; border-bottom: 1px solid rgba(255,255,255,0.06) !important; }
+  .top-bar h1, .top-bar h2 { color: #fff !important; }
+  .top-bar .back { color: rgba(255,255,255,0.5) !important; }
+  .top-bar .back:hover { color: #fff !important; }
+  .top-bar .progress-dots .dot { background: rgba(255,255,255,0.1) !important; }
+  .top-bar .progress-dots .dot.active { background: #FF9500 !important; }
+  .top-bar .progress-dots .dot.done { background: #34C759 !important; }
+  .canvas-wrap { background: rgba(10,12,26,0.6) !important; border-color: rgba(255,255,255,0.06) !important; }
+  .canvas-wrap canvas { filter: brightness(1.05) contrast(1.05); }
+  .info-panel { background: rgba(255,255,255,0.03) !important; border-color: rgba(255,255,255,0.06) !important; }
+  .info-panel .mission-label, .card .num { color: #FF9500 !important; }
+  .info-panel .mission-title, .card h3, .hero h1, .top-bar h1 { color: #fff !important; }
+  .info-panel .mission-desc, p, .card p, .hero p { color: rgba(255,255,255,0.4) !important; }
+  .info-panel .mission-desc button, .card .status.new, .tab.active { background: #FF9500 !important; color: #fff !important; border: none !important; }
+  .mission-tabs .tab { background: rgba(255,255,255,0.03) !important; border-color: rgba(255,255,255,0.08) !important; color: rgba(255,255,255,0.3) !important; }
+  .mission-tabs .tab:hover { border-color: #FF9500 !important; color: #FF9500 !important; }
+  .mission-tabs .tab.active { background: #FF9500 !important; color: #fff !important; border-color: #FF9500 !important; }
+  .mission-tabs .tab.done { border-color: #34C759 !important; color: #34C759 !important; }
+  .challenge-hud, .mode-toggle { background: rgba(0,0,0,0.5) !important; backdrop-filter: blur(10px) !important; }
+
+  .knowledge-box { background: rgba(255,149,0,0.08) !important; border-left-color: #FF9500 !important; }
+  .knowledge-box .kb-title, .knowledge-box .kb-toggle { color: #FF9500 !important; }
+  .knowledge-box .kb-body, .card p, .hero p { color: rgba(255,255,255,0.7) !important; }
+  .knowledge-box .kb-body em { color: #FF9500 !important; }
+  .knowledge-box .kb-formula { background: rgba(255,255,255,0.06) !important; border-color: rgba(255,255,255,0.1) !important; color: #fff !important; }
+  .card { background: rgba(255,255,255,0.04) !important; border: 1px solid rgba(255,255,255,0.06) !important; backdrop-filter: blur(20px) !important; color: #fff !important; }
+  .card:hover { border-color: #FF9500 !important; transform: translateY(-2px); }
+  .card .status.done { background: rgba(52,199,89,0.12) !important; color: #34C759 !important; border: 1px solid rgba(52,199,89,0.15) !important; }
+  .card .status.new { background: rgba(255,149,0,0.1) !important; color: #FF9500 !important; border: 1px solid rgba(255,149,0,0.15) !important; }
+  .card .status.partial { background: rgba(255,255,255,0.05) !important; color: rgba(255,255,255,0.4) !important; border: 1px solid rgba(255,255,255,0.08) !important; }
+  .hero .progress-module, .module-progress { color: #FF9500 !important; background: rgba(255,149,0,0.1) !important; border: 1px solid rgba(255,149,0,0.15) !important; }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", sans-serif; background: #f5f5f7; color: #1d1d1f; height: 100dvh; display: flex; justify-content: center; align-items: center; margin: 0; }
+  .app { width: 820px; max-width: 96vw; height: 100dvh; max-height: 100dvh; background: #fff; border-radius: 20px; box-shadow: 0 20px 60px rgba(0,0,0,0.08); display: flex; flex-direction: column; overflow: hidden; }
+  .top-bar { display: flex; align-items: center; padding: 14px 20px; flex-shrink: 0; background: #fafafa; border-bottom: 1px solid #e8e8ed; }
+  .top-bar .back { font-size: 20px; cursor: pointer; opacity: 0.6; }
+  .top-bar .back:hover { opacity: 1; }
+  .top-bar h1 { font-size: 15px; font-weight: 600; margin-left: 10px; flex:1; }
+  .top-bar .progress-dots { font-size: 13px; color: #86868b; display: flex; gap: 6px; align-items: center; }
+  .top-bar .progress-dots .dot { width: 8px; height: 8px; border-radius: 50%; background: #e8e8ed; }
+  .top-bar .progress-dots .dot.active { background: #FF9500; }
+  .top-bar .progress-dots .dot.done { background: #34C759; }
+  .main-area { padding: 10px; flex: 1; display: flex; flex-direction: column; overflow: hidden; gap: 8px; }
+  .canvas-wrap { position: relative; background: #fff; border-radius: 14px; border: 1px solid #e8e8ed; overflow: hidden; flex-shrink: 0; }
+  .canvas-wrap canvas { display: block; width: 100%; height: auto; cursor: grab; touch-action: none; }
+  .canvas-wrap canvas:active { cursor: grabbing; }
+  .info-panel { background: #fafafa; border-radius: 14px; border: 1px solid #e8e8ed; padding: 10px 16px; overflow-y: auto; min-height: 0; }
+  .info-panel .mission-label { font-size: 11px; font-weight: 600; color: #FF9500; letter-spacing: 0.5px; text-transform: uppercase; }
+  .info-panel .mission-title { font-size: 15px; font-weight: 600; margin: 0 0 2px; }
+  .info-panel .mission-desc { font-size: 13px; color: #86868b; line-height: 1.4; }
+  .info-panel .speed-display { display: flex; gap: 16px; margin-top: 6px; padding-top: 6px; border-top: 1px solid #e8e8ed; flex-wrap: wrap; }
+  .info-panel .speed-item { font-size: 12px; }
+  .info-panel .speed-item .label { color: #86868b; }
+  .info-panel .speed-item .value { font-weight: 600; font-size: 15px; }
+  .info-panel .speed-item .value.air { color: #FF9500; }
+  .info-panel .speed-item .value.water { color: #007AFF; }
+  .info-panel .speed-item .value.solid { color: #34C759; }
+  .mission-tabs { display: flex; gap: 4px; padding: 2px 10px 8px; flex-shrink: 0; }
+  .mission-tabs .tab { flex: 1; padding: 8px 4px; border-radius: 8px; border: 1px solid #e8e8ed; background: #fff; text-align: center; cursor: pointer; font-size: 12px; font-weight: 500; color: #86868b; transition: all 0.2s; }
+  .mission-tabs .tab:hover { border-color: #FF9500; color: #FF9500; }
+  .mission-tabs .tab.active { background: #FF9500; color: #fff; border-color: #FF9500; }
+  .mission-tabs .tab.done { border-color: #34C759; color: #34C759; }
+  .mission-tabs .tab .tab-check { font-size: 11px; display: block; margin-top: 2px; }
+  .mode-toggle { position: absolute; top: 12px; left: 12px; background: rgba(0,0,0,0.7); backdrop-filter: blur(10px); border-radius: 8px; padding: 5px 12px; color: #fff; font-size: 11px; cursor: pointer; display: none; transition: all 0.2s; white-space: nowrap; }
+  .mode-toggle.show { display: block; }
+  .mode-toggle:hover { background: rgba(255,149,0,0.8); }
+  .challenge-hud { position: absolute; top: 12px; right: 12px; background: rgba(0,0,0,0.7); backdrop-filter: blur(10px); border-radius: 10px; padding: 8px 14px; color: #fff; font-size: 13px; display: none; }
+  .challenge-hud.show { display: block; }
+  .challenge-hud .ch-level { font-weight: 600; margin-bottom: 2px; }
+  .challenge-hud .ch-goal { color: #aaa; font-size: 12px; }
+  .challenge-hud .ch-restart { margin-top: 6px; padding: 4px 10px; background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.25); border-radius: 6px; color: #fff; font-size: 11px; cursor: pointer; }
+  .quiz-overlay { position: absolute; inset: 0; background: rgba(255,255,255,0.85); backdrop-filter: blur(20px); display: none; flex-direction: column; align-items: center; justify-content: center; padding: 30px; z-index: 10; }
+  .quiz-overlay.show { display: flex; background: rgba(10,12,26,0.92) !important; backdrop-filter: blur(20px) !important; -webkit-backdrop-filter: blur(20px) !important; }
+  .quiz-overlay .quiz-q { font-size: 18px; font-weight: 600; text-align: center; max-width: 480px; margin-bottom: 20px; line-height: 1.5; }
+  .quiz-overlay .quiz-options { display: flex; flex-direction: column; gap: 10px; width: 100%; max-width: 400px; }
+  .quiz-overlay .quiz-opt { padding: 14px 20px; background: #fff; border: 1.5px solid #e8e8ed; border-radius: 12px; font-size: 15px; cursor: pointer; transition: all 0.2s; text-align: left; }
+  .quiz-overlay .quiz-opt:hover { border-color: #FF9500; background: #fff8e8; }
+  .quiz-overlay .quiz-opt.correct { border-color: #34C759; background: #e8f8ee; }
+  .quiz-overlay .quiz-opt.wrong { border-color: #FF3B30; background: #ffe8e6; }
+  .quiz-overlay .quiz-result { margin-top: 16px; font-size: 15px; font-weight: 500; }
+  .quiz-overlay .quiz-next { margin-top: 14px; padding: 10px 30px; background: #FF9500; color: #fff; border: none; border-radius: 10px; font-size: 15px; font-weight: 500; cursor: pointer; }
+
+  .knowledge-box { padding: 6px 12px; background: #fff8e8; border-radius: 10px; border-left: 3px solid #FF9500; flex-shrink: 0; cursor: pointer; user-select: none; }
+  .knowledge-box .kb-title { font-weight: 600; font-size: 11px; color: #FF9500; letter-spacing: 0.3px; display: flex; align-items: center; gap: 4px; }
+  .knowledge-box .kb-toggle { font-size: 9px; color: #FF9500; opacity: 0.5; transition: transform 0.2s; }
+  .knowledge-box .kb-toggle.open { transform: rotate(90deg); }
+  .knowledge-box .kb-body { font-size: 11.5px; color: #1d1d1f; line-height: 1.5; margin-top: 3px; }
+  .knowledge-box .kb-body em { color: #FF9500; font-style: normal; font-weight: 500; }
+  .knowledge-box .kb-formula { display: inline-block; background: #fff; border: 1px solid #f5e0c0; border-radius: 5px; padding: 1px 8px; font-family: "SF Mono", monospace; font-size: 12px; font-weight: 600; color: #1d1d1f; margin: 0 2px; }
+  .knowledge-box.collapsed .kb-body { display: none; }
+
+  @media (max-width: 600px) { .mission-tabs .tab { font-size: 11px; padding: 8px 4px; } .mission-tabs { padding: 2px 6px 6px; } }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="top-bar">
+    <span class="back" onclick="location.href='index.html'">←</span>
+    <h1>声音的产生与传播</h1>
+    <div class="progress-dots" id="progressDots">
+      <span class="dot" id="pdot0"></span>
+      <span class="dot" id="pdot1"></span>
+      <span class="dot" id="pdot2"></span>
+      <span class="dot" id="pdot3"></span>
+    </div>
+  </div>
+
+  <div class="main-area">
+    <div class="canvas-wrap">
+      <canvas id="labCanvas" width="780" height="320"></canvas>
+      <div class="mode-toggle" id="modeToggle">切换到真空实验</div>
+      <div class="challenge-hud" id="challengeHud">
+        <div class="ch-level" id="chLevel">🎯 第 1/5 关</div>
+        <div class="ch-goal" id="chGoal">目标加载中...</div>
+        <div class="ch-restart" onclick="resetChallenges()">🔄 重来</div>
+      </div>
+      <div class="quiz-overlay" id="quizOverlay">
+        <div class="quiz-q" id="quizQ">题目加载中...</div>
+        <div class="quiz-options" id="quizOptions"></div>
+        <div class="quiz-result" id="quizResult"></div>
+        <button class="quiz-next" id="quizNext" onclick="nextQuiz()">下一题</button>
+        <button class="quiz-close" id="quizClose" onclick="closeQuiz()" style="margin-top:10px;padding:6px 16px;background:rgba(255,255,255,0.1);color:rgba(255,255,255,0.6);border:1px solid rgba(255,255,255,0.15);border-radius:8px;cursor:pointer;font-size:12px;">✕ 关闭</button>
+      </div>
+    </div>
+    <div class="info-panel">
+      <div class="mission-label" id="missionLabel">🔬 观察</div>
+      <div class="mission-title" id="missionTitle">声音的产生</div>
+      <div class="mission-desc" id="missionDesc">观看音叉振动产生声音的演示。</div>
+      <div class="speed-display" id="speedDisplay">
+        <div class="speed-item"><span class="label">介质: </span><span class="value air" id="dispMedium">空气</span></div>
+        <div class="speed-item"><span class="label">声速: </span><span class="value air" id="dispSpeed">340 m/s</span></div>
+      </div>
+      <div class="knowledge-box collapsed" id="knowledgeBox" onclick="toggleKnowledge()">
+        <div class="kb-title"><span class="kb-toggle" id="kbToggle">▶</span> 💡 <span id="kbTitle">知识要点</span></div>
+        <div class="kb-body" id="kbBody"></div>
+      </div>
+    </div>
+  </div>
+  <div class="mission-tabs" id="missionTabs"></div>
+</div>
+
+<script>
+// ── Storage Key ──
+const STORAGE_KEY = 'physics_sound_ch1';
+
+// ── State ──
+const saved = (() => { try { return JSON.parse(localStorage.getItem(STORAGE_KEY)); } catch(e) {} return null; })() || {};
+let state = {
+  done: saved.done || [],
+  currentMission: saved.currentMission || 0,
+  challengeIdx: saved.challengeIdx || 0,
+  quizIdx: saved.quizIdx || 0,
+  quizDone: saved.quizDone || []
+};
+function saveState() {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch(e) {}
+}
+
+// ── Missions ──
+const MISSIONS = [
+  { id: 'observe', label: '🔬 观察', title: '声音的产生与传播', desc: '观看音叉振动产生声波，以及真空铃实验。点击"播放"观看演示。', doneLabel: '已观看' },
+  { id: 'explore', label: '✋ 探索', title: '不同介质中的声速', desc: '点击切换介质（空气/水/钢铁），观察声波传播速度的差异。', doneLabel: '已探索' },
+  { id: 'challenge', label: '🎯 挑战', title: '声速闯关', desc: '运用声速和回声知识完成挑战！', doneLabel: '已闯关' },
+  { id: 'quiz', label: '⭐ 测验', title: '知识检测', desc: '完成几道选择题，巩固今天学的知识。', doneLabel: '已完成' }
+];
+
+const CHALLENGES = [
+  { goal: '人对着山崖喊话，0.4s后听到回声。山崖距离多远？（声速340m/s）', answer: 68, unit: 'm', tolerance: 1 },
+  { goal: '看到闪电后3s听到雷声。打雷处多远？（声速340m/s）', answer: 1020, unit: 'm', tolerance: 10 },
+  { goal: '在哪个介质中声音传播最快？（0=空气, 1=水, 2=钢铁）', answer: 2, unit: '', tolerance: 0 },
+  { goal: '某人敲击铁管一端，另一人在另一端听到两次敲击声，间隔0.5s。管长多少m？（声速：空气340m/s，铁5200m/s）', answer: 182, unit: 'm', tolerance: 5 },
+  { goal: '15℃时声速340m/s，温度升高到25℃时声速约为346m/s。若声音传播2s，哪个温度下传得更远？多几米？', answer: 12, unit: 'm', tolerance: 2 }
+];
+
+const QUIZ_POOL = [
+  { q: '声音是由物体的什么产生的？', opts: ['A. 运动', 'B. 振动', 'C. 热传递', 'D. 分子扩散'], ans: 1,
+    explain: '声音是由物体振动产生的。一切发声的物体都在振动，振动停止发声也停止。' },
+  { q: '声音不能在下列哪个介质中传播？', opts: ['A. 空气', 'B. 水', 'C. 真空', 'D. 钢铁'], ans: 2,
+    explain: '声音的传播需要介质，真空不能传声。月球上宇航员只能通过无线电交流。' },
+  { q: '15℃时，声音在空气中的传播速度约为？', opts: ['A. 340 m/s', 'B. 1500 m/s', 'C. 5200 m/s', 'D. 3×10⁸ m/s'], ans: 0,
+    explain: '15℃时声速约340m/s。1500m/s是水中声速，5200m/s是钢铁中声速，3×10⁸m/s是光速。' },
+  { q: '声音在下列哪种介质中传播最快？', opts: ['A. 空气', 'B. 水', 'C. 钢铁', 'D. 真空'], ans: 2,
+    explain: '声音在固体中传播最快，液体次之，气体最慢。钢铁中约5200m/s，水中约1500m/s，空气中约340m/s。' },
+  { q: '人对着山崖喊话，经0.2s听到回声，人距山崖约多远？', opts: ['A. 34m', 'B. 68m', 'C. 17m', 'D. 136m'], ans: 0,
+    explain: 's = v×t/2 = 340×0.2/2 = 34m。注意回声走的是往返路程，所以要除以2。' }
+];
+
+// ── Canvas & Animation ──
+const canvas = document.getElementById('labCanvas');
+const ctx = canvas.getContext('2d');
+let animId = null, animTime = 0;
+let isPlaying = false;
+let exploreMedium = 0; // 0=air, 1=water, 2=steel
+let useVacuum = false;
+
+const MEDIA = [
+  { name: '空气', speed: 340, color: '#FF9500', bg: '#fff8e8' },
+  { name: '水', speed: 1500, color: '#007AFF', bg: '#e8f4ff' },
+  { name: '钢铁', speed: 5200, color: '#34C759', bg: '#e8f8ee' }
+];
+
+function getMedium() { return MEDIA[exploreMedium]; }
+
+// ── Drawing ──
+function drawScene() {
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0, 0, W, H);
+
+  const mission = state.currentMission;
+  if (mission === 0) drawObserve(W, H);
+  else if (mission === 1) drawExplore(W, H);
+  else if (mission === 2) drawChallenge(W, H);
+}
+
+function drawObserve(W, H) {
+  // Background
+  ctx.fillStyle = '#141626';
+  ctx.fillRect(0, 0, W, H);
+
+  if (useVacuum) {
+    // Bell jar experiment
+    drawBellJar(W, H);
+    return;
+  }
+
+  // Tuning fork on left
+  const forkX = 160, forkY = 180;
+  const vibrate = isPlaying ? Math.sin(animTime * 0.3) * 6 : 0;
+
+  // Tuning fork base
+  ctx.fillStyle = 'rgba(255,255,255,0.08)';
+  ctx.fillRect(forkX - 20, forkY + 10, 40, 20);
+  ctx.fillStyle = 'rgba(255,255,255,0.2)';
+  ctx.fillRect(forkX - 5, forkY - 40, 10, 50);
+
+  // Prongs
+  ctx.strokeStyle = '#FF9500';
+  ctx.lineWidth = 6;
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(forkX - 12 + vibrate, forkY - 40);
+  ctx.lineTo(forkX - 12 + vibrate, forkY + 10);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(forkX + 12 - vibrate, forkY - 40);
+  ctx.lineTo(forkX + 12 - vibrate, forkY + 10);
+  ctx.stroke();
+
+  // Label
+  ctx.fillStyle = 'rgba(255,255,255,0.65)';
+  ctx.font = '13px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('音叉', forkX, forkY + 40);
+
+  // Sound waves (circles expanding from fork)
+  if (isPlaying) {
+    const t = animTime;
+    for (let i = 0; i < 5; i++) {
+      const radius = 30 + ((t * 1.5 + i * 50) % 200);
+      if (radius > 250) continue;
+      const alpha = Math.max(0, 1 - radius / 250);
+      ctx.strokeStyle = `rgba(255, 149, 0, ${alpha * 0.6})`;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(forkX, forkY - 15, radius, 0, Math.PI * 2);
+      ctx.stroke();
+
+      // Compression zones (darker rings)
+      if (radius % 40 < 15) {
+        ctx.strokeStyle = `rgba(255, 149, 0, ${alpha * 0.3})`;
+        ctx.lineWidth = 6;
+        ctx.beginPath();
+        ctx.arc(forkX, forkY - 15, radius, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+    }
+
+    // Ear on the right
+    ctx.fillStyle = '#f0c8a0';
+    ctx.beginPath();
+    ctx.ellipse(W - 80, forkY - 15, 20, 25, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#e0b090';
+    ctx.beginPath();
+    ctx.ellipse(W - 80, forkY - 15, 10, 16, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Sound reaching ear indicator
+    const distToEar = W - 80 - forkX;
+    const anyWave = (t * 1.5) % 200 > 180;
+    if (anyWave) {
+      ctx.fillStyle = '#FF9500';
+      ctx.font = '12px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('👂 听到声音', W - 80, forkY + 50);
+    }
+  }
+
+  // Instructions
+  ctx.fillStyle = 'rgba(255,255,255,0.35)';
+  ctx.font = '12px sans-serif';
+  ctx.textAlign = 'center';
+  if (!isPlaying) {
+    ctx.fillText('▶ 点击下方"播放"按钮开始演示', W / 2, H - 20);
+  }
+
+  // Bell jar toggle hint
+  ctx.fillStyle = 'rgba(255,255,255,0.25)';
+  ctx.font = '11px sans-serif';
+  ctx.textAlign = 'left';
+  ctx.fillText('💡 点击左上角按钮切换真空实验', 10, H - 20);
+}
+
+function drawBellJar(W, H) {
+  ctx.fillStyle = '#141626';
+  ctx.fillRect(0, 0, W, H);
+
+  // Bell jar (glass dome)
+  const cx = W / 2, cy = 160;
+  ctx.strokeStyle = 'rgba(100, 180, 255, 0.4)';
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.ellipse(cx, cy, 140, 120, 0, Math.PI, 0);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.ellipse(cx, cy, 140, 120, 0, 0, Math.PI);
+  ctx.stroke();
+
+  // Glass shine
+  ctx.strokeStyle = 'rgba(100, 180, 255, 0.1)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.ellipse(cx - 20, cy - 20, 60, 50, -0.2, Math.PI, 0);
+  ctx.stroke();
+
+  // Base plate
+  ctx.fillStyle = 'rgba(255,255,255,0.45)';
+  ctx.fillRect(cx - 100, cy + 80, 200, 10);
+  ctx.fillStyle = 'rgba(255,255,255,0.65)';
+  ctx.fillRect(cx - 90, cy + 85, 180, 5);
+
+  // Bell inside
+  ctx.fillStyle = '#c8a060';
+  ctx.beginPath();
+  ctx.arc(cx, cy - 10, 18, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = '#b89050';
+  ctx.fillRect(cx - 3, cy - 30, 6, 20);
+  // Clapper
+  const swing = isPlaying ? Math.sin(animTime * 0.5) * 4 : 0;
+  ctx.fillStyle = '#a08040';
+  ctx.beginPath();
+  ctx.arc(cx + swing, cy + 15, 8, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Air particles (decrease when vacuum)
+  const particleCount = isPlaying ? Math.max(5, 30 - animTime * 2) : 30;
+  ctx.fillStyle = `rgba(100, 149, 237, ${0.3 * particleCount / 30})`;
+  for (let i = 0; i < particleCount; i++) {
+    const angle = Math.random() * Math.PI;
+    const r = 20 + Math.random() * 100;
+    const px = cx - 80 + Math.random() * 160;
+    const py = cy - 80 + Math.random() * 140;
+    ctx.beginPath();
+    ctx.arc(px, py, 2, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // Vacuum pump
+  ctx.fillStyle = 'rgba(255,255,255,0.65)';
+  ctx.fillRect(cx + 130, cy + 40, 30, 50);
+  ctx.fillStyle = 'rgba(255,255,255,0.65)';
+  ctx.fillRect(cx + 140, cy + 90, 10, 10);
+  ctx.fillStyle = 'rgba(255,255,255,0.45)';
+  ctx.beginPath();
+  ctx.arc(cx + 145, cy + 65, 10, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Status
+  ctx.fillStyle = '#ffffff';
+  ctx.font = '14px sans-serif';
+  ctx.textAlign = 'center';
+  if (particleCount > 20) {
+    ctx.fillText('🔔 钟声响起（有空气）', cx, cy + 130);
+  } else if (particleCount > 5) {
+    ctx.fillText('🔕 钟声越来越弱（正在抽气）', cx, cy + 130);
+  } else {
+    ctx.fillText('🔇 听不到钟声了（真空）', cx, cy + 130);
+  }
+
+  // Label
+  ctx.fillStyle = 'rgba(255,255,255,0.35)';
+  ctx.font = '12px sans-serif';
+  ctx.fillText('真空罩实验（抽气机在右侧）', cx, H - 20);
+}
+
+function drawExplore(W, H) {
+  const med = getMedium();
+  ctx.fillStyle = med.bg;
+  ctx.fillRect(0, 0, W, H);
+
+  // Medium buttons
+  const btnW = 100, btnH = 36, startX = (W - (btnW * 3 + 20)) / 2;
+  MEDIA.forEach((m, i) => {
+    const x = startX + i * (btnW + 10);
+    const y = 12;
+    ctx.fillStyle = i === exploreMedium ? m.color : '#eee';
+    roundRect(ctx, x, y, btnW, btnH, 8);
+    ctx.fill();
+    ctx.fillStyle = i === exploreMedium ? '#fff' : '#666';
+    ctx.font = '13px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(m.name, x + btnW / 2, y + btnH / 2);
+  });
+
+  // Sound source
+  const srcX = 100, srcY = 200;
+  ctx.fillStyle = '#FF9500';
+  ctx.beginPath();
+  ctx.arc(srcX, srcY, 18, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = '#fff';
+  ctx.font = '14px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('🔊', srcX, srcY + 5);
+
+  // Receiver
+  const rx = W - 100, ry = 200;
+  ctx.fillStyle = 'rgba(255,255,255,0.65)';
+  ctx.beginPath();
+  ctx.arc(rx, ry, 15, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = '#fff';
+  ctx.font = '18px sans-serif';
+  ctx.fillText('👂', rx, ry + 6);
+
+  // Wave propagation
+  if (isPlaying) {
+    const speed = med.speed;
+    const dist = rx - srcX;
+    const t = animTime;
+    const waveSpeed = 0.5 + speed / 3400;
+
+    for (let i = 0; i < 3; i++) {
+      const progress = ((t * waveSpeed + i * 60) % (dist + 60)) - 30;
+      if (progress < 0) continue;
+      const x = srcX + progress;
+      const alpha = Math.max(0.1, 1 - progress / dist);
+      const radius = 8 + Math.sin(progress * 0.1) * 4;
+
+      ctx.strokeStyle = `rgba(255, 149, 0, ${alpha * 0.5})`;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(x, srcY - 10, radius * 2, 0, Math.PI * 2);
+      ctx.stroke();
+
+      // Compression
+      ctx.fillStyle = `rgba(255, 149, 0, ${alpha * 0.15})`;
+      ctx.beginPath();
+      ctx.arc(x, srcY - 10, radius, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // Check if wave reached receiver
+    const reached = (t * waveSpeed) % (dist + 60) > dist;
+    if (reached) {
+      ctx.fillStyle = '#34C759';
+      ctx.font = '12px sans-serif';
+      ctx.fillText('✅ 已接收', rx, ry + 40);
+    }
+  }
+
+  // Labels
+  ctx.fillStyle = 'rgba(255,255,255,0.65)';
+  ctx.font = '12px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('声源', srcX, srcY + 40);
+  ctx.fillText('接收器', rx, ry + 40);
+
+  // Speed display on canvas
+  ctx.fillStyle = med.color;
+  ctx.font = '20px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'bottom';
+  ctx.fillText(`${med.speed} m/s`, W / 2, H - 10);
+
+  if (!isPlaying) {
+    ctx.fillStyle = 'rgba(255,255,255,0.35)';
+    ctx.font = '13px sans-serif';
+    ctx.textBaseline = 'bottom';
+    ctx.fillText('点击上方介质按钮切换，点击下方"播放"观察声波传播', W / 2, 80);
+  }
+}
+
+function drawChallenge(W, H) {
+  ctx.fillStyle = '#141626';
+  ctx.fillRect(0, 0, W, H);
+
+  const ch = CHALLENGES[state.challengeIdx] || CHALLENGES[0];
+  ctx.fillStyle = '#ffffff';
+  ctx.font = '15px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+
+  // Show a visual based on challenge
+  const lines = ch.goal.split('');
+  let line = '';
+  let lineY = 60;
+  ch.goal.split('').forEach((ch, i) => {
+    line += ch;
+    if (line.length > 25 || i === ch.goal.length - 1) {
+      ctx.fillText(line.trim(), W / 2, lineY);
+      line = '';
+      lineY += 28;
+    }
+  });
+
+  // Input area
+  ctx.fillStyle = 'rgba(255,255,255,0.08)';
+  roundRect(ctx, W / 2 - 80, H / 2 - 30, 160, 50, 10);
+  ctx.fill();
+  ctx.fillStyle = 'rgba(255,255,255,0.35)';
+  ctx.font = '14px sans-serif';
+  ctx.fillText(`答案输入框（${ch.unit}）`, W / 2, H / 2 + 50);
+}
+
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.arcTo(x + w, y, x + w, y + r, r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.arcTo(x + w, y + h, x + w - r, y + h, r);
+  ctx.lineTo(x + r, y + h);
+  ctx.arcTo(x, y + h, x, y + h - r, r);
+  ctx.lineTo(x, y + r);
+  ctx.arcTo(x, y, x + r, y, r);
+  ctx.closePath();
+}
+
+function animate() {
+  if (isPlaying) animTime += 1;
+  drawScene();
+  animId = requestAnimationFrame(animate);
+}
+
+// ── Mission Switching ──
+function switchMission(idx) {
+  state.currentMission = idx;
+  saveState();
+  updateUI();
+  drawScene();
+  setKnowledge(idx);
+}
+
+function updateUI() {
+  const m = MISSIONS[state.currentMission];
+  document.getElementById('missionLabel').textContent = m.label;
+  document.getElementById('missionTitle').textContent = m.title;
+  const desc = document.getElementById('missionDesc');
+  const done = state.done.includes(state.currentMission);
+
+  if (state.currentMission === 0) {
+    if (done) {
+      desc.innerHTML = '✅ 已观看过演示。 <button onclick="startObserve()" style="padding:6px 16px;background:#FF9500;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:13px;">▶ 再看一次</button>';
+    } else {
+      desc.innerHTML = `${m.desc} <button onclick="startObserve()" style="padding:6px 16px;background:#FF9500;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:13px;">▶ 播放演示</button>`;
+    }
+    document.getElementById('modeToggle').className = 'mode-toggle show';
+  } else if (state.currentMission === 1) {
+    if (done) {
+      desc.innerHTML = '✅ 已探索过各介质。 <button onclick="startExplore()" style="padding:6px 16px;background:#FF9500;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:13px;">▶ 重新探索</button>';
+    } else {
+      desc.innerHTML = `${m.desc} <button onclick="startExplore()" style="padding:6px 16px;background:#FF9500;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:13px;">▶ 开始探索</button>`;
+    }
+    document.getElementById('modeToggle').className = 'mode-toggle';
+    document.getElementById('speedDisplay').style.display = 'flex';
+  } else if (state.currentMission === 2) {
+    if (state.done.includes(2)) {
+      desc.innerHTML = '🎉 所有关卡挑战成功！ <button onclick="resetChallenges()" style="padding:6px 16px;background:#FF9500;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:13px;">🔄 重新挑战</button>';
+    } else {
+      desc.innerHTML = `${m.desc} 当前第 ${state.challengeIdx + 1}/${CHALLENGES.length} 关。`;
+    }
+    document.getElementById('modeToggle').className = 'mode-toggle';
+    document.getElementById('speedDisplay').style.display = 'none';
+    drawChallengeUI();
+  } else if (state.currentMission === 3) {
+    if (state.done.includes(3)) {
+      desc.innerHTML = '✅ 测验已完成！ <button onclick="startQuiz()" style="padding:6px 16px;background:#FF9500;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:13px;">🔄 再来一轮</button>';
+    } else {
+      desc.innerHTML = m.desc + ' 点击下方按钮开始。';
+    }
+    document.getElementById('modeToggle').className = 'mode-toggle';
+    document.getElementById('speedDisplay').style.display = 'none';
+  }
+
+  // Update speed display
+  if (state.currentMission === 1) {
+    const med = getMedium();
+    document.getElementById('dispMedium').textContent = med.name;
+    document.getElementById('dispSpeed').textContent = med.speed + ' m/s';
+    document.getElementById('dispMedium').className = `value ${med === MEDIA[0] ? 'air' : med === MEDIA[1] ? 'water' : 'solid'}`;
+    document.getElementById('dispSpeed').className = `value ${med === MEDIA[0] ? 'air' : med === MEDIA[1] ? 'water' : 'solid'}`;
+  }
+
+  // Tabs
+  const tabs = document.getElementById('missionTabs');
+  tabs.innerHTML = MISSIONS.map((m, i) => {
+    const isActive = i === state.currentMission;
+    const isDone = state.done.includes(i);
+    const cls = isActive ? 'tab active' : isDone ? 'tab done' : 'tab';
+    const check = isDone ? '<span class="tab-check">✅</span>' : '';
+    return `<div class="${cls}" onclick="switchMission(${i})">${m.label}${check}</div>`;
+  }).join('');
+
+  // Progress dots
+  MISSIONS.forEach((_, i) => {
+    const dot = document.getElementById('pdot' + i);
+    if (state.done.includes(i)) dot.className = 'dot done';
+    else if (i === state.currentMission) dot.className = 'dot active';
+    else dot.className = 'dot';
+  });
+
+  // Challenge HUD
+  document.getElementById('challengeHud').className = state.currentMission === 2 ? 'challenge-hud show' : 'challenge-hud';
+  if (state.currentMission === 2) {
+    document.getElementById('chLevel').textContent = `🎯 第 ${state.challengeIdx + 1}/${CHALLENGES.length} 关`;
+    document.getElementById('chGoal').textContent = CHALLENGES[state.challengeIdx]?.goal.slice(0, 40) + '...' || '';
+  }
+
+  // Quiz overlay
+  document.getElementById('quizOverlay').className = state.currentMission === 3 && state.quizIdx < QUIZ_POOL.length ? 'quiz-overlay show' : 'quiz-overlay';
+  document.querySelector('.canvas-wrap').className = state.currentMission === 3 && state.quizIdx < QUIZ_POOL.length ? 'canvas-wrap quiz-active' : 'canvas-wrap';
+}
+
+function drawChallengeUI() {
+  // Canvas overlay for challenge input
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0, 0, W, H);
+  ctx.fillStyle = '#141626';
+  ctx.fillRect(0, 0, W, H);
+
+  const ch = CHALLENGES[state.challengeIdx] || CHALLENGES[0];
+  ctx.fillStyle = '#ffffff';
+  ctx.font = '15px sans-serif';
+  ctx.textAlign = 'center';
+
+  // Word-wrap the goal text
+  const words = ch.goal;
+  const maxW = W - 40;
+  let lines = [];
+  let line = '';
+  for (let c of words) {
+    line += c;
+    if (ctx.measureText(line).width > maxW) {
+      lines.push(line.slice(0, -1));
+      line = c;
+    }
+  }
+  if (line) lines.push(line);
+
+  let y = 40;
+  lines.forEach(l => {
+    ctx.fillText(l.trim(), W / 2, y);
+    y += 26;
+  });
+
+  // Answer buttons for challenge 3 (medium choice)
+  if (state.challengeIdx === 2) {
+    const btns = ['空气', '水', '钢铁'];
+    const btnW = 120, btnH = 50;
+    const totalW = btns.length * btnW + (btns.length - 1) * 12;
+    const startX = (W - totalW) / 2;
+    btns.forEach((b, i) => {
+      const bx = startX + i * (btnW + 12);
+      const by = 140;
+      ctx.fillStyle = i === exploreMedium ? '#FF9500' : '#eee';
+      roundRect(ctx, bx, by, btnW, btnH, 10);
+      ctx.fill();
+      ctx.fillStyle = i === exploreMedium ? '#fff' : '#666';
+      ctx.font = '16px sans-serif';
+      ctx.fillText(b, bx + btnW / 2, by + btnH / 2 + 6);
+    });
+  } else {
+    // Show formula hint
+    ctx.fillStyle = 'rgba(255,255,255,0.35)';
+    ctx.font = '14px sans-serif';
+    if (state.challengeIdx === 0 || state.challengeIdx === 1) {
+      ctx.fillText('提示: s = v × t ÷ 2（回声往返）', W / 2, y + 30);
+    } else if (state.challengeIdx === 3) {
+      ctx.fillText('提示: 两次声音 = 空气和铁传播时间差', W / 2, y + 30);
+    } else if (state.challengeIdx === 4) {
+      ctx.fillText('提示: Δs = (v₂ - v₁) × t', W / 2, y + 30);
+    }
+  }
+}
+
+// ── Observe ──
+function startObserve() {
+  useVacuum = false;
+  isPlaying = true;
+  animTime = 0;
+  document.getElementById('modeToggle').textContent = '切换到真空实验';
+  // Auto-mark done after some time
+  setTimeout(() => {
+    if (state.currentMission === 0 && isPlaying) {
+      isPlaying = false;
+      if (!state.done.includes(0)) {
+        state.done.push(0);
+        saveState();
+        updateUI();
+      }
+    }
+  }, 4000);
+}
+
+// Toggle vacuum
+document.getElementById('modeToggle').addEventListener('click', () => {
+  if (state.currentMission !== 0) return;
+  useVacuum = !useVacuum;
+  if (useVacuum) {
+    document.getElementById('modeToggle').textContent = '切换回音叉演示';
+    animTime = 0;
+    isPlaying = true;
+  } else {
+    document.getElementById('modeToggle').textContent = '切换到真空实验';
+    animTime = 0;
+    isPlaying = true;
+  }
+});
+
+// ── Explore ──
+function startExplore() {
+  isPlaying = true;
+  animTime = 0;
+}
+
+// Canvas click for explore medium selection
+canvas.addEventListener('click', (e) => {
+  if (state.currentMission !== 1) return;
+  const rect = canvas.getBoundingClientRect();
+  const scaleX = canvas.width / rect.width;
+  const x = (e.clientX - rect.left) * scaleX;
+  const y = (e.clientY - rect.top) * scaleX;
+
+  const btnW = 100, btnH = 36;
+  const W = canvas.width;
+  const startX2 = (W - (btnW * 3 + 20)) / 2;
+
+  // Check medium buttons
+  if (y >= 12 && y <= 12 + btnH) {
+    for (let i = 0; i < 3; i++) {
+      const bx = startX2 + i * (btnW + 10);
+      if (x >= bx && x <= bx + btnW) {
+        exploreMedium = i;
+        isPlaying = true;
+        animTime = 0;
+        updateUI();
+        return;
+      }
+    }
+  }
+
+  // Click receiver to mark done
+  const rx = W - 100, ry = 200;
+  if (Math.hypot(x - rx, y - ry) < 30) {
+    if (!state.done.includes(1)) {
+      state.done.push(1);
+      saveState();
+      updateUI();
+    }
+  }
+});
+
+// ── Challenge ──
+function drawChallengeUI() {
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0, 0, W, H);
+  ctx.fillStyle = '#141626';
+  ctx.fillRect(0, 0, W, H);
+
+  const ch = CHALLENGES[state.challengeIdx] || CHALLENGES[0];
+  ctx.fillStyle = '#ffffff';
+  ctx.font = '15px sans-serif';
+  ctx.textAlign = 'center';
+
+  // Word wrap
+  const maxW = W - 40;
+  let lines = [];
+  let line = '';
+  for (let c of ch.goal) {
+    line += c;
+    if (ctx.measureText(line).width > maxW && line.length > 10) {
+      lines.push(line);
+      line = '';
+    }
+  }
+  if (line) lines.push(line);
+  let y = 40;
+  lines.forEach(l => { ctx.fillText(l.trim(), W / 2, y); y += 28; });
+
+  // Answer buttons
+  const btnW = 140, btnH = 46;
+  let options;
+  if (state.challengeIdx === 2) {
+    options = ['0: 空气', '1: 水', '2: 钢铁'];
+  } else {
+    options = ['输入答案', '看提示'];
+  }
+
+  const totalW = options.length * btnW + (options.length - 1) * 12;
+  const startX = (W - totalW) / 2;
+  options.forEach((b, i) => {
+    const bx = startX + i * (btnW + 12);
+    const by = 160;
+    ctx.fillStyle = 'rgba(255,255,255,0.04)';
+    roundRect(ctx, bx, by, btnW, btnH, 10);
+    ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,0.65)';
+    ctx.font = '15px sans-serif';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(b, bx + btnW / 2, by + btnH / 2);
+  });
+
+  // Hint
+  ctx.fillStyle = 'rgba(255,255,255,0.35)';
+  ctx.font = '13px sans-serif';
+  ctx.textBaseline = 'bottom';
+  const hints = [
+    '提示: s = v×t÷2（往返路程要除以2）',
+    '提示: s = v×t',
+    '点击选择对应数字',
+    '提示: Δt = L/v₁ - L/v₂，代入求解L',
+    '提示: Δs = Δv × t'
+  ];
+  ctx.fillText(hints[state.challengeIdx] || '', W / 2, H - 10);
+}
+
+function checkChallengeAnswer(input) {
+  const ch = CHALLENGES[state.challengeIdx];
+  if (!ch) return false;
+  if (state.challengeIdx === 2) {
+    return Math.abs(input - ch.answer) <= ch.tolerance;
+  }
+  return Math.abs(input - ch.answer) <= ch.tolerance;
+}
+
+// Canvas click for challenges
+canvas.addEventListener('click', (e) => {
+  if (state.currentMission !== 2) return;
+  const rect = canvas.getBoundingClientRect();
+  const scaleX = canvas.width / rect.width;
+  const x = (e.clientX - rect.left) * scaleX;
+
+  // If challenge 3 (medium choice), check clicks on answer buttons
+  if (state.challengeIdx === 2) {
+    const btnW = 140, btnH = 46;
+    const totalW = 3 * btnW + 24;
+    const startX2 = (canvas.width - totalW) / 2;
+    for (let i = 0; i < 3; i++) {
+      const bx = startX2 + i * (btnW + 12);
+      const by = 160;
+      if (x >= bx && x <= bx + btnW) {
+        if (checkChallengeAnswer(i)) {
+          state.challengeIdx++;
+          if (state.challengeIdx >= CHALLENGES.length) {
+            if (!state.done.includes(2)) state.done.push(2);
+            saveState();
+            updateUI();
+          } else {
+            saveState();
+            updateUI();
+          }
+        }
+        return;
+      }
+    }
+  }
+
+  // For other challenges, prompt for answer input
+  const userInput = prompt('输入你的答案（数字）:', '');
+  if (userInput === null) return;
+  const num = parseFloat(userInput);
+  if (isNaN(num)) return;
+
+  if (checkChallengeAnswer(num)) {
+    state.challengeIdx++;
+    if (state.challengeIdx >= CHALLENGES.length) {
+      if (!state.done.includes(2)) state.done.push(2);
+      saveState();
+      updateUI();
+      alert('🎉 恭喜通关！');
+    } else {
+      saveState();
+      updateUI();
+    }
+  } else {
+    alert('❌ 答案不对，再想想！');
+  }
+});
+
+function resetChallenges() {
+  state.challengeIdx = 0;
+  const idx = state.done.indexOf(2);
+  if (idx >= 0) state.done.splice(idx, 1);
+  saveState();
+  updateUI();
+}
+
+// ── Quiz ──
+function startQuiz() {
+  state.quizIdx = 0;
+  state.quizDone = [];
+  saveState();
+  showQuiz();
+}
+
+function showQuiz() {
+  if (state.quizIdx >= QUIZ_POOL.length) {
+    if (!state.done.includes(3)) {
+      state.done.push(3);
+      saveState();
+    }
+    updateUI();
+    return;
+  }
+  const q = QUIZ_POOL[state.quizIdx];
+  document.getElementById('quizQ').textContent = `${state.quizIdx + 1}. ${q.q}`;
+  const opts = document.getElementById('quizOptions');
+  opts.innerHTML = q.opts.map((o, i) =>
+    `<div class="quiz-opt" onclick="selectQuiz(${i})">${o}</div>`
+  ).join('');
+  document.getElementById('quizResult').textContent = '';
+  document.getElementById('quizNext').style.display = 'none';
+  document.getElementById('quizOverlay').className = 'quiz-overlay show';
+  document.querySelector('.canvas-wrap').className = state.currentMission === 3 && state.quizIdx < QUIZ_POOL.length ? 'canvas-wrap quiz-active' : 'canvas-wrap';
+}
+
+function selectQuiz(idx) {
+  const q = QUIZ_POOL[state.quizIdx];
+  const opts = document.querySelectorAll('.quiz-opt');
+  opts.forEach((el, i) => {
+    el.style.pointerEvents = 'none';
+    if (i === q.ans) el.className = 'quiz-opt correct';
+    else if (i === idx && idx !== q.ans) el.className = 'quiz-opt wrong';
+  });
+  document.getElementById('quizResult').textContent = idx === q.ans
+    ? `✅ 正确！${q.explain}`
+    : `❌ 正确答案是 ${q.opts[q.ans]}。${q.explain}`;
+  document.getElementById('quizNext').style.display = 'block';
+}
+
+function nextQuiz() {
+  state.quizIdx++;
+  saveState();
+  showQuiz();
+}
+
+// ══════════════════════════════════════════
+// 12. KNOWLEDGE
+// ══════════════════════════════════════════
+const KNOWLEDGE = {
+  0: {
+    title: '💡 认识声音的产生',
+    body: '声音是由物体<em>振动</em>产生的。一切正在发声的物体都在振动，振动停止，发声也停止。\n\n' +
+         '正在振动的物体称为<em>声源</em>。例如音叉的振动、人声带的振动等。'
+  },
+  1: {
+    title: '💡 声音的传播',
+    body: '声音的传播需要<em>介质</em>，介质可以是固体、液体或气体。<em>真空不能传声</em>。\n\n' +
+         '声音以<em>声波</em>的形式向四周传播。月球上因为没有空气（真空），宇航员只能通过无线电交流。'
+  },
+  2: {
+    title: '💡 声速与回声',
+    body: '声速与介质种类和温度有关：\n\n' +
+         '• 空气中（15°C）：<span class="kb-formula">340 m/s</span>\n' +
+         '• 水中：约 <span class="kb-formula">1500 m/s</span>\n' +
+         '• 钢铁中：约 <span class="kb-formula">5200 m/s</span>\n\n' +
+         '固体中传声最快，液体次之，气体最慢。回声测距公式：<span class="kb-formula">s = v × t / 2</span>'
+  },
+  3: {
+    title: '💡 检测你的掌握',
+    body: '通过几道选择题来检验你是否理解了声音的产生与传播。\n\n' +
+         '关键点：<em>振动产生声音</em>、<em>介质传播声音</em>、<em>真空不能传声</em>、<em>声速固＞液＞气</em>。'
+  }
+};
+
+function toggleKnowledge() {
+  const box = document.getElementById('knowledgeBox');
+  const toggle = document.getElementById('kbToggle');
+  box.classList.toggle('collapsed');
+  toggle.classList.toggle('open');
+}
+
+function setKnowledge(idx) {
+  const k = KNOWLEDGE[idx];
+  if (k) {
+    document.getElementById('kbTitle').textContent = k.title;
+    document.getElementById('kbBody').innerHTML = k.body.replace(/\n/g, '<br>');
+    const box = document.getElementById('knowledgeBox');
+    if (box.classList.contains('collapsed')) {
+      box.classList.remove('collapsed');
+      document.getElementById('kbToggle').classList.add('open');
+    }
+  }
+}
+
+// ── Init ──
+switchMission(state.currentMission);
+animate();
+
+function closeQuiz() { switchMission(0); }
+</script>
+</body>
+</html>

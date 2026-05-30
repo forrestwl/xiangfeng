@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>浮力 · 第4节</title>
+<style>
+/* NB_LAB */
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "PingFang SC", "Helvetica Neue", sans-serif;
+    min-height: 100dvh;
+    background: linear-gradient(135deg, #0c0e1a 0%, #1a1e3a 30%, #0d1b2a 60%, #0a0e1a 100%) !important;
+    display: flex; justify-content: center; align-items: center; margin: 0; position: relative;
+  }
+  body::before {
+    content: ''; position: fixed; top: -50%; left: -50%; width: 200%; height: 200%;
+    background: radial-gradient(ellipse at 20% 50%, rgba(255,59,48,0.08) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 20%, rgba(255,59,48,0.05) 0%, transparent 50%);
+    pointer-events: none; z-index: 0;
+  }
+
+  /* COMPACT_V5 - balanced layout */
+  .app { height: 100dvh !important; max-height: 100dvh !important; }
+  .top-bar { padding: 6px 12px !important; min-height: 34px !important; }
+  .top-bar h1 { font-size: 12px !important; }
+  .top-bar .back { font-size: 14px !important; }
+  .top-bar .progress-dots .dot { width: 6px !important; height: 6px !important; }
+  .main-area { padding: 6px !important; gap: 6px !important; flex: 1 !important; min-height: 0 !important; overflow: hidden !important; }
+  .canvas-wrap { flex: 1 !important; min-height: 200px !important; max-height: none !important; overflow: hidden !important; position: relative !important; }
+  .canvas-wrap canvas { width: 100% !important; height: 100% !important; display: block !important; }
+.canvas-wrap.quiz-active { flex-shrink: 1 !important; min-height: 55dvh !important; max-height: 75dvh !important; }
+  .canvas-wrap.quiz-active canvas { display: none !important; }
+  .info-panel { padding: 4px 10px !important; flex-shrink: 0 !important; min-height: 50px !important; max-height: 30dvh !important; overflow-y: auto !important; }
+  .info-panel .mission-label { font-size: 9px !important; line-height: 14px !important; }
+  .info-panel .mission-title { font-size: 12px !important; line-height: 16px !important; margin: 0 !important; }
+  .info-panel .mission-desc { font-size: 11px !important; line-height: 15px !important; }
+  .info-panel .mission-desc button { padding: 3px 10px !important; font-size: 10px !important; border-radius: 6px !important; }
+  .info-panel .data-display, .info-panel .speed-display,
+  .info-panel .noise-display, .info-panel .sonar-display,
+  .info-panel .wave-controls, .info-panel .angle-display { margin-top: 2px !important; padding-top: 2px !important; gap: 6px !important; }
+  .info-panel .data-item, .info-panel .speed-item,
+  .info-panel .noise-item, .info-panel .sonar-item { font-size: 10px !important; }
+  .info-panel .data-item .value, .info-panel .speed-item .value { font-size: 12px !important; }
+  .info-panel .wave-controls input[type=range] { width: 60px !important; }
+  .mission-tabs { padding: 2px 8px 6px !important; flex-shrink: 0 !important; }
+  .mission-tabs .tab { padding: 5px 4px !important; font-size: 11px !important; border-radius: 6px !important; }
+  .mission-tabs .tab .tab-check { font-size: 9px !important; margin-top: 1px !important; }
+  .knowledge-box { padding: 3px 8px !important; }
+  .knowledge-box .kb-title { font-size: 9px !important; }
+  .knowledge-box .kb-body { font-size: 10px !important; line-height: 1.3 !important; }
+  .challenge-hud { padding: 4px 8px !important; font-size: 10px !important; top: 8px !important; right: 8px !important; }
+  .challenge-hud .ch-restart { padding: 2px 8px !important; font-size: 10px !important; }
+  .mode-toggle { padding: 3px 8px !important; font-size: 9px !important; top: 8px !important; left: 8px !important; }
+  .noise-btn, .timbre-btn, .app-btn, .lens-btn { padding: 4px 10px !important; font-size: 10px !important; }
+
+  .top-bar { padding: 6px 12px !important; min-height: 36px !important; }
+  .top-bar h1 { font-size: 12px !important; }
+  .top-bar .back { font-size: 14px !important; line-height: 20px !important; }
+  .top-bar .progress-dots .dot { width: 6px !important; height: 6px !important; }
+  .main-area { padding: 4px !important; gap: 4px !important; flex: 1 !important; min-height: 0 !important; }
+  .canvas-wrap { flex-shrink: 0 !important; }
+.info-panel { padding: 4px 8px !important; flex: 1 !important; min-height: 30px !important; overflow-y: auto !important; }
+  .info-panel .mission-label { font-size: 9px !important; line-height: 14px !important; }
+  .info-panel .mission-title { font-size: 12px !important; line-height: 16px !important; margin: 0 !important; }
+  .info-panel .mission-desc { font-size: 11px !important; line-height: 15px !important; }
+  .info-panel .mission-desc button { padding: 3px 10px !important; font-size: 10px !important; border-radius: 6px !important; }
+  .info-panel .data-display, .info-panel .speed-display,
+  .info-panel .noise-display, .info-panel .sonar-display,
+  .info-panel .wave-controls, .info-panel .angle-display { margin-top: 3px !important; padding-top: 3px !important; gap: 6px !important; }
+  .info-panel .data-item, .info-panel .speed-item,
+  .info-panel .noise-item, .info-panel .sonar-item { font-size: 10px !important; }
+  .info-panel .data-item .value, .info-panel .speed-item .value { font-size: 12px !important; }
+  .info-panel .wave-controls input[type=range] { width: 60px !important; }
+  .mission-tabs { padding: 1px 6px 4px !important; flex-shrink: 0 !important; }
+  .mission-tabs .tab { padding: 4px 3px !important; font-size: 10px !important; border-radius: 6px !important; }
+  .mission-tabs .tab .tab-check { font-size: 9px !important; margin-top: 1px !important; }
+  .knowledge-box { padding: 3px 8px !important; }
+  .knowledge-box .kb-title { font-size: 9px !important; }
+  .challenge-hud { padding: 4px 8px !important; font-size: 10px !important; top: 8px !important; right: 8px !important; }
+  .challenge-hud .ch-restart { padding: 2px 8px !important; font-size: 10px !important; }
+  .mode-toggle { padding: 3px 8px !important; font-size: 9px !important; top: 8px !important; left: 8px !important; }
+  .noise-btn, .timbre-btn, .app-btn, .lens-btn { padding: 4px 10px !important; font-size: 10px !important; }
+
+  .app { background: rgba(255,255,255,0.04) !important; border: 1px solid rgba(255,255,255,0.06) !important; backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); position: relative; z-index: 1; }
+  .top-bar { background: rgba(255,255,255,0.03) !important; border-bottom: 1px solid rgba(255,255,255,0.06) !important; }
+  .top-bar h1, .top-bar h2 { color: #fff !important; }
+  .top-bar .back { color: rgba(255,255,255,0.5) !important; }
+  .top-bar .back:hover { color: #fff !important; }
+  .top-bar .progress-dots .dot { background: rgba(255,255,255,0.1) !important; }
+  .top-bar .progress-dots .dot.active { background: #FF3B30 !important; }
+  .top-bar .progress-dots .dot.done { background: #34C759 !important; }
+  .canvas-wrap { background: rgba(10,12,26,0.6) !important; border-color: rgba(255,255,255,0.06) !important; }
+  .canvas-wrap canvas { filter: brightness(1.05) contrast(1.05); }
+  .info-panel { background: rgba(255,255,255,0.03) !important; border-color: rgba(255,255,255,0.06) !important; }
+  .info-panel .mission-label, .card .num { color: #FF3B30 !important; }
+  .info-panel .mission-title, .card h3, .hero h1, .top-bar h1 { color: #fff !important; }
+  .info-panel .mission-desc, p, .card p, .hero p { color: rgba(255,255,255,0.4) !important; }
+  .info-panel .mission-desc button, .card .status.new, .tab.active { background: #FF3B30 !important; color: #fff !important; border: none !important; }
+  .mission-tabs .tab { background: rgba(255,255,255,0.03) !important; border-color: rgba(255,255,255,0.08) !important; color: rgba(255,255,255,0.3) !important; }
+  .mission-tabs .tab:hover { border-color: #FF3B30 !important; color: #FF3B30 !important; }
+  .mission-tabs .tab.active { background: #FF3B30 !important; color: #fff !important; border-color: #FF3B30 !important; }
+  .mission-tabs .tab.done { border-color: #34C759 !important; color: #34C759 !important; }
+  .challenge-hud, .mode-toggle { background: rgba(0,0,0,0.5) !important; backdrop-filter: blur(10px) !important; }
+  .
+
+quiz-overlay { background: rgba(10,12,26,0.88) !important; backdrop-filter: blur(24px) !important; }
+  .knowledge-box { background: rgba(255,59,48,0.08) !important; border-left-color: #FF3B30 !important; }
+  .knowledge-box .kb-title, .knowledge-box .kb-toggle { color: #FF3B30 !important; }
+  .knowledge-box .kb-body, .card p, .hero p { color: rgba(255,255,255,0.7) !important; }
+  .knowledge-box .kb-body em { color: #FF3B30 !important; }
+  .knowledge-box .kb-formula { background: rgba(255,255,255,0.06) !important; border-color: rgba(255,255,255,0.1) !important; color: #fff !important; }
+  .card { background: rgba(255,255,255,0.04) !important; border: 1px solid rgba(255,255,255,0.06) !important; backdrop-filter: blur(20px) !important; color: #fff !important; }
+  .card:hover { border-color: #FF3B30 !important; transform: translateY(-2px); }
+  .card .status.done { background: rgba(52,199,89,0.12) !important; color: #34C759 !important; border: 1px solid rgba(52,199,89,0.15) !important; }
+  .card .status.new { background: rgba(255,59,48,0.1) !important; color: #FF3B30 !important; border: 1px solid rgba(255,59,48,0.15) !important; }
+  .card .status.partial { background: rgba(255,255,255,0.05) !important; color: rgba(255,255,255,0.4) !important; border: 1px solid rgba(255,255,255,0.08) !important; }
+  .hero .progress-module, .module-progress { color: #FF3B30 !important; background: rgba(255,59,48,0.1) !important; border: 1px solid rgba(255,59,48,0.15) !important; }
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", sans-serif; background: #f5f5f7; color: #1d1d1f; display: flex; justify-content: center; padding: 16px; }
+.app { width: 820px; max-width: 100%; background: #fff; border-radius: 20px; box-shadow: 0 20px 60px rgba(0,0,0,0.08); overflow: hidden; }
+.top-bar { display: flex; align-items: center; padding: 12px 20px; border-bottom: 1px solid #e8e8ed; }
+.top-bar .back { font-size: 20px; cursor: pointer; opacity: 0.6; text-decoration: none; color: inherit; background: none; border: none; padding: 0 8px 0 0; }
+.top-bar .back:hover { opacity: 1; }
+.top-bar h2 { font-size: 14px; font-weight: 600; opacity: 0.8; }
+.top-bar .ch-title { margin-left: auto; font-size: 13px; color: #FF3B30; font-weight: 600; }
+canvas { display: block; width: 100%; height: auto; background: #fafafe; border-bottom: 1px solid #e8e8ed; aspect-ratio: 780/300; }
+.tabs { display: flex; border-bottom: 1px solid #e8e8ed; }
+.tabs .tab { flex: 1; padding: 12px 6px; text-align: center; font-size: 14px; font-weight: 500; cursor: pointer; border: none; background: none; color: #86868b; transition: all 0.2s; border-bottom: 2px solid transparent; }
+.tabs .tab:hover { color: #1d1d1f; background: #fafafe; }
+.tabs .tab.active { color: #FF3B30; border-bottom-color: #FF3B30; }
+.content { padding: 20px 24px 28px; min-height: 340px; }
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+.tab-content h3 { font-size: 17px; font-weight: 600; margin-bottom: 12px; }
+.tab-content p { font-size: 14px; line-height: 1.8; color: #3a3a3c; margin-bottom: 10px; }
+.tab-content ul { padding-left: 20px; font-size: 14px; line-height: 2; color: #3a3a3c; }
+.tab-content .highlight { background: #fff0f0; border-left: 3px solid #FF3B30; padding: 12px 16px; border-radius: 8px; margin: 12px 0; font-size: 14px; line-height: 1.7; }
+.tab-content .btn { display: inline-block; padding: 10px 24px; border-radius: 10px; border: none; font-size: 14px; font-weight: 600; cursor: pointer; background: #FF3B30; color: #fff; transition: all 0.2s; }
+.tab-content .btn:hover { opacity: 0.85; transform: translateY(-1px); }
+.tab-content .btn.secondary { background: #f0f0f5; color: #1d1d1f; }
+.tab-content .btn.secondary:hover { background: #e5e5ea; }
+.tab-content .challenge-box { background: #fafafe; border: 1px solid #e8e8ed; border-radius: 12px; padding: 16px; margin-bottom: 12px; }
+.tab-content .challenge-box .q { font-weight: 600; margin-bottom: 6px; }
+.tab-content .challenge-box .a { color: #86868b; font-size: 13px; }
+.quiz-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 999; justify-content: center; align-items: center; padding: 20px; }
+.quiz-overlay.show { display: flex; background: rgba(10,12,26,0.92) !important; backdrop-filter: blur(20px) !important; -webkit-backdrop-filter: blur(20px) !important; }
+.quiz-panel { background: #fff; border-radius: 20px; max-width: 540px; width: 100%; max-height: 90vh; overflow-y: auto; padding: 28px 24px; }
+.quiz-panel h3 { font-size: 18px; font-weight: 700; margin-bottom: 16px; }
+.quiz-panel .q-item { margin-bottom: 18px; padding-bottom: 16px; border-bottom: 1px solid #e8e8ed; }
+.quiz-panel .q-item:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+.quiz-panel .q-text { font-weight: 600; font-size: 14px; margin-bottom: 8px; line-height: 1.6; }
+.quiz-panel .q-opts { display: flex; flex-direction: column; gap: 5px; }
+.quiz-panel .q-opts label { font-size: 14px; display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 6px 10px; border-radius: 8px; transition: background 0.15s; }
+.quiz-panel .q-opts label:hover { background: #f5f5f7; }
+.quiz-panel .q-opts input[type="radio"] { accent-color: #FF3B30; }
+.quiz-panel .quiz-result { margin-top: 16px; padding: 14px 16px; border-radius: 12px; font-weight: 600; text-align: center; }
+.quiz-panel .quiz-result.pass { background: #e8f8ee; color: #34C759; }
+.quiz-panel .quiz-result.fail { background: #fff2f2; color: #FF3B30; }
+.quiz-panel .quiz-actions { display: flex; gap: 10px; margin-top: 16px; }
+.quiz-panel .quiz-actions .btn { flex: 1; }
+@media (max-width: 600px) { body { padding: 8px; } .content { padding: 16px; } .quiz-panel { padding: 20px 16px; } }
+
+  .knowledge-box { padding: 6px 12px; background: #FF3B3018; border-radius: 10px; border-left: 3px solid #FF3B30; flex-shrink: 0; cursor: pointer; user-select: none; }
+  .knowledge-box .kb-title { font-weight: 600; font-size: 11px; color: #FF3B30; letter-spacing: 0.3px; display: flex; align-items: center; gap: 4px; }
+  .knowledge-box .kb-toggle { font-size: 9px; color: #FF3B30; opacity: 0.5; transition: transform 0.2s; }
+  .knowledge-box .kb-toggle.open { transform: rotate(90deg); }
+  .knowledge-box .kb-body { font-size: 11.5px; color: #1d1d1f; line-height: 1.5; margin-top: 3px; }
+  .knowledge-box .kb-body em { color: #FF3B30; font-style: normal; font-weight: 500; }
+  .knowledge-box .kb-formula { display: inline-block; background: #fff; border: 1px solid #FF3B3040; border-radius: 5px; padding: 1px 8px; font-family: "SF Mono", monospace; font-size: 12px; font-weight: 600; color: #1d1d1f; margin: 0 2px; }
+  .knowledge-box.collapsed .kb-body { display: none; }
+
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="top-bar">
+    <button class="back" onclick="location.href='index.html'">←</button>
+        <button class="quiz-close" id="quizClose" onclick="closeQuiz()" style="margin-top:10px;padding:6px 16px;background:rgba(255,255,255,0.1);color:rgba(255,255,255,0.6);border:1px solid rgba(255,255,255,0.15);border-radius:8px;cursor:pointer;font-size:12px;">✕ 关闭</button>
+    <h2>物理实验室</h2>
+    <span class="ch-title">第4节 浮力应用</span>
+  </div>
+  <canvas id="simCanvas" width="780" height="300"></canvas>
+  <div class="tabs">
+    <button class="tab active" data-tab="observe">观察</button>
+    <button class="tab" data-tab="explore">探索</button>
+    <button class="tab" data-tab="challenge">挑战</button>
+    <button class="tab" data-tab="quiz">测验</button>
+  </div>
+  <div class="content">
+    <!-- 观察 -->
+    <div id="observe" class="tab-content active">
+      <h3>🔍 观察：轮船与潜水艇模拟</h3>
+      <p>浮力在生活中的重要应用：轮船用空心法增大浮力，潜水艇通过改变自身重力实现浮沉。</p>
+      <div class="highlight">
+        <strong>轮船：</strong><br>
+        - 用<strong>"空心"</strong>法增大排开水的体积，从而增大浮力<br>
+        - 轮船漂浮时：F浮 = G船 + G货<br>
+        - 排水量：轮船满载时排开水的质量<br><br>
+        <strong>潜水艇：</strong><br>
+        - 通过改变<strong>自身重力</strong>实现上浮和下潜<br>
+        - 下潜：向水舱注水，重力增大 → G > F浮 → 下沉<br>
+        - 上浮：排出水舱中的水，重力减小 → G < F浮 → 上浮<br><br>
+        <strong>密度计：</strong><br>
+        - 测量液体密度的仪器，漂浮时浮力等于重力<br>
+        - 密度计浸入越多，液体密度越小
+      </div>
+      <p>左侧动画展示了一艘轮船漂浮在水面，以及一个潜水艇模型。</p>
+    </div>
+    <!-- 探索 -->
+    <div id="explore" class="tab-content">
+      <h3>🧪 探索：密度计原理</h3>
+      <p>密度计始终漂浮在液面上，浮力等于其自身重力。浸入深度越浅，液体密度越大。</p>
+      <div style="margin: 16px 0;">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;flex-wrap:wrap;">
+          <span style="font-size:14px;min-width:100px;">液体密度:</span>
+          <select id="densitySelect" onchange="updateExplore()" style="padding:6px 12px;border-radius:8px;border:1px solid #d1d1d6;font-size:14px;">
+            <option value="800">酒精 800 kg/m³</option>
+            <option value="900">油 900 kg/m³</option>
+            <option value="1000" selected>水 1000 kg/m³</option>
+            <option value="1200">盐水 1200 kg/m³</option>
+            <option value="13600">水银 13600 kg/m³</option>
+          </select>
+        </div>
+        <div style="font-size:15px;padding:10px 14px;background:#fff0f0;border-radius:10px;">
+          密度计浸入深度: <strong id="depthResult">50.0</strong>% &nbsp;
+          <span id="depthDesc" style="color:#86868b;font-size:13px;">（密度越小，浸入越深）</span>
+        </div>
+        <div style="font-size:14px;padding:10px 14px;background:#e8f8ee;border-radius:10px;margin-top:8px;text-align:center;">
+          ⚖️ 密度计始终漂浮：F浮 = G计 &nbsp; &nbsp; ρ液 · g · V排 = m计 · g &nbsp; &nbsp; V排 = m计 / ρ液
+        </div>
+      </div>
+    </div>
+    <!-- 挑战 -->
+    <div id="challenge" class="tab-content">
+      <h3>🏆 挑战：排水量计算</h3>
+      <p>运用浮力知识解决实际应用问题（g 取 10 N/kg）。</p>
+      <div id="challengeList">
+        <div class="challenge-box" data-cid="c1">
+          <div class="q">【计算 1】一艘轮船的排水量为 10000 t，求它满载时受到的浮力。（单位：N）</div>
+          <div class="a"><button class="btn secondary" onclick="doChallenge('c1','100000000','1×10⁸ N（F浮=m排g=10000×10³×10）')">提交答案</button> <span id="sc1"></span></div>
+        </div>
+        <div class="challenge-box" data-cid="c2">
+          <div class="q">【计算 2】轮船从淡水驶入海水（ρ海>ρ淡），船身会上浮还是下沉？</div>
+          <div class="a"><button class="btn secondary" onclick="doChallenge('c2','上浮','上浮（海水密度大，排开更少的水即可产生同等浮力）')">提交答案</button> <span id="sc2"></span></div>
+        </div>
+        <div class="challenge-box" data-cid="c3">
+          <div class="q">【计算 3】潜水艇潜入水中时，排水量为 3000 t，求它所受浮力。（单位：N）</div>
+          <div class="a"><button class="btn secondary" onclick="doChallenge('c3','30000000','3×10⁷ N（F浮=G排=3000×10³×10）')">提交答案</button> <span id="sc3"></span></div>
+        </div>
+        <div class="challenge-box" data-cid="c4">
+          <div class="q">【简答】用钢铁制造的轮船为什么能浮在水面上？</div>
+          <div class="a"><button class="btn secondary" onclick="doSimple('c4','采用"空心"结构，增大排开水的体积，从而获得足够大的浮力（F浮=G排=ρgV排），使浮力等于总重力。')">查看答案</button> <span id="sc4"></span></div>
+        </div>
+        <div class="challenge-box" data-cid="c5">
+          <div class="q">【简答】潜水艇如何实现上浮和下潜？</div>
+          <div class="a"><button class="btn secondary" onclick="doSimple('c5','通过改变自身重力实现：向水舱注水→重力增大→下沉；排出水→重力减小→上浮。下潜和上浮过程中浮力基本不变（因为完全浸没，V排不变）。')">查看答案</button> <span id="sc5"></span></div>
+        </div>
+      </div>
+    </div>
+    <!-- 测验 -->
+    <div id="quiz" class="tab-content">
+      <h3>📝 测验：浮力应用</h3>
+      <p>共 5 道选择题，点击下方按钮开始测验。</p>
+      <button class="btn" onclick="startQuiz()">开始测验</button>
+    </div>
+  </div>
+  <div class="knowledge-box collapsed" id="knowledgeBox" onclick="toggleKnowledge()">
+        <div class="kb-title"><span class="kb-toggle" id="kbToggle">▶</span> 💡 <span id="kbTitle">知识要点</span></div>
+        <div class="kb-body" id="kbBody"></div>
+      </div>
+
+</div>
+
+<div class="quiz-overlay" id="quizOverlay">
+
+    showQuiz();  <div class="quiz-panel">
+    <h3>📝 浮力应用测验</h3>
+    <div id="quizQuestions"></div>
+    <div id="quizResult" class="quiz-result" style="display:none;"></div>
+    <div class="quiz-actions">
+      <button class="btn" id="quizSubmitBtn" onclick="submitQuiz()">提交</button>
+      <button class="btn secondary" onclick="closeQuiz()">关闭</button>
+    </div>
+  </div>
+</div>
+
+<script>
+var STORAGE_KEY = 'physics_fu_li_ch4';
+
+function saveProgress(tabId) {
+  var data = { done: [] };
+  try { data = JSON.parse(localStorage.getItem(STORAGE_KEY)) || { done: [] }; } catch(e) {}
+  if (data.done.indexOf(tabId) === -1) {
+    data.done.push(tabId);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  }
+}
+
+document.querySelectorAll('.tab').forEach(function(tab) {
+  tab.addEventListener('click', function() {
+    document.querySelectorAll('.tab').forEach(function(t) { t.classList.remove('active'); });
+    document.querySelectorAll('.tab-content').forEach(function(c) { c.classList.remove('active'); });
+    this.classList.add('active');
+    document.getElementById(this.dataset.tab).classList.add('active');
+    saveProgress(this.dataset.tab);
+	    var tabIdx = ['observe','explore','challenge','quiz'].indexOf(this.dataset.tab);
+	    if (tabIdx >= 0) setKnowledge(tabIdx);
+  });
+});
+
+// ========== CANVAS ==========
+var canvas = document.getElementById('simCanvas');
+var ctx = canvas.getContext('2d');
+var cw = canvas.width, ch = canvas.height;
+var animTick = 0;
+
+function drawCanvas() {
+  ctx.clearRect(0, 0, cw, ch);
+  animTick++;
+
+  // ===== Left: Ship =====
+  // Water
+  ctx.fillStyle = 'rgba(52, 199, 89, 0.2)';
+  ctx.fillRect(30, 160, 340, 130);
+  var waveY = 160 + Math.sin(animTick * 0.04) * 2;
+  ctx.strokeStyle = 'rgba(52, 199, 89, 0.3)';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(30, waveY);
+  for (var wx = 30; wx <= 370; wx += 20) {
+    ctx.lineTo(wx, waveY + Math.sin((wx + animTick) * 0.08) * 3);
+  }
+  ctx.stroke();
+
+  // Ship hull
+  ctx.shadowColor = 'rgba(88,86,214,0.2)';
+  ctx.shadowBlur = 10;
+  ctx.fillStyle = '#5856D6';
+  ctx.beginPath();
+  ctx.moveTo(110, waveY - 20);
+  ctx.quadraticCurveTo(120, waveY - 50, 160, waveY - 45);
+  ctx.lineTo(250, waveY - 45);
+  ctx.quadraticCurveTo(290, waveY - 50, 300, waveY - 20);
+  ctx.lineTo(290, waveY + 5);
+  ctx.quadraticCurveTo(260, waveY + 15, 200, waveY + 15);
+  ctx.quadraticCurveTo(140, waveY + 15, 120, waveY + 5);
+  ctx.closePath();
+  ctx.fill();
+  ctx.shadowBlur = 0;
+  ctx.strokeStyle = '#3a3a7d';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(110, waveY - 20);
+  ctx.quadraticCurveTo(120, waveY - 50, 160, waveY - 45);
+  ctx.lineTo(250, waveY - 45);
+  ctx.quadraticCurveTo(290, waveY - 50, 300, waveY - 20);
+  ctx.stroke();
+
+  // Superstructure
+  ctx.fillStyle = '#e5e5ea';
+  ctx.fillRect(170, waveY - 75, 70, 30);
+  ctx.fillStyle = '#d1d1d6';
+  ctx.fillRect(180, waveY - 70, 50, 20);
+
+  ctx.fillStyle = '#ffffff';
+  ctx.font = 'bold 10px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('🚢 轮船', 200, waveY - 55);
+
+  // Label
+  ctx.fillStyle = '#ffffff';
+  ctx.font = 'bold 13px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('轮船（空心法）', 200, 30);
+
+  // ===== Right: Submarine =====
+  // Water (slightly different)
+  ctx.fillStyle = 'rgba(52, 199, 89, 0.2)';
+  ctx.fillRect(420, 100, 340, 190);
+
+  // Submarine body
+  ctx.shadowColor = 'rgba(255,59,48,0.2)';
+  ctx.shadowBlur = 10;
+  ctx.fillStyle = '#FF3B30';
+  ctx.beginPath();
+  ctx.ellipse(590, 200, 100, 30, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.shadowBlur = 0;
+
+  // Conning tower
+  ctx.fillStyle = '#c72a1f';
+  ctx.fillRect(575, 170, 30, 25);
+  ctx.fillRect(570, 165, 40, 8);
+
+  // Portholes
+  ctx.fillStyle = '#4a9eff';
+  for (var p = 0; p < 4; p++) {
+    ctx.beginPath();
+    ctx.arc(540 + p * 30, 200, 6, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.strokeStyle = '#e5e5ea';
+  ctx.lineWidth = 1;
+  for (var p = 0; p < 4; p++) {
+    ctx.beginPath();
+    ctx.arc(540 + p * 30, 200, 6, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+
+  // Bubbles
+  for (var b = 0; b < 5; b++) {
+    var bx = 500 - b * 8;
+    var by = 200 - Math.sin((animTick + b * 20) * 0.05) * 15 - b * 5;
+    ctx.fillStyle = 'rgba(255,255,255,0.3)';
+    ctx.beginPath();
+    ctx.arc(bx, by, 3 + b % 2, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  ctx.fillStyle = '#ffffff';
+  ctx.font = 'bold 13px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('潜水艇（改变自重）', 590, 30);
+  ctx.fillStyle = 'rgba(255,255,255,0.35)';
+  ctx.font = '11px sans-serif';
+  ctx.fillText('注水下沉 · 排水上浮', 590, 48);
+
+  // Water surface for sub
+  ctx.strokeStyle = 'rgba(52, 199, 89, 0.2)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(420, 105 + Math.sin(animTick * 0.05) * 2);
+  for (var wx = 420; wx <= 760; wx += 10) {
+    ctx.lineTo(wx, 105 + Math.sin((wx + animTick) * 0.06) * 2);
+  }
+  ctx.stroke();
+}
+
+function animate() {
+  drawCanvas();
+  requestAnimationFrame(animate);
+}
+animate();
+
+// ========== EXPLORE ==========
+function updateExplore() {
+  var rho = parseInt(document.getElementById('densitySelect').value);
+  var refRho = 1000; // reference density
+  var depth = (refRho / rho) * 100;
+  depth = Math.min(100, Math.max(10, depth));
+  document.getElementById('depthResult').textContent = depth.toFixed(1) + '%';
+  if (rho < refRho) {
+    document.getElementById('depthDesc').textContent = '（密度越小，浸入越深）';
+  } else {
+    document.getElementById('depthDesc').textContent = '（密度越大，浸入越浅）';
+  }
+}
+updateExplore();
+
+// ========== CHALLENGE ==========
+function doChallenge(id, answer, hint) {
+  var u = window.prompt('请输入你的答案：');
+  if (u === null) return;
+  var span = document.getElementById('s' + id);
+  if (u.trim() === answer) {
+    span.innerHTML = '✅ 正确！';
+    span.style.color = '#34C759';
+  } else {
+    span.innerHTML = '❌ 不正确。参考：' + hint;
+    span.style.color = '#FF3B30';
+  }
+  checkAllDone();
+}
+
+function doSimple(id, hint) {
+  var span = document.getElementById('s' + id);
+  span.innerHTML = '💡 ' + hint;
+  span.style.color = '#FF3B30';
+  checkAllDone();
+}
+
+function checkAllDone() {
+  var allDone = true;
+  document.querySelectorAll('#challengeList .challenge-box').forEach(function(box) {
+    var sid = 's' + box.dataset.cid;
+    if (document.getElementById(sid).innerHTML.indexOf('✅') === -1 && document.getElementById(sid).innerHTML.indexOf('💡') === -1) allDone = false;
+  });
+  if (allDone) saveProgress('challenge');
+}
+
+// ========== QUIZ ==========
+var quizData = [
+  { q: '轮船用钢铁制造却可以浮在水面上，采用了什么方法？', opts: ['A. 增大重量', 'B. "空心"法增大排开水的体积', 'C. 减小浮力', 'D. 增加动力'], ans: 1 },
+  { q: '潜水艇在水中上浮和下沉是通过改变什么实现的？', opts: ['A. 潜水艇的体积', 'B. 潜水艇的形状', 'C. 潜水艇的自身重力', 'D. 液体密度'], ans: 2 },
+  { q: '轮船的排水量是指？', opts: ['A. 轮船自身的质量', 'B. 轮船满载时排开水的质量', 'C. 轮船的载货量', 'D. 船体的体积'], ans: 1 },
+  { q: '密度计漂浮在不同液体中时，浸入越深说明液体密度？', opts: ['A. 越大', 'B. 越小', 'C. 不变', 'D. 无法判断'], ans: 1 },
+  { q: '一艘轮船从淡水驶入海水（ρ海>ρ淡），船身浸入水中的体积会？', opts: ['A. 增大', 'B. 减小', 'C. 不变', 'D. 先增大后减小'], ans: 1 }
+];
+
+var quizAnswers = [];
+
+function startQuiz() {
+  quizAnswers = [];
+  var html = '';
+  quizData.forEach(function(item, i) {
+    html += '<div class="q-item"><div class="q-text">' + (i+1) + '. ' + item.q + '</div><div class="q-opts">';
+    item.opts.forEach(function(opt, j) {
+      html += '<label><input type="radio" name="q' + i + '" value="' + j + '" onchange="quizAnswers[' + i + ']=' + j + '"> ' + opt + '</label>';
+    });
+    html += '</div></div>';
+  });
+  document.getElementById('quizQuestions').innerHTML = html;
+  document.getElementById('quizResult').style.display = 'none';
+  document.getElementById('quizSubmitBtn').textContent = '提交';
+  document.getElementById('quizOverlay').classList.add('show');
+    document.querySelector('.canvas-wrap').classList.add('quiz-active');
+}
+
+function submitQuiz() {
+  var score = 0;
+  quizData.forEach(function(item, i) {
+    if (quizAnswers[i] === item.ans) score++;
+  });
+  var result = document.getElementById('quizResult');
+  result.style.display = 'block';
+  if (score >= 4) {
+    result.className = 'quiz-result pass';
+    result.textContent = '🎉 通过！得分：' + score + '/' + quizData.length;
+    saveProgress('quiz');
+    document.getElementById('quizSubmitBtn').textContent = '已完成';
+  } else {
+    result.className = 'quiz-result fail';
+    result.textContent = '😅 得分：' + score + '/' + quizData.length + '，再接再厉！';
+  }
+}
+
+function closeQuiz() {
+  document.getElementById('quizOverlay').classList.remove('show');
+    document.querySelector('.canvas-wrap').classList.remove('quiz-active');
+}
+
+// ══════════════════════════════════════════
+// Knowledge Points - 浮力 ch4
+// ══════════════════════════════════════════
+const KNOWLEDGE = {
+  0: {
+    title: '💡 轮船的原理',
+    body: '钢铁造的轮船能浮在水面上，是因为采用了<em>"空心"法</em>：\n' +
+         '\n' +
+         '• 增大排开水的体积 → 增大浮力\n' +
+         '• 轮船漂浮时：<span class="kb-formula">F浮 = G船 + G货</span>\n' +
+         '• <strong>排水量</strong>：轮船满载时排开水的质量\n' +
+         '\n' +
+         '从淡水驶入海水，船身会上浮一些。'
+  },
+  1: {
+    title: '💡 潜水艇的原理',
+    body: '潜水艇通过<em>改变自身重力</em>实现浮沉：\n' +
+         '\n' +
+         '• <strong>下潜</strong>：向水舱注水，G 增大 → G > F浮\n' +
+         '• <strong>上浮</strong>：排出水，G 减小 → G < F浮\n' +
+         '\n' +
+         '潜水艇完全浸没时，V排不变，F浮基本不变。'
+  },
+  2: {
+    title: '💡 密度计原理',
+    body: '密度计始终<em>漂浮</em>在液面上：\n' +
+         '\n' +
+         '<span class="kb-formula">F浮 = G计</span>（浮力始终等于自身重力）\n' +
+         '\n' +
+         '密度计浸入越深 → 液体密度越小\n' +
+         '密度计浸入越浅 → 液体密度越大\n' +
+         '\n' +
+         '刻度特点是：<em>上小下大，上疏下密</em>。'
+  },
+  3: {
+    title: '💡 浮力应用知识检测',
+    body: '浮力在生活中的应用：\n' +
+         '\n' +
+         '• <strong>轮船</strong>：空心法增大 V排\n' +
+         '• <strong>潜水艇</strong>：改变自重实现浮沉\n' +
+         '• <strong>密度计</strong>：漂浮→F浮=G，浸入深度反映 ρ液\n' +
+         '• <strong>热气球</strong>：改变气体密度控制升降'
+  },
+};
+
+function toggleKnowledge() {
+  const box = document.getElementById('knowledgeBox');
+  const toggle = document.getElementById('kbToggle');
+  box.classList.toggle('collapsed');
+  toggle.classList.toggle('open');
+}
+
+function setKnowledge(idx) {
+  const k = KNOWLEDGE[idx];
+  if (k) {
+    document.getElementById('kbTitle').textContent = k.title;
+    document.getElementById('kbBody').innerHTML = k.body.replace(/\n/g, '<br>');
+    const box = document.getElementById('knowledgeBox');
+    if (box.classList.contains('collapsed')) {
+      box.classList.remove('collapsed');
+      document.getElementById('kbToggle').classList.add('open');
+    }
+  }
+}
+
+function closeQuiz() { switchMission(0); }
+</script>
+</body>
+</html>

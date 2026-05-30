@@ -1,0 +1,777 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>物理实验室 · 声的利用</title>
+<style>
+/* NB_LAB */
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "PingFang SC", "Helvetica Neue", sans-serif;
+    min-height: 100dvh;
+    background: linear-gradient(135deg, #0c0e1a 0%, #1a1e3a 30%, #0d1b2a 60%, #0a0e1a 100%) !important;
+    display: flex; justify-content: center; align-items: center; margin: 0; position: relative;
+  }
+  body::before {
+    content: ''; position: fixed; top: -50%; left: -50%; width: 200%; height: 200%;
+    background: radial-gradient(ellipse at 20% 50%, rgba(255,149,0,0.08) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 20%, rgba(255,149,0,0.05) 0%, transparent 50%);
+    pointer-events: none; z-index: 0;
+  }
+
+  /* COMPACT_V5 - balanced layout */
+  .app { height: 100dvh !important; max-height: 100dvh !important; }
+  .top-bar { padding: 6px 12px !important; min-height: 34px !important; }
+  .top-bar h1 { font-size: 12px !important; }
+  .top-bar .back { font-size: 14px !important; }
+  .top-bar .progress-dots .dot { width: 6px !important; height: 6px !important; }
+  .main-area { padding: 6px !important; gap: 6px !important; flex: 1 !important; min-height: 0 !important; overflow: hidden !important; }
+  .canvas-wrap { flex: 1 !important; min-height: 200px !important; max-height: none !important; overflow: hidden !important; position: relative !important; }
+  .canvas-wrap canvas { width: 100% !important; height: 100% !important; display: block !important; }
+.canvas-wrap.quiz-active { flex-shrink: 1 !important; min-height: 55dvh !important; max-height: 75dvh !important; }
+  .canvas-wrap.quiz-active canvas { display: none !important; }
+  .info-panel { padding: 4px 10px !important; flex-shrink: 0 !important; min-height: 50px !important; max-height: 30dvh !important; overflow-y: auto !important; }
+  .info-panel .mission-label { font-size: 9px !important; line-height: 14px !important; }
+  .info-panel .mission-title { font-size: 12px !important; line-height: 16px !important; margin: 0 !important; }
+  .info-panel .mission-desc { font-size: 11px !important; line-height: 15px !important; }
+  .info-panel .mission-desc button { padding: 3px 10px !important; font-size: 10px !important; border-radius: 6px !important; }
+  .info-panel .data-display, .info-panel .speed-display,
+  .info-panel .noise-display, .info-panel .sonar-display,
+  .info-panel .wave-controls, .info-panel .angle-display { margin-top: 2px !important; padding-top: 2px !important; gap: 6px !important; }
+  .info-panel .data-item, .info-panel .speed-item,
+  .info-panel .noise-item, .info-panel .sonar-item { font-size: 10px !important; }
+  .info-panel .data-item .value, .info-panel .speed-item .value { font-size: 12px !important; }
+  .info-panel .wave-controls input[type=range] { width: 60px !important; }
+  .mission-tabs { padding: 2px 8px 6px !important; flex-shrink: 0 !important; }
+  .mission-tabs .tab { padding: 5px 4px !important; font-size: 11px !important; border-radius: 6px !important; }
+  .mission-tabs .tab .tab-check { font-size: 9px !important; margin-top: 1px !important; }
+  .knowledge-box { padding: 3px 8px !important; }
+  .knowledge-box .kb-title { font-size: 9px !important; }
+  .knowledge-box .kb-body { font-size: 10px !important; line-height: 1.3 !important; }
+  .challenge-hud { padding: 4px 8px !important; font-size: 10px !important; top: 8px !important; right: 8px !important; }
+  .challenge-hud .ch-restart { padding: 2px 8px !important; font-size: 10px !important; }
+  .mode-toggle { padding: 3px 8px !important; font-size: 9px !important; top: 8px !important; left: 8px !important; }
+  .noise-btn, .timbre-btn, .app-btn, .lens-btn { padding: 4px 10px !important; font-size: 10px !important; }
+
+  .top-bar { padding: 6px 12px !important; min-height: 36px !important; }
+  .top-bar h1 { font-size: 12px !important; }
+  .top-bar .back { font-size: 14px !important; line-height: 20px !important; }
+  .top-bar .progress-dots .dot { width: 6px !important; height: 6px !important; }
+  .main-area { padding: 4px !important; gap: 4px !important; flex: 1 !important; min-height: 0 !important; }
+  .canvas-wrap { flex-shrink: 0 !important; }
+.info-panel { padding: 4px 8px !important; flex: 1 !important; min-height: 30px !important; overflow-y: auto !important; }
+  .info-panel .mission-label { font-size: 9px !important; line-height: 14px !important; }
+  .info-panel .mission-title { font-size: 12px !important; line-height: 16px !important; margin: 0 !important; }
+  .info-panel .mission-desc { font-size: 11px !important; line-height: 15px !important; }
+  .info-panel .mission-desc button { padding: 3px 10px !important; font-size: 10px !important; border-radius: 6px !important; }
+  .info-panel .data-display, .info-panel .speed-display,
+  .info-panel .noise-display, .info-panel .sonar-display,
+  .info-panel .wave-controls, .info-panel .angle-display { margin-top: 3px !important; padding-top: 3px !important; gap: 6px !important; }
+  .info-panel .data-item, .info-panel .speed-item,
+  .info-panel .noise-item, .info-panel .sonar-item { font-size: 10px !important; }
+  .info-panel .data-item .value, .info-panel .speed-item .value { font-size: 12px !important; }
+  .info-panel .wave-controls input[type=range] { width: 60px !important; }
+  .mission-tabs { padding: 1px 6px 4px !important; flex-shrink: 0 !important; }
+  .mission-tabs .tab { padding: 4px 3px !important; font-size: 10px !important; border-radius: 6px !important; }
+  .mission-tabs .tab .tab-check { font-size: 9px !important; margin-top: 1px !important; }
+  .knowledge-box { padding: 3px 8px !important; }
+  .knowledge-box .kb-title { font-size: 9px !important; }
+  .canvas-wrap.quiz-active { min-height: 60dvh !important; flex-shrink: 1 !important; }
+  .canvas-wrap.quiz-active canvas { display: none !important; }
+  .challenge-hud { padding: 4px 8px !important; font-size: 10px !important; top: 8px !important; right: 8px !important; }
+  .challenge-hud .ch-restart { padding: 2px 8px !important; font-size: 10px !important; }
+  .mode-toggle { padding: 3px 8px !important; font-size: 9px !important; top: 8px !important; left: 8px !important; }
+  .noise-btn, .timbre-btn, .app-btn, .lens-btn { padding: 4px 10px !important; font-size: 10px !important; }
+
+  .app { background: rgba(255,255,255,0.04) !important; border: 1px solid rgba(255,255,255,0.06) !important; backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); position: relative; z-index: 1; }
+  .top-bar { background: rgba(255,255,255,0.03) !important; border-bottom: 1px solid rgba(255,255,255,0.06) !important; }
+  .top-bar h1, .top-bar h2 { color: #fff !important; }
+  .top-bar .back { color: rgba(255,255,255,0.5) !important; }
+  .top-bar .back:hover { color: #fff !important; }
+  .top-bar .progress-dots .dot { background: rgba(255,255,255,0.1) !important; }
+  .top-bar .progress-dots .dot.active { background: #FF9500 !important; }
+  .top-bar .progress-dots .dot.done { background: #34C759 !important; }
+  .canvas-wrap { background: rgba(10,12,26,0.6) !important; border-color: rgba(255,255,255,0.06) !important; }
+  .canvas-wrap canvas { filter: brightness(1.05) contrast(1.05); }
+  .info-panel { background: rgba(255,255,255,0.03) !important; border-color: rgba(255,255,255,0.06) !important; }
+  .info-panel .mission-label, .card .num { color: #FF9500 !important; }
+  .info-panel .mission-title, .card h3, .hero h1, .top-bar h1 { color: #fff !important; }
+  .info-panel .mission-desc, p, .card p, .hero p { color: rgba(255,255,255,0.4) !important; }
+  .info-panel .mission-desc button, .card .status.new, .tab.active { background: #FF9500 !important; color: #fff !important; border: none !important; }
+  .mission-tabs .tab { background: rgba(255,255,255,0.03) !important; border-color: rgba(255,255,255,0.08) !important; color: rgba(255,255,255,0.3) !important; }
+  .mission-tabs .tab:hover { border-color: #FF9500 !important; color: #FF9500 !important; }
+  .mission-tabs .tab.active { background: #FF9500 !important; color: #fff !important; border-color: #FF9500 !important; }
+  .mission-tabs .tab.done { border-color: #34C759 !important; color: #34C759 !important; }
+  .challenge-hud, .mode-toggle { background: rgba(0,0,0,0.5) !important; backdrop-filter: blur(10px) !important; }
+
+  .knowledge-box { background: rgba(255,149,0,0.08) !important; border-left-color: #FF9500 !important; }
+  .knowledge-box .kb-title, .knowledge-box .kb-toggle { color: #FF9500 !important; }
+  .knowledge-box .kb-body, .card p, .hero p { color: rgba(255,255,255,0.7) !important; }
+  .knowledge-box .kb-body em { color: #FF9500 !important; }
+  .knowledge-box .kb-formula { background: rgba(255,255,255,0.06) !important; border-color: rgba(255,255,255,0.1) !important; color: #fff !important; }
+  .card { background: rgba(255,255,255,0.04) !important; border: 1px solid rgba(255,255,255,0.06) !important; backdrop-filter: blur(20px) !important; color: #fff !important; }
+  .card:hover { border-color: #FF9500 !important; transform: translateY(-2px); }
+  .card .status.done { background: rgba(52,199,89,0.12) !important; color: #34C759 !important; border: 1px solid rgba(52,199,89,0.15) !important; }
+  .card .status.new { background: rgba(255,149,0,0.1) !important; color: #FF9500 !important; border: 1px solid rgba(255,149,0,0.15) !important; }
+  .card .status.partial { background: rgba(255,255,255,0.05) !important; color: rgba(255,255,255,0.4) !important; border: 1px solid rgba(255,255,255,0.08) !important; }
+  .hero .progress-module, .module-progress { color: #FF9500 !important; background: rgba(255,149,0,0.1) !important; border: 1px solid rgba(255,149,0,0.15) !important; }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", sans-serif; background: #f5f5f7; color: #1d1d1f; height: 100dvh; display: flex; justify-content: center; align-items: center; margin: 0; }
+  .app { width: 820px; max-width: 96vw; height: 100dvh; max-height: 100dvh; background: #fff; border-radius: 20px; box-shadow: 0 20px 60px rgba(0,0,0,0.08); display: flex; flex-direction: column; overflow: hidden; }
+  .top-bar { display: flex; align-items: center; padding: 14px 20px; flex-shrink: 0; background: #fafafa; border-bottom: 1px solid #e8e8ed; }
+  .top-bar .back { font-size: 20px; cursor: pointer; opacity: 0.6; }
+  .top-bar .back:hover { opacity: 1; }
+  .top-bar h1 { font-size: 15px; font-weight: 600; margin-left: 10px; flex:1; }
+  .top-bar .progress-dots { font-size: 13px; color: #86868b; display: flex; gap: 6px; align-items: center; }
+  .top-bar .progress-dots .dot { width: 8px; height: 8px; border-radius: 50%; background: #e8e8ed; }
+  .top-bar .progress-dots .dot.active { background: #34C759; }
+  .top-bar .progress-dots .dot.done { background: #34C759; }
+  .main-area { padding: 10px; flex: 1; display: flex; flex-direction: column; overflow: hidden; gap: 8px; }
+  .canvas-wrap { position: relative; background: #fff; border-radius: 14px; border: 1px solid #e8e8ed; overflow: hidden; flex-shrink: 0; }
+  .canvas-wrap canvas { display: block; width: 100%; height: auto; cursor: pointer; }
+  .info-panel { background: #fafafa; border-radius: 14px; border: 1px solid #e8e8ed; padding: 10px 16px; overflow-y: auto; min-height: 0; }
+  .info-panel .mission-label { font-size: 11px; font-weight: 600; color: #34C759; letter-spacing: 0.5px; text-transform: uppercase; }
+  .info-panel .mission-title { font-size: 15px; font-weight: 600; margin: 0 0 2px; }
+  .info-panel .mission-desc { font-size: 13px; color: #86868b; line-height: 1.4; }
+  .info-panel .sonar-display { display: flex; gap: 16px; margin-top: 6px; padding-top: 6px; border-top: 1px solid #e8e8ed; flex-wrap: wrap; }
+  .info-panel .sonar-item { font-size: 12px; }
+  .info-panel .sonar-item .label { color: #86868b; }
+  .info-panel .sonar-item .value { font-weight: 600; font-size: 14px; color: #34C759; }
+  .mission-tabs { display: flex; gap: 4px; padding: 2px 10px 8px; flex-shrink: 0; }
+  .mission-tabs .tab { flex: 1; padding: 8px 4px; border-radius: 8px; border: 1px solid #e8e8ed; background: #fff; text-align: center; cursor: pointer; font-size: 12px; font-weight: 500; color: #86868b; transition: all 0.2s; }
+  .mission-tabs .tab:hover { border-color: #34C759; color: #34C759; }
+  .mission-tabs .tab.active { background: #34C759; color: #fff; border-color: #34C759; }
+  .mission-tabs .tab.done { border-color: #34C759; color: #34C759; }
+  .mission-tabs .tab .tab-check { font-size: 11px; display: block; margin-top: 2px; }
+  .challenge-hud { position: absolute; top: 12px; right: 12px; background: rgba(0,0,0,0.7); backdrop-filter: blur(10px); border-radius: 10px; padding: 8px 14px; color: #fff; font-size: 13px; display: none; }
+  .challenge-hud.show { display: block; }
+  .challenge-hud .ch-level { font-weight: 600; margin-bottom: 2px; }
+  .challenge-hud .ch-goal { color: #aaa; font-size: 12px; }
+  .challenge-hud .ch-restart { margin-top: 6px; padding: 4px 10px; background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.25); border-radius: 6px; color: #fff; font-size: 11px; cursor: pointer; }
+  .quiz-overlay { position: absolute; inset: 0; background: rgba(255,255,255,0.85); backdrop-filter: blur(20px); display: none; flex-direction: column; align-items: center; justify-content: center; padding: 30px; z-index: 10; }
+  .quiz-overlay.show { display: flex; background: rgba(10,12,26,0.92) !important; backdrop-filter: blur(20px) !important; -webkit-backdrop-filter: blur(20px) !important; }
+  .quiz-overlay .quiz-q { font-size: 18px; font-weight: 600; text-align: center; max-width: 480px; margin-bottom: 20px; line-height: 1.5; }
+  .quiz-overlay .quiz-options { display: flex; flex-direction: column; gap: 10px; width: 100%; max-width: 400px; }
+  .quiz-overlay .quiz-opt { padding: 14px 20px; background: #fff; border: 1.5px solid #e8e8ed; border-radius: 12px; font-size: 15px; cursor: pointer; transition: all 0.2s; text-align: left; }
+  .quiz-overlay .quiz-opt:hover { border-color: #34C759; background: #e8f8ee; }
+  .quiz-overlay .quiz-opt.correct { border-color: #34C759; background: #e8f8ee; }
+  .quiz-overlay .quiz-opt.wrong { border-color: #FF3B30; background: #ffe8e6; }
+  .quiz-overlay .quiz-result { margin-top: 16px; font-size: 15px; font-weight: 500; }
+  .quiz-overlay .quiz-next { margin-top: 14px; padding: 10px 30px; background: #34C759; color: #fff; border: none; border-radius: 10px; font-size: 15px; font-weight: 500; cursor: pointer; }
+  .app-btn { padding: 8px 16px; border-radius: 8px; border: 1px solid #34C759; background: #fff; color: #34C759; font-size: 12px; font-weight: 500; cursor: pointer; margin: 2px; }
+  .app-btn:hover, .app-btn.active { background: #34C759; color: #fff; }
+
+  .knowledge-box { padding: 6px 12px; background: #fff8e8; border-radius: 10px; border-left: 3px solid #FF9500; flex-shrink: 0; cursor: pointer; user-select: none; }
+  .knowledge-box .kb-title { font-weight: 600; font-size: 11px; color: #FF9500; letter-spacing: 0.3px; display: flex; align-items: center; gap: 4px; }
+  .knowledge-box .kb-toggle { font-size: 9px; color: #FF9500; opacity: 0.5; transition: transform 0.2s; }
+  .knowledge-box .kb-toggle.open { transform: rotate(90deg); }
+  .knowledge-box .kb-body { font-size: 11.5px; color: #1d1d1f; line-height: 1.5; margin-top: 3px; }
+  .knowledge-box .kb-body em { color: #FF9500; font-style: normal; font-weight: 500; }
+  .knowledge-box .kb-formula { display: inline-block; background: #fff; border: 1px solid #f5e0c0; border-radius: 5px; padding: 1px 8px; font-family: "SF Mono", monospace; font-size: 12px; font-weight: 600; color: #1d1d1f; margin: 0 2px; }
+  .knowledge-box.collapsed .kb-body { display: none; }
+
+  @media (max-width: 600px) { .mission-tabs .tab { font-size: 11px; padding: 8px 4px; } .mission-tabs { padding: 2px 6px 6px; } }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="top-bar">
+    <span class="back" onclick="location.href='index.html'">←</span>
+    <h1>声的利用</h1>
+    <div class="progress-dots" id="progressDots">
+      <span class="dot" id="pdot0"></span><span class="dot" id="pdot1"></span>
+      <span class="dot" id="pdot2"></span><span class="dot" id="pdot3"></span>
+    </div>
+  </div>
+
+  <div class="main-area">
+    <div class="canvas-wrap">
+      <canvas id="labCanvas" width="780" height="300"></canvas>
+      <div class="challenge-hud" id="challengeHud">
+        <div class="ch-level" id="chLevel">🎯 第 1/5 关</div>
+        <div class="ch-goal" id="chGoal">目标加载中...</div>
+        <div class="ch-restart" onclick="resetChallenges()">🔄 重来</div>
+      </div>
+      <div class="quiz-overlay" id="quizOverlay">
+        <div class="quiz-q" id="quizQ">题目加载中...</div>
+        <div class="quiz-options" id="quizOptions"></div>
+        <div class="quiz-result" id="quizResult"></div>
+        <button class="quiz-next" id="quizNext" onclick="nextQuiz()">下一题</button>
+        <button class="quiz-close" id="quizClose" onclick="closeQuiz()" style="margin-top:10px;padding:6px 16px;background:rgba(255,255,255,0.1);color:rgba(255,255,255,0.6);border:1px solid rgba(255,255,255,0.15);border-radius:8px;cursor:pointer;font-size:12px;">✕ 关闭</button>
+      </div>
+    </div>
+    <div class="info-panel">
+      <div class="mission-label" id="missionLabel">🔬 观察</div>
+      <div class="mission-title" id="missionTitle">声呐工作原理</div>
+      <div class="mission-desc" id="missionDesc">观看声呐如何利用超声波回声测距。</div>
+      <div class="sonar-display" id="sonarDisplay">
+        <div class="sonar-item"><span class="label">距离: </span><span class="value" id="dispDist">0 m</span></div>
+        <div class="sonar-item"><span class="label">应用: </span><span class="value" id="dispApp">声呐</span></div>
+      </div>
+      <div class="knowledge-box collapsed" id="knowledgeBox" onclick="toggleKnowledge()">
+        <div class="kb-title"><span class="kb-toggle" id="kbToggle">▶</span> 💡 <span id="kbTitle">知识要点</span></div>
+        <div class="kb-body" id="kbBody"></div>
+      </div>
+    </div>
+  </div>
+  <div class="mission-tabs" id="missionTabs"></div>
+</div>
+
+<script>
+const STORAGE_KEY = 'physics_sound_ch3';
+const saved = (() => { try { return JSON.parse(localStorage.getItem(STORAGE_KEY)); } catch(e) {} return null; })() || {};
+let state = { done: saved.done || [], currentMission: saved.currentMission || 0, challengeIdx: saved.challengeIdx || 0, quizIdx: saved.quizIdx || 0, quizDone: saved.quizDone || [] };
+function saveState() { try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch(e) {} }
+
+const MISSIONS = [
+  { id: 'observe', label: '🔬 观察', title: '声呐测距', desc: '观看声呐发射超声波并接收回波的完整过程。', doneLabel: '已观看' },
+  { id: 'explore', label: '✋ 探索', title: '声学应用模拟', desc: '点击切换声呐、B超、超声波清洗等应用场景。', doneLabel: '已探索' },
+  { id: 'challenge', label: '🎯 挑战', title: '声学应用闯关', desc: '完成回声测距计算和声学应用配对。', doneLabel: '已闯关' },
+  { id: 'quiz', label: '⭐ 测验', title: '知识检测', desc: '完成选择题，巩固声的利用知识。', doneLabel: '已完成' }
+];
+
+const CHALLENGES = [
+  { goal: '声呐发射超声波后0.6s收到回波，鱼群距离多少m？（水中声速1500m/s）', answer: 450, tolerance: 10 },
+  { goal: '一束超声波入射人体，2.6×10⁻⁴s后收到回波，组织深度多少cm？（人体软组织声速1540m/s）', answer: 20, tolerance: 2 },
+  { goal: '蝙蝠发出超声波0.02s后收到回波，障碍物距离多少cm？（空气中声速340m/s）', answer: 340, tolerance: 10 },
+  { goal: '下列哪个不是超声波的利用？A.声呐 B.B超 C.次声波预报 D.超声波清洗', answer: 2, tolerance: 0 },
+  { goal: '海深4500m，声呐信号发出到收到回波需多少秒？（海水中声速1500m/s）', answer: 6, tolerance: 0.5 }
+];
+
+const QUIZ_POOL = [
+  { q: '声呐利用什么波来探测？', opts: ['A. 次声波', 'B. 超声波', 'C. 可听声', 'D. 电磁波'], ans: 1, explain: '声呐利用超声波（频率高于20000Hz）在水中传播进行测距定位。' },
+  { q: 'B超检查利用了超声波的什么特性？', opts: ['A. 方向性好', 'B. 穿透能力强', 'C. 可以获得较清晰的内部图像', 'D. 以上都是'], ans: 3, explain: 'B超利用超声波方向性好、穿透力强、能成像的特点来检查人体内部组织。' },
+  { q: '超声波清洗器利用的是？', opts: ['A. 回声', 'B. 超声空化效应', 'C. 多普勒效应', 'D. 共振'], ans: 1, explain: '超声波在液体中产生空化效应，形成大量微小气泡爆破，从而清洗物体表面。' },
+  { q: '下列动物中，利用超声波捕食的是？', opts: ['A. 猫头鹰', 'B. 蝙蝠', 'C. 老鹰', 'D. 海豚'], ans: 1, explain: '蝙蝠发出超声波，通过接收回波来定位障碍物和猎物，这叫回声定位。' },
+  { q: '次声波的频率范围是？', opts: ['A. 低于20Hz', 'B. 20-20000Hz', 'C. 高于20000Hz', 'D. 高于200000Hz'], ans: 0, explain: '次声波频率低于20Hz，人耳听不到。地震、火山爆发等会产生次声波。' }
+];
+
+const canvas = document.getElementById('labCanvas');
+const ctx = canvas.getContext('2d');
+let animTime = 0, animId, isPlaying = false;
+let exploreApp = 0; // 0=sonar, 1=ultrasound, 2=cleaning
+
+const APPS = [
+  { name: '声呐', icon: '🚢', desc: '发射超声波 → 遇障碍反射 → 接收回波 → 计算距离' },
+  { name: 'B超', icon: '🏥', desc: '超声波穿透人体 → 不同组织反射差异 → 生成图像' },
+  { name: '超声波清洗', icon: '🧼', desc: '超声波在液体中产生空化效应 → 气泡爆破去污' }
+];
+
+function drawScene() {
+  const W = canvas.width, H = canvas.height;
+  ctx.fillStyle = '#141626';
+  ctx.fillRect(0, 0, W, H);
+
+  if (state.currentMission === 0) drawSonarDemo(W, H);
+  else if (state.currentMission === 1) drawExploreScene(W, H);
+  else if (state.currentMission === 2) drawChallengeScene(W, H);
+}
+
+function drawSonarDemo(W, H) {
+  // Ship at top
+  ctx.fillStyle = 'rgba(255,255,255,0.65)';
+  ctx.beginPath();
+  ctx.moveTo(W/2-30, 20);
+  ctx.lineTo(W/2-40, 50);
+  ctx.lineTo(W/2+40, 50);
+  ctx.lineTo(W/2+30, 20);
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillStyle = 'rgba(255,255,255,0.45)';
+  ctx.fillRect(W/2-5, 30, 10, 20);
+  // Ship label
+  ctx.fillStyle = '#ffffff';
+  ctx.font = '11px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('🚢 声呐', W/2, 18);
+
+  // Water
+  ctx.fillStyle = 'rgba(0,122,255,0.08)';
+  ctx.fillRect(0, 50, W, 250);
+  // Water waves
+  ctx.strokeStyle = 'rgba(0,122,255,0.15)';
+  ctx.lineWidth = 1;
+  for (let i = 0; i < 5; i++) {
+    ctx.beginPath();
+    for (let x = 0; x < W; x += 2) {
+      const y = 55 + i * 20 + Math.sin((x + animTime * 2) * 0.02) * 3;
+      x === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+  }
+
+  // Sea floor
+  ctx.fillStyle = '#c8a060';
+  ctx.beginPath();
+  ctx.moveTo(0, H-20);
+  for (let x = 0; x <= W; x += 10) {
+    const y = H - 20 + Math.sin(x * 0.03 + 1) * 8;
+    ctx.lineTo(x, y);
+  }
+  ctx.lineTo(W, H);
+  ctx.lineTo(0, H);
+  ctx.closePath();
+  ctx.fill();
+
+  // Fish school
+  if (animTime > 80) {
+    for (let i = 0; i < 5; i++) {
+      const fx = 200 + i * 30 + Math.sin(animTime * 0.02 + i) * 20;
+      const fy = 160 + Math.sin(animTime * 0.03 + i * 2) * 10;
+      ctx.fillStyle = '#FF9500';
+      ctx.font = '16px sans-serif';
+      ctx.fillText('🐟', fx, fy);
+    }
+  }
+
+  // Sonar waves
+  if (isPlaying) {
+    const t = animTime;
+    // Transmit pulse
+    const pulseY = 55 + (t * 2 % 240);
+    if (pulseY < H - 30) {
+      const alpha = Math.max(0, 1 - pulseY / 280);
+      ctx.strokeStyle = `rgba(0, 200, 100, ${alpha})`;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(W/2, 55, pulseY, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+
+    // Echo return
+    const echoDelay = 80;
+    if (t > echoDelay) {
+      const echoY = 55 + ((t - echoDelay) * 2 % 240);
+      if (echoY < H - 30) {
+        const alpha = Math.max(0, 1 - echoY / 280);
+        ctx.strokeStyle = `rgba(255, 100, 50, ${alpha})`;
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.arc(W/2, 55, echoY, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+    }
+
+    // Distance display
+    const dist = Math.round((t * 2 % 240) * 5);
+    document.getElementById('dispDist').textContent = dist + ' m';
+    if (animTime > 120) {
+      ctx.fillStyle = '#34C759';
+      ctx.font = '13px sans-serif';
+      ctx.fillText('✅ 检出鱼群！距离约 ' + (animTime > 120 ? '450' : '?') + ' m', W/2, H-40);
+    }
+  }
+}
+
+function drawExploreScene(W, H) {
+  const app = APPS[exploreApp];
+
+  // App selector buttons
+  const btnW = 120, btnH = 36;
+  const startX = (W - (btnW * 3 + 20)) / 2;
+  APPS.forEach((a, i) => {
+    const bx = startX + i * (btnW + 10);
+    const by = 8;
+    ctx.fillStyle = i === exploreApp ? '#34C759' : '#eee';
+    roundRect(ctx, bx, by, btnW, btnH, 8);
+    ctx.fill();
+    ctx.fillStyle = i === exploreApp ? '#fff' : '#666';
+    ctx.font = '13px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(a.icon + ' ' + a.name, bx + btnW/2, by + btnH/2);
+  });
+
+  // Scene
+  if (exploreApp === 0) {
+    drawSonarMini(W, H);
+  } else if (exploreApp === 1) {
+    drawBScan(W, H);
+  } else {
+    drawCleaning(W, H);
+  }
+
+  ctx.fillStyle = 'rgba(255,255,255,0.65)';
+  ctx.font = '12px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'bottom';
+  ctx.fillText(APPS[exploreApp].desc, W/2, H - 8);
+}
+
+function drawSonarMini(W, H) {
+  ctx.fillStyle = 'rgba(0,122,255,0.05)';
+  ctx.fillRect(0, 50, W, H-50);
+  ctx.fillStyle = '#c8a060';
+  ctx.fillRect(0, H-20, W, 20);
+
+  ctx.fillStyle = '#ffffff';
+  ctx.font = '48px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('🚢', W/2, 80);
+
+  if (isPlaying) {
+    const t = animTime;
+    const wave = (t * 1.5) % 200;
+    ctx.strokeStyle = `rgba(0,200,100,${Math.max(0,1-wave/200)})`;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(W/2, 80, wave, 0, Math.PI*2);
+    ctx.stroke();
+
+    if (t > 40) {
+      const echo = ((t-40)*1.5) % 200;
+      ctx.strokeStyle = `rgba(255,100,50,${Math.max(0,1-echo/200)})`;
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.arc(W/2, 80, echo, 0, Math.PI*2);
+      ctx.stroke();
+    }
+  }
+}
+
+function drawBScan(W, H) {
+  // Body outline
+  ctx.fillStyle = '#f0e8e0';
+  roundRect(ctx, W/2-60, 50, 120, 200, 10);
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+  ctx.lineWidth = 1;
+  roundRect(ctx, W/2-60, 50, 120, 200, 10);
+  ctx.stroke();
+
+  // Ultrasound probe
+  ctx.fillStyle = 'rgba(255,255,255,0.45)';
+  ctx.fillRect(W/2-15, 40, 30, 15);
+
+  // Scan lines
+  if (isPlaying) {
+    const t = animTime;
+    for (let i = 0; i < 10; i++) {
+      const x = W/2 - 50 + i * 10 + Math.sin(t*0.05 + i*3) * 2;
+      const y = 55 + i * 18;
+      ctx.fillStyle = `rgba(0, 200, 100, ${0.1 + Math.sin(t*0.1 + i)*0.1})`;
+      ctx.beginPath();
+      ctx.arc(x, y, 2, 0, Math.PI*2);
+      ctx.fill();
+    }
+  }
+
+  // Screen
+  ctx.fillStyle = '#000';
+  ctx.fillRect(W/2+80, 55, 100, 80);
+  ctx.fillStyle = '#0a0';
+  ctx.font = '8px sans-serif';
+  for (let i = 0; i < 20; i++) {
+    const y = 58 + i * 3;
+    ctx.fillRect(W/2+82, y, 40 + Math.sin(i*2+animTime*0.05)*20, 2);
+  }
+  ctx.strokeStyle = '#0a0';
+  ctx.strokeRect(W/2+80, 55, 100, 80);
+  ctx.fillStyle = '#fff';
+  ctx.font = '10px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('B超影像', W/2+130, 145);
+}
+
+function drawCleaning(W, H) {
+  // Beaker
+  ctx.strokeStyle = 'rgba(255,255,255,0.12)';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(W/2-70, 60);
+  ctx.lineTo(W/2-70, 220);
+  ctx.lineTo(W/2+70, 220);
+  ctx.lineTo(W/2+70, 60);
+  ctx.stroke();
+
+  // Water
+  ctx.fillStyle = 'rgba(0,122,255,0.15)';
+  roundRect(ctx, W/2-68, 70, 136, 148, 0);
+  ctx.fill();
+
+  // Object to clean
+  ctx.fillStyle = '#c8a060';
+  roundRect(ctx, W/2-20, 140, 40, 30, 5);
+  ctx.fill();
+  ctx.fillStyle = 'rgba(255,255,255,0.65)';
+  ctx.font = '9px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('脏物', W/2, 158);
+
+  // Bubbles (cavitation)
+  if (isPlaying) {
+    for (let i = 0; i < 12; i++) {
+      const bx = W/2 - 55 + Math.random() * 110;
+      const by = 210 - ((animTime * 2 + i * 30) % 140) - 10;
+      const r = 2 + Math.random() * 4;
+      ctx.fillStyle = `rgba(255,255,255,${0.3 + Math.random()*0.5})`;
+      ctx.beginPath();
+      ctx.arc(bx, by, r, 0, Math.PI*2);
+      ctx.fill();
+    }
+  }
+
+  // Transducer
+  ctx.fillStyle = 'rgba(255,255,255,0.45)';
+  ctx.fillRect(W/2-25, 55, 50, 10);
+  ctx.fillStyle = 'rgba(255,255,255,0.65)';
+  ctx.font = '10px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('超声波换能器', W/2, 52);
+}
+
+function drawChallengeScene(W, H) {
+  ctx.fillStyle = '#141626';
+  ctx.fillRect(0, 0, W, H);
+  const ch = CHALLENGES[state.challengeIdx] || CHALLENGES[0];
+
+  ctx.fillStyle = '#ffffff';
+  ctx.font = '15px sans-serif';
+  ctx.textAlign = 'center';
+  const maxW = W - 40;
+  let lines = [], line = '';
+  for (let c of ch.goal) {
+    line += c;
+    if (ctx.measureText(line).width > maxW && line.length > 10) { lines.push(line); line = ''; }
+  }
+  if (line) lines.push(line);
+  let y = 40;
+  lines.forEach(l => { ctx.fillText(l.trim(), W/2, y); y += 28; });
+
+  if (state.challengeIdx === 3) {
+    const opts = ['A.声呐', 'B.B超', 'C.次声波预报', 'D.超声波清洗'];
+    const bw = 180, bh = 44, cols = 2;
+    const totalW = cols * bw + (cols-1) * 12;
+    const sx = (W - totalW) / 2;
+    opts.forEach((o, i) => {
+      const bx = sx + (i%2) * (bw + 12);
+      const by = 140 + Math.floor(i/2) * (bh + 10);
+      ctx.fillStyle = 'rgba(255,255,255,0.04)';
+      roundRect(ctx, bx, by, bw, bh, 10);
+      ctx.fill();
+      ctx.fillStyle = 'rgba(255,255,255,0.65)';
+      ctx.font = '14px sans-serif';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(o, bx + bw/2, by + bh/2);
+    });
+  }
+
+  ctx.fillStyle = 'rgba(255,255,255,0.35)';
+  ctx.font = '13px sans-serif';
+  ctx.textBaseline = 'bottom';
+  const hint = ['提示: s = v×t÷2', '提示: 注意单位换算 cm', '提示: cm为单位', '点击选择答案', '提示: t = 2s/v'][state.challengeIdx] || '';
+  ctx.fillText(hint, W/2, H-10);
+}
+
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x+r,y); ctx.lineTo(x+w-r,y); ctx.arcTo(x+w,y,x+w,y+r,r);
+  ctx.lineTo(x+w,y+h-r); ctx.arcTo(x+w,y+h,x+w-r,y+h,r);
+  ctx.lineTo(x+r,y+h); ctx.arcTo(x,y+h,x,y+h-r,r);
+  ctx.lineTo(x,y+r); ctx.arcTo(x,y,x+r,y,r); ctx.closePath();
+}
+
+function animate() {
+  if (isPlaying) animTime += 1;
+  drawScene();
+  animId = requestAnimationFrame(animate);
+}
+
+function switchMission(idx) {
+  state.currentMission = idx; saveState(); updateUI(); setKnowledge(idx);
+}
+
+function updateUI() {
+  const m = MISSIONS[state.currentMission];
+  document.getElementById('missionLabel').textContent = m.label;
+  document.getElementById('missionTitle').textContent = m.title;
+  const desc = document.getElementById('missionDesc');
+  const done = state.done.includes(state.currentMission);
+
+  if (state.currentMission === 0) {
+    desc.innerHTML = done ? '✅ 已观看。' : `${m.desc} <button onclick="isPlaying=true;animTime=0;setTimeout(()=>{if(!state.done.includes(0)){state.done.push(0);saveState();updateUI()}},5000);updateUI()" style="padding:6px 16px;background:#34C759;color:#fff;border:none;border-radius:8px;cursor:pointer;">▶ 播放演示</button>`;
+  } else if (state.currentMission === 1) {
+    desc.innerHTML = done ? '✅ 已探索。' : `点击上方按钮切换不同应用场景：声呐、B超、超声波清洗。`;
+  } else if (state.currentMission === 2) {
+    if (done) desc.innerHTML = '🎉 全部通关！ <button onclick="resetChallenges()" style="padding:6px 16px;background:#34C759;color:#fff;border:none;border-radius:8px;cursor:pointer;">🔄 重新挑战</button>';
+    else desc.innerHTML = `🎯 第 ${state.challengeIdx+1}/${CHALLENGES.length} 关`;
+    document.getElementById('challengeHud').className = 'challenge-hud show';
+    document.getElementById('chLevel').textContent = `🎯 第 ${state.challengeIdx+1}/${CHALLENGES.length} 关`;
+    document.getElementById('chGoal').textContent = CHALLENGES[state.challengeIdx]?.goal.slice(0,35) + '...' || '';
+  } else {
+    if (done) desc.innerHTML = '✅ 已完成。 <button onclick="startQuiz()" style="padding:6px 16px;background:#34C759;color:#fff;border:none;border-radius:8px;cursor:pointer;">🔄 再来一轮</button>';
+    else desc.innerHTML = m.desc;
+    document.getElementById('quizOverlay').className = state.quizIdx < QUIZ_POOL.length ? 'quiz-overlay show' : 'quiz-overlay';
+  document.querySelector('.canvas-wrap').className = state.currentMission === 3 && state.quizIdx < QUIZ_POOL.length ? 'canvas-wrap quiz-active' : 'canvas-wrap';
+    if (state.quizIdx < QUIZ_POOL.length) showQuiz();
+  }
+
+  const tabs = document.getElementById('missionTabs');
+  tabs.innerHTML = MISSIONS.map((m, i) => {
+    const cls = i === state.currentMission ? 'tab active' : state.done.includes(i) ? 'tab done' : 'tab';
+    return `<div class="${cls}" onclick="switchMission(${i})">${m.label}${state.done.includes(i)?'<span class="tab-check">✅</span>':''}</div>`;
+  }).join('');
+
+  MISSIONS.forEach((_, i) => {
+    const dot = document.getElementById('pdot' + i);
+    if (state.done.includes(i)) dot.className = 'dot done';
+    else if (i === state.currentMission) dot.className = 'dot active';
+    else dot.className = 'dot';
+  });
+}
+
+canvas.addEventListener('click', (e) => {
+  if (state.currentMission === 1) {
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const x = (e.clientX - rect.left) * scaleX;
+    const y = (e.clientY - rect.top) * scaleX;
+    const btnW = 120, btnH = 36;
+    const startX = (canvas.width - (btnW*3 + 20)) / 2;
+    if (y >= 8 && y <= 8+btnH) {
+      for (let i=0; i<3; i++) {
+        const bx = startX + i*(btnW+10);
+        if (x >= bx && x <= bx+btnW) {
+          exploreApp = i; isPlaying = true; animTime = 0; updateUI();
+          setTimeout(() => { if (state.currentMission === 1 && !state.done.includes(1)) { state.done.push(1); saveState(); updateUI(); } }, 5000);
+          return;
+        }
+      }
+    }
+  }
+
+  if (state.currentMission === 2 && state.challengeIdx === 3) {
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const x = (e.clientX - rect.left) * scaleX;
+    const y = (e.clientY - rect.top) * scaleX;
+    const bw = 180, bh = 44, cols = 2;
+    const totalW = cols * bw + (cols-1) * 12;
+    const sx = (canvas.width - totalW) / 2;
+    for (let i=0; i<4; i++) {
+      const bx = sx + (i%2)*(bw+12);
+      const by = 140 + Math.floor(i/2)*(bh+10);
+      if (x >= bx && x <= bx+bw && y >= by && y <= by+bh) {
+        if (i === 2) { state.challengeIdx++; saveState(); updateUI(); }
+        else { alert('❌ 再想想！次声波预报是利用了次声波，不是超声波。'); }
+        return;
+      }
+    }
+  }
+
+  if (state.currentMission === 2 && state.challengeIdx !== 3) {
+    const input = prompt('输入答案（数字）:', '');
+    if (input === null) return;
+    const num = parseFloat(input);
+    if (isNaN(num)) return;
+    const ch = CHALLENGES[state.challengeIdx];
+    if (Math.abs(num - ch.answer) <= ch.tolerance) {
+      state.challengeIdx++;
+      if (state.challengeIdx >= CHALLENGES.length) {
+        if (!state.done.includes(2)) state.done.push(2);
+        saveState(); updateUI();
+        alert('🎉 恭喜通关！');
+      } else { saveState(); updateUI(); }
+    } else { alert('❌ 不对，再想想！'); }
+  }
+});
+
+function resetChallenges() {
+  state.challengeIdx = 0;
+  const idx = state.done.indexOf(2);
+  if (idx >= 0) state.done.splice(idx, 1);
+  saveState(); updateUI();
+}
+
+function startQuiz() { state.quizIdx = 0; state.quizDone = []; saveState(); showQuiz(); }
+
+function showQuiz() {
+  if (state.quizIdx >= QUIZ_POOL.length) {
+    if (!state.done.includes(3)) { state.done.push(3); saveState(); }
+    updateUI(); return;
+  }
+  const q = QUIZ_POOL[state.quizIdx];
+  document.getElementById('quizQ').textContent = `${state.quizIdx+1}. ${q.q}`;
+  document.getElementById('quizOptions').innerHTML = q.opts.map((o,i) => `<div class="quiz-opt" onclick="selectQuiz(${i})">${o}</div>`).join('');
+  document.getElementById('quizResult').textContent = '';
+  document.getElementById('quizNext').style.display = 'none';
+}
+
+function selectQuiz(idx) {
+  const q = QUIZ_POOL[state.quizIdx];
+  const opts = document.querySelectorAll('.quiz-opt');
+  opts.forEach((el, i) => {
+    el.style.pointerEvents = 'none';
+    if (i === q.ans) el.className = 'quiz-opt correct';
+    else if (i === idx && idx !== q.ans) el.className = 'quiz-opt wrong';
+  });
+  document.getElementById('quizResult').textContent = idx === q.ans ? `✅ 正确！${q.explain}` : `❌ 正确答案是 ${q.opts[q.ans]}。${q.explain}`;
+  document.getElementById('quizNext').style.display = 'block';
+}
+
+function nextQuiz() { state.quizIdx++; saveState(); showQuiz(); }
+
+// ══════════════════════════════════════════
+// 12. KNOWLEDGE
+// ══════════════════════════════════════════
+const KNOWLEDGE = {
+  0: {
+    title: '💡 认识超声与次声',
+    body: '按频率划分：\n\n' +
+         '• <em>次声波</em>：频率低于 <span class="kb-formula">20 Hz</span>（人耳听不到）\n' +
+         '• <em>可听声</em>：频率在 <span class="kb-formula">20 ~ 20000 Hz</span>\n' +
+         '• <em>超声波</em>：频率高于 <span class="kb-formula">20000 Hz</span>（人耳听不到）\n\n' +
+         '地震、火山爆发产生次声波。蝙蝠、海豚利用超声波进行回声定位。'
+  },
+  1: {
+    title: '💡 声呐与回声定位',
+    body: '<em>声呐</em>（Sonar）利用超声波在水中传播进行测距和定位。\n\n' +
+         '原理：发射超声波 → 遇障碍物反射 → 接收回波 → 计算距离\n\n' +
+         '计算公式：<span class="kb-formula">s = v × t / 2</span>\n' +
+         '其中 s 为距离，v 为声速，t 为从发出到接收的时间。'
+  },
+  2: {
+    title: '💡 声学的广泛应用',
+    body: '超声波的应用：\n\n' +
+         '• <em>B超</em>：超声波穿透人体，不同组织反射差异生成图像\n' +
+         '• <em>超声波清洗</em>：利用空化效应去污\n' +
+         '• <em>超声波测速</em>：利用多普勒效应测速\n\n' +
+         '次声波的应用：预报地震、海啸等自然灾害。'
+  },
+  3: {
+    title: '💡 检测你的掌握',
+    body: '通过几道选择题来检验你是否理解了声的利用。\n\n' +
+         '关键点：<em>超声波频率高</em>、<em>回声测距 s = vt/2</em>、<em>B超利用超声波</em>。'
+  }
+};
+
+function toggleKnowledge() {
+  const box = document.getElementById('knowledgeBox');
+  const toggle = document.getElementById('kbToggle');
+  box.classList.toggle('collapsed');
+  toggle.classList.toggle('open');
+}
+
+function setKnowledge(idx) {
+  const k = KNOWLEDGE[idx];
+  if (k) {
+    document.getElementById('kbTitle').textContent = k.title;
+    document.getElementById('kbBody').innerHTML = k.body.replace(/\n/g, '<br>');
+    const box = document.getElementById('knowledgeBox');
+    if (box.classList.contains('collapsed')) {
+      box.classList.remove('collapsed');
+      document.getElementById('kbToggle').classList.add('open');
+    }
+  }
+}
+
+switchMission(state.currentMission);
+animate();
+
+function closeQuiz() { switchMission(0); }
+</script>
+</body>
+</html>

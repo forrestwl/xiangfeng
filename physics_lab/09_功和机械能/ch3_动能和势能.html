@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>物理实验室 · 动能和势能</title>
+<style>
+/* NB_LAB */
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "PingFang SC", "Helvetica Neue", sans-serif;
+    min-height: 100dvh;
+    background: linear-gradient(135deg, #0c0e1a 0%, #1a1e3a 30%, #0d1b2a 60%, #0a0e1a 100%) !important;
+    display: flex; justify-content: center; align-items: center; margin: 0; position: relative;
+  }
+  body::before {
+    content: ''; position: fixed; top: -50%; left: -50%; width: 200%; height: 200%;
+    background: radial-gradient(ellipse at 20% 50%, rgba(6,182,212,0.08) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 20%, rgba(6,182,212,0.05) 0%, transparent 50%);
+    pointer-events: none; z-index: 0;
+  }
+
+  /* COMPACT_V5 - balanced layout */
+  .app { height: 100dvh !important; max-height: 100dvh !important; }
+  .top-bar { padding: 6px 12px !important; min-height: 34px !important; }
+  .top-bar h1 { font-size: 12px !important; }
+  .top-bar .back { font-size: 14px !important; }
+  .top-bar .progress-dots .dot { width: 6px !important; height: 6px !important; }
+  .main-area { padding: 6px !important; gap: 6px !important; flex: 1 !important; min-height: 0 !important; overflow: hidden !important; }
+  .canvas-wrap { flex: 1 !important; min-height: 200px !important; max-height: none !important; overflow: hidden !important; position: relative !important; }
+  .canvas-wrap canvas { width: 100% !important; height: 100% !important; display: block !important; }
+.canvas-wrap.quiz-active { flex-shrink: 1 !important; min-height: 55dvh !important; max-height: 75dvh !important; }
+  .canvas-wrap.quiz-active canvas { display: none !important; }
+  .info-panel { padding: 4px 10px !important; flex-shrink: 0 !important; min-height: 50px !important; max-height: 30dvh !important; overflow-y: auto !important; }
+  .info-panel .mission-label { font-size: 9px !important; line-height: 14px !important; }
+  .info-panel .mission-title { font-size: 12px !important; line-height: 16px !important; margin: 0 !important; }
+  .info-panel .mission-desc { font-size: 11px !important; line-height: 15px !important; }
+  .info-panel .mission-desc button { padding: 3px 10px !important; font-size: 10px !important; border-radius: 6px !important; }
+  .info-panel .data-display, .info-panel .speed-display,
+  .info-panel .noise-display, .info-panel .sonar-display,
+  .info-panel .wave-controls, .info-panel .angle-display { margin-top: 2px !important; padding-top: 2px !important; gap: 6px !important; }
+  .info-panel .data-item, .info-panel .speed-item,
+  .info-panel .noise-item, .info-panel .sonar-item { font-size: 10px !important; }
+  .info-panel .data-item .value, .info-panel .speed-item .value { font-size: 12px !important; }
+  .info-panel .wave-controls input[type=range] { width: 60px !important; }
+  .mission-tabs { padding: 2px 8px 6px !important; flex-shrink: 0 !important; }
+  .mission-tabs .tab { padding: 5px 4px !important; font-size: 11px !important; border-radius: 6px !important; }
+  .mission-tabs .tab .tab-check { font-size: 9px !important; margin-top: 1px !important; }
+  .knowledge-box { padding: 3px 8px !important; }
+  .knowledge-box .kb-title { font-size: 9px !important; }
+  .knowledge-box .kb-body { font-size: 10px !important; line-height: 1.3 !important; }
+  .challenge-hud { padding: 4px 8px !important; font-size: 10px !important; top: 8px !important; right: 8px !important; }
+  .challenge-hud .ch-restart { padding: 2px 8px !important; font-size: 10px !important; }
+  .mode-toggle { padding: 3px 8px !important; font-size: 9px !important; top: 8px !important; left: 8px !important; }
+  .noise-btn, .timbre-btn, .app-btn, .lens-btn { padding: 4px 10px !important; font-size: 10px !important; }
+
+  .top-bar { padding: 6px 12px !important; min-height: 36px !important; }
+  .top-bar h1 { font-size: 12px !important; }
+  .top-bar .back { font-size: 14px !important; line-height: 20px !important; }
+  .top-bar .progress-dots .dot { width: 6px !important; height: 6px !important; }
+  .main-area { padding: 4px !important; gap: 4px !important; flex: 1 !important; min-height: 0 !important; }
+  .canvas-wrap { flex-shrink: 0 !important; }
+.info-panel { padding: 4px 8px !important; flex: 1 !important; min-height: 30px !important; overflow-y: auto !important; }
+  .info-panel .mission-label { font-size: 9px !important; line-height: 14px !important; }
+  .info-panel .mission-title { font-size: 12px !important; line-height: 16px !important; margin: 0 !important; }
+  .info-panel .mission-desc { font-size: 11px !important; line-height: 15px !important; }
+  .info-panel .mission-desc button { padding: 3px 10px !important; font-size: 10px !important; border-radius: 6px !important; }
+  .info-panel .data-display, .info-panel .speed-display,
+  .info-panel .noise-display, .info-panel .sonar-display,
+  .info-panel .wave-controls, .info-panel .angle-display { margin-top: 3px !important; padding-top: 3px !important; gap: 6px !important; }
+  .info-panel .data-item, .info-panel .speed-item,
+  .info-panel .noise-item, .info-panel .sonar-item { font-size: 10px !important; }
+  .info-panel .data-item .value, .info-panel .speed-item .value { font-size: 12px !important; }
+  .info-panel .wave-controls input[type=range] { width: 60px !important; }
+  .mission-tabs { padding: 1px 6px 4px !important; flex-shrink: 0 !important; }
+  .mission-tabs .tab { padding: 4px 3px !important; font-size: 10px !important; border-radius: 6px !important; }
+  .mission-tabs .tab .tab-check { font-size: 9px !important; margin-top: 1px !important; }
+  .knowledge-box { padding: 3px 8px !important; }
+  .knowledge-box .kb-title { font-size: 9px !important; }
+  .canvas-wrap.quiz-active { min-height: 60dvh !important; flex-shrink: 1 !important; }
+  .canvas-wrap.quiz-active canvas { display: none !important; }
+  .challenge-hud { padding: 4px 8px !important; font-size: 10px !important; top: 8px !important; right: 8px !important; }
+  .challenge-hud .ch-restart { padding: 2px 8px !important; font-size: 10px !important; }
+  .mode-toggle { padding: 3px 8px !important; font-size: 9px !important; top: 8px !important; left: 8px !important; }
+  .noise-btn, .timbre-btn, .app-btn, .lens-btn { padding: 4px 10px !important; font-size: 10px !important; }
+
+  .app { background: rgba(255,255,255,0.04) !important; border: 1px solid rgba(255,255,255,0.06) !important; backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); position: relative; z-index: 1; }
+  .top-bar { background: rgba(255,255,255,0.03) !important; border-bottom: 1px solid rgba(255,255,255,0.06) !important; }
+  .top-bar h1, .top-bar h2 { color: #fff !important; }
+  .top-bar .back { color: rgba(255,255,255,0.5) !important; }
+  .top-bar .back:hover { color: #fff !important; }
+  .top-bar .progress-dots .dot { background: rgba(255,255,255,0.1) !important; }
+  .top-bar .progress-dots .dot.active { background: #06B6D4 !important; }
+  .top-bar .progress-dots .dot.done { background: #34C759 !important; }
+  .canvas-wrap { background: rgba(10,12,26,0.6) !important; border-color: rgba(255,255,255,0.06) !important; }
+  .canvas-wrap canvas { filter: brightness(1.05) contrast(1.05); }
+  .info-panel { background: rgba(255,255,255,0.03) !important; border-color: rgba(255,255,255,0.06) !important; }
+  .info-panel .mission-label, .card .num { color: #06B6D4 !important; }
+  .info-panel .mission-title, .card h3, .hero h1, .top-bar h1 { color: #fff !important; }
+  .info-panel .mission-desc, p, .card p, .hero p { color: rgba(255,255,255,0.4) !important; }
+  .info-panel .mission-desc button, .card .status.new, .tab.active { background: #06B6D4 !important; color: #fff !important; border: none !important; }
+  .mission-tabs .tab { background: rgba(255,255,255,0.03) !important; border-color: rgba(255,255,255,0.08) !important; color: rgba(255,255,255,0.3) !important; }
+  .mission-tabs .tab:hover { border-color: #06B6D4 !important; color: #06B6D4 !important; }
+  .mission-tabs .tab.active { background: #06B6D4 !important; color: #fff !important; border-color: #06B6D4 !important; }
+  .mission-tabs .tab.done { border-color: #34C759 !important; color: #34C759 !important; }
+  .challenge-hud, .mode-toggle { background: rgba(0,0,0,0.5) !important; backdrop-filter: blur(10px) !important; }
+
+  .knowledge-box { background: rgba(6,182,212,0.08) !important; border-left-color: #06B6D4 !important; }
+  .knowledge-box .kb-title, .knowledge-box .kb-toggle { color: #06B6D4 !important; }
+  .knowledge-box .kb-body, .card p, .hero p { color: rgba(255,255,255,0.7) !important; }
+  .knowledge-box .kb-body em { color: #06B6D4 !important; }
+  .knowledge-box .kb-formula { background: rgba(255,255,255,0.06) !important; border-color: rgba(255,255,255,0.1) !important; color: #fff !important; }
+  .card { background: rgba(255,255,255,0.04) !important; border: 1px solid rgba(255,255,255,0.06) !important; backdrop-filter: blur(20px) !important; color: #fff !important; }
+  .card:hover { border-color: #06B6D4 !important; transform: translateY(-2px); }
+  .card .status.done { background: rgba(52,199,89,0.12) !important; color: #34C759 !important; border: 1px solid rgba(52,199,89,0.15) !important; }
+  .card .status.new { background: rgba(6,182,212,0.1) !important; color: #06B6D4 !important; border: 1px solid rgba(6,182,212,0.15) !important; }
+  .card .status.partial { background: rgba(255,255,255,0.05) !important; color: rgba(255,255,255,0.4) !important; border: 1px solid rgba(255,255,255,0.08) !important; }
+  .hero .progress-module, .module-progress { color: #06B6D4 !important; background: rgba(6,182,212,0.1) !important; border: 1px solid rgba(6,182,212,0.15) !important; }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", sans-serif; background: #f5f5f7; color: #1d1d1f; height: 100dvh; display: flex; justify-content: center; align-items: center; margin: 0; }
+  .app { width: 820px; max-width: 96vw; height: 100dvh; max-height: 100dvh; background: #fff; border-radius: 20px; box-shadow: 0 20px 60px rgba(0,0,0,0.08); display: flex; flex-direction: column; overflow: hidden; }
+  .top-bar { display: flex; align-items: center; padding: 14px 20px; flex-shrink: 0; background: #fafafa; border-bottom: 1px solid #e8e8ed; }
+  .top-bar .back { font-size: 20px; cursor: pointer; opacity: 0.6; }
+  .top-bar .back:hover { opacity: 1; }
+  .top-bar h1 { font-size: 15px; font-weight: 600; margin-left: 10px; flex:1; }
+  .top-bar .progress-dots { font-size: 13px; color: #86868b; display: flex; gap: 6px; align-items: center; }
+  .top-bar .progress-dots .dot { width: 8px; height: 8px; border-radius: 50%; background: #e8e8ed; }
+  .top-bar .progress-dots .dot.active { background: #06B6D4; }
+  .top-bar .progress-dots .dot.done { background: #34C759; }
+  .main-area { padding: 10px; flex: 1; display: flex; flex-direction: column; overflow: hidden; gap: 8px; }
+  .canvas-wrap { position: relative; background: #fff; border-radius: 14px; border: 1px solid #e8e8ed; overflow: hidden; flex-shrink: 0; }
+  .canvas-wrap canvas { display: block; width: 100%; height: auto; cursor: default; touch-action: none; }
+  .info-panel { background: #fafafa; border-radius: 14px; border: 1px solid #e8e8ed; padding: 10px 16px; overflow-y: auto; min-height: 0; }
+  .info-panel .mission-label { font-size: 11px; font-weight: 600; color: #06B6D4; letter-spacing: 0.5px; }
+  .info-panel .mission-title { font-size: 15px; font-weight: 600; margin: 0 0 2px; }
+  .info-panel .mission-desc { font-size: 13px; color: #86868b; line-height: 1.4; }
+  .info-panel .extra-info { display: flex; gap: 16px; margin-top: 6px; padding-top: 6px; border-top: 1px solid #e8e8ed; flex-wrap: wrap; }
+  .info-panel .extra-item { font-size: 12px; }
+  .info-panel .extra-item .label { color: #86868b; }
+  .info-panel .extra-item .value { font-weight: 600; font-size: 15px; color: #06B6D4; }
+  .mission-tabs { display: flex; gap: 4px; padding: 2px 10px 8px; flex-shrink: 0; }
+  .mission-tabs .tab { flex: 1; padding: 8px 4px; border-radius: 8px; border: 1px solid #e8e8ed; background: #fff; text-align: center; cursor: pointer; font-size: 12px; font-weight: 500; color: #86868b; transition: all 0.2s; }
+  .mission-tabs .tab:hover { border-color: #06B6D4; color: #06B6D4; }
+  .mission-tabs .tab.active { background: #06B6D4; color: #fff; border-color: #06B6D4; }
+  .mission-tabs .tab.done { border-color: #34C759; color: #34C759; }
+  .mission-tabs .tab .tab-check { font-size: 11px; display: block; margin-top: 2px; }
+  .slider-control { position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.7); backdrop-filter: blur(10px); border-radius: 8px; padding: 6px 16px; color: #fff; font-size: 12px; display: none; align-items: center; gap: 10px; white-space: nowrap; }
+  .slider-control.show { display: flex; }
+  .slider-control input[type=range] { width: 120px; accent-color: #06B6D4; }
+  .mode-toggle { position: absolute; top: 12px; left: 12px; background: rgba(0,0,0,0.7); backdrop-filter: blur(10px); border-radius: 8px; padding: 5px 12px; color: #fff; font-size: 11px; cursor: pointer; display: none; }
+  .mode-toggle.show { display: block; }
+  .mode-toggle:hover { background: rgba(6,182,212,0.8); }
+  .challenge-hud { position: absolute; top: 12px; right: 12px; background: rgba(0,0,0,0.7); backdrop-filter: blur(10px); border-radius: 10px; padding: 8px 14px; color: #fff; font-size: 13px; display: none; }
+  .challenge-hud.show { display: block; }
+  .challenge-hud .ch-level { font-weight: 600; margin-bottom: 2px; }
+  .challenge-hud .ch-restart { margin-top: 6px; padding: 4px 10px; background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.25); border-radius: 6px; color: #fff; font-size: 11px; cursor: pointer; }
+  .quiz-overlay { position: absolute; inset: 0; background: rgba(255,255,255,0.85); backdrop-filter: blur(20px); display: none; flex-direction: column; align-items: center; justify-content: center; padding: 30px; z-index: 10; }
+  .quiz-overlay.show { display: flex; background: rgba(10,12,26,0.92) !important; backdrop-filter: blur(20px) !important; -webkit-backdrop-filter: blur(20px) !important; }
+  .quiz-overlay .quiz-q { font-size: 18px; font-weight: 600; text-align: center; max-width: 480px; margin-bottom: 20px; line-height: 1.5; }
+  .quiz-overlay .quiz-options { display: flex; flex-direction: column; gap: 10px; width: 100%; max-width: 400px; }
+  .quiz-overlay .quiz-opt { padding: 14px 20px; background: #fff; border: 1.5px solid #e8e8ed; border-radius: 12px; font-size: 15px; cursor: pointer; transition: all 0.2s; text-align: left; }
+  .quiz-overlay .quiz-opt:hover { border-color: #06B6D4; background: #e8fafe; }
+  .quiz-overlay .quiz-opt.correct { border-color: #34C759; background: #e8f8ee; }
+  .quiz-overlay .quiz-opt.wrong { border-color: #FF3B30; background: #ffe8e6; }
+  .quiz-overlay .quiz-result { margin-top: 16px; font-size: 15px; font-weight: 500; }
+  .quiz-overlay .quiz-next { margin-top: 14px; padding: 10px 30px; background: #06B6D4; color: #fff; border: none; border-radius: 10px; font-size: 15px; font-weight: 500; cursor: pointer; }
+
+  .knowledge-box { padding: 6px 12px; background: #06B6D418; border-radius: 10px; border-left: 3px solid #06B6D4; flex-shrink: 0; cursor: pointer; user-select: none; }
+  .knowledge-box .kb-title { font-weight: 600; font-size: 11px; color: #06B6D4; letter-spacing: 0.3px; display: flex; align-items: center; gap: 4px; }
+  .knowledge-box .kb-toggle { font-size: 9px; color: #06B6D4; opacity: 0.5; transition: transform 0.2s; }
+  .knowledge-box .kb-toggle.open { transform: rotate(90deg); }
+  .knowledge-box .kb-body { font-size: 11.5px; color: #1d1d1f; line-height: 1.5; margin-top: 3px; }
+  .knowledge-box .kb-body em { color: #06B6D4; font-style: normal; font-weight: 500; }
+  .knowledge-box .kb-formula { display: inline-block; background: #fff; border: 1px solid #06B6D440; border-radius: 5px; padding: 1px 8px; font-family: "SF Mono", monospace; font-size: 12px; font-weight: 600; color: #1d1d1f; margin: 0 2px; }
+  .knowledge-box.collapsed .kb-body { display: none; }
+
+  @media (max-width: 600px) { .mission-tabs .tab { font-size: 11px; padding: 8px 4px; } .mission-tabs { padding: 2px 6px 6px; } }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="top-bar">
+    <span class="back" onclick="location.href='index.html'">←</span>
+    <h1>动能和势能</h1>
+    <div class="progress-dots" id="progressDots">
+      <span class="dot" id="pdot0"></span>
+      <span class="dot" id="pdot1"></span>
+      <span class="dot" id="pdot2"></span>
+      <span class="dot" id="pdot3"></span>
+    </div>
+  </div>
+
+  <div class="main-area">
+    <div class="canvas-wrap">
+      <canvas id="labCanvas" width="780" height="300"></canvas>
+      <div class="mode-toggle" id="modeToggle">切换大质量</div>
+      <div class="slider-control" id="sliderControl">
+        <span>释放高度</span>
+        <input type="range" id="heightSlider" min="20" max="100" value="60">
+        <span id="heightVal">60</span>
+      </div>
+      <div class="challenge-hud" id="challengeHud">
+        <div class="ch-level" id="chLevel">🎯 第 1/5 关</div>
+        <div class="ch-restart" onclick="resetChallenges()">🔄 重来</div>
+      </div>
+      <div class="quiz-overlay" id="quizOverlay">
+        <div class="quiz-q" id="quizQ">题目加载中...</div>
+        <div class="quiz-options" id="quizOptions"></div>
+        <div class="quiz-result" id="quizResult"></div>
+        <button class="quiz-next" id="quizNext" onclick="nextQuiz()">下一题</button>
+        <button class="quiz-close" id="quizClose" onclick="closeQuiz()" style="margin-top:10px;padding:6px 16px;background:rgba(255,255,255,0.1);color:rgba(255,255,255,0.6);border:1px solid rgba(255,255,255,0.15);border-radius:8px;cursor:pointer;font-size:12px;">✕ 关闭</button>
+      </div>
+    </div>
+    <div class="info-panel">
+      <div class="mission-label" id="missionLabel">🔬 观察</div>
+      <div class="mission-title" id="missionTitle">滚摆实验</div>
+      <div class="mission-desc" id="missionDesc">观察滚摆下降时动能和势能的转化。</div>
+      <div class="extra-info" id="extraInfo">
+        <div class="extra-item"><span class="label">动能 Ek: </span><span class="value" id="dispEk">0</span></div>
+        <div class="extra-item"><span class="label">势能 Ep: </span><span class="value" id="dispEp">0</span></div>
+        <div class="extra-item"><span class="label">速度 v: </span><span class="value" id="dispV">0</span></div>
+        <div class="extra-item"><span class="label">高度 h: </span><span class="value" id="dispH">0</span></div>
+      </div>
+          <div class="knowledge-box collapsed" id="knowledgeBox" onclick="toggleKnowledge()">
+        <div class="kb-title"><span class="kb-toggle" id="kbToggle">▶</span> 💡 <span id="kbTitle">知识要点</span></div>
+        <div class="kb-body" id="kbBody"></div>
+      </div>
+    </div>
+  </div>
+  <div class="mission-tabs" id="missionTabs"></div>
+</div>
+
+<script>
+const STORAGE_KEY = 'physics_gong_he_ji_xie_neng_ch3';
+const saved = (() => { try { return JSON.parse(localStorage.getItem(STORAGE_KEY)); } catch(e) {} return null; })() || {};
+let state = {
+  done: saved.done || [], currentMission: saved.currentMission || 0,
+  challengeIdx: saved.challengeIdx || 0, quizIdx: saved.quizIdx || 0, quizDone: saved.quizDone || []
+};
+function saveState() { try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch(e) {} }
+
+const MISSIONS = [
+  { id: 'observe', label: '🔬 观察', title: '滚摆实验', desc: '观察滚摆运动中动能和势能的相互转化。', doneLabel: '已观看' },
+  { id: 'explore', label: '✋ 探索', title: '质量/速度/高度', desc: '改变质量和释放高度，观察对能量的影响。', doneLabel: '已探索' },
+  { id: 'challenge', label: '🎯 挑战', title: '能量大小比较', desc: '判断不同情况下动能或势能的大小。', doneLabel: '已闯关' },
+  { id: 'quiz', label: '⭐ 测验', title: '知识检测', desc: '完成选择题，巩固动能势能知识。', doneLabel: '已完成' }
+];
+
+const CHALLENGES = [
+  { goal: '甲乙两物体速度相同，甲质量是乙的2倍，甲的动能是乙的几倍？', answer: 2, unit: '倍' },
+  { goal: '甲乙两物体质量相同，甲速度是乙的2倍，甲的动能是乙的几倍？', answer: 4, unit: '倍' },
+  { goal: '甲乙两物体质量相同，甲高度是乙的3倍，甲的重力势能是乙的几倍？', answer: 3, unit: '倍' },
+  { goal: '小球从同一高度落下，质量大的和质量小的，谁落地时动能更大？(大/小)', answer: 1, unit: '' },
+  { goal: '弹性势能大小与什么有关？(形变/质量/速度，输入对应数字: 1/2/3)', answer: 1, unit: '' }
+];
+
+const QUIZ_POOL = [
+  { q: '物体由于运动而具有的能量叫做？', opts: ['A. 重力势能', 'B. 动能', 'C. 弹性势能', 'D. 机械能'], ans: 1, explain: '动能是物体由于运动而具有的能量，运动速度越快、质量越大，动能越大。' },
+  { q: '影响动能大小的因素是？', opts: ['A. 质量和高度', 'B. 质量和速度', 'C. 速度和高度', 'D. 重力和速度'], ans: 1, explain: '动能与质量和速度有关：质量越大、速度越大，动能越大。' },
+  { q: '影响重力势能大小的因素是？', opts: ['A. 质量和速度', 'B. 质量和高度', 'C. 速度和高度', 'D. 弹性和形变'], ans: 1, explain: '重力势能与质量和高度有关：质量越大、高度越高，重力势能越大。' },
+  { q: '下列哪种情况重力势能最大？', opts: ['A. 1kg物体在2m高处', 'B. 2kg物体在1m高处', 'C. 1kg物体在1m高处', 'D. 2kg物体在3m高处'], ans: 3, explain: '重力势能 Ep=mgh，D选项 2×3=6 最大。' },
+  { q: '关于弹性势能，下列说法正确的是？', opts: ['A. 只有弹簧才有弹性势能', 'B. 弹性形变越大，弹性势能越大', 'C. 弹性势能与物体质量有关', 'D. 弹性势能总是保持不变'], ans: 1, explain: '发生弹性形变的物体都具有弹性势能，弹性形变越大，弹性势能越大。' }
+];
+
+const canvas = document.getElementById('labCanvas');
+const ctx = canvas.getContext('2d');
+let animId = null, animTime = 0, isPlaying = false;
+let heavyMass = false;
+let ballY = 50; // 0=top, 1=bottom during swing
+
+function drawScene() {
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0, 0, W, H);
+  const mission = state.currentMission;
+  if (mission === 0) drawObserve(W, H);
+  else if (mission === 1) drawExplore(W, H);
+  else if (mission === 2) drawChallenge(W, H);
+  else if (mission === 3) drawQuizBg(W, H);
+}
+
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath(); ctx.moveTo(x + r, y); ctx.lineTo(x + w - r, y);
+  ctx.arcTo(x + w, y, x + w, y + r, r); ctx.lineTo(x + w, y + h - r);
+  ctx.arcTo(x + w, y + h, x + w - r, y + h, r); ctx.lineTo(x + r, y + h);
+  ctx.arcTo(x, y + h, x, y + h - r, r); ctx.lineTo(x, y + r);
+  ctx.arcTo(x, y, x + r, y, r); ctx.closePath();
+}
+
+function drawRollingBall(W, H, height, massHeavy) {
+  const cx = W / 2;
+  const topY = 60;
+  const bottomY = 240;
+  const range = bottomY - topY;
+
+  // Ropes
+  ctx.strokeStyle = '#aaa';
+  ctx.lineWidth = 2;
+  const ropeLen = range * 0.55;
+  ctx.beginPath();
+  ctx.moveTo(cx - 40, topY);
+  ctx.lineTo(cx - 20, topY + ropeLen);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(cx + 40, topY);
+  ctx.lineTo(cx + 20, topY + ropeLen);
+  ctx.stroke();
+
+  // Ball position (simple pendulum simulation)
+  const swing = Math.sin(animTime * 1.2) * 0.6;
+  const bx = cx + swing * 80;
+  const by = topY + ropeLen + Math.abs(swing) * 40;
+  const radius = massHeavy ? 22 : 16;
+
+  // Ball
+  const gradient = ctx.createRadialGradient(bx - 5, by - 5, 2, bx, by, radius);
+  gradient.addColorStop(0, '#06B6D4');
+  gradient.addColorStop(1, '#0a7a8e');
+  ctx.fillStyle = gradient;
+  ctx.beginPath();
+  ctx.arc(bx, by, radius, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Ropes to ball
+  ctx.strokeStyle = '#aaa';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(cx - 40, topY);
+  ctx.lineTo(bx, by);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(cx + 40, topY);
+  ctx.lineTo(bx, by);
+  ctx.stroke();
+
+  // Calculate energy values
+  const hRatio = (by - topY) / (bottomY - topY);
+  const vRatio = 1 - Math.abs(swing);
+  const Ek = ((massHeavy ? 2 : 1) * vRatio * vRatio * 50).toFixed(0);
+  const Ep = ((massHeavy ? 2 : 1) * hRatio * 50).toFixed(0);
+  const speed = (vRatio * 10).toFixed(1);
+  const hVal = (hRatio * 2).toFixed(1);
+
+  // Energy bars
+  const barX = 20, barW = 16, maxBarH = 180;
+  const barY = 260;
+
+  // Kinetic energy bar
+  ctx.fillStyle = '#06B6D4';
+  const ekH = Ek / 100 * maxBarH;
+  roundRect(ctx, barX, barY - ekH, barW, ekH, 4);
+  ctx.fill();
+  ctx.fillStyle = '#06B6D4';
+  ctx.font = '11px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('Ek', barX + barW / 2, barY + 14);
+
+  // Potential energy bar
+  ctx.fillStyle = '#FF9500';
+  const epH = Ep / 100 * maxBarH;
+  roundRect(ctx, barX + 28, barY - epH, barW, epH, 4);
+  ctx.fill();
+  ctx.fillStyle = '#FF9500';
+  ctx.font = '11px sans-serif';
+  ctx.fillText('Ep', barX + 28 + barW / 2, barY + 14);
+
+  // Labels on canvas
+  ctx.fillStyle = '#ffffff';
+  ctx.font = '13px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('滚摆实验 — 动能与势能转化', cx, 20);
+
+  ctx.fillStyle = '#06B6D4';
+  ctx.font = '12px sans-serif';
+  ctx.textAlign = 'left';
+  ctx.fillText('Ek = ' + Ek, barX + 55, barY - ekH / 2 + 4);
+
+  ctx.fillStyle = '#FF9500';
+  ctx.fillText('Ep = ' + Ep, barX + 55, barY - epH / 2 + 4);
+
+  // Speed indicator
+  ctx.fillStyle = 'rgba(255,255,255,0.65)';
+  ctx.font = '12px sans-serif';
+  ctx.textAlign = 'right';
+  ctx.fillText('v = ' + speed + ' m/s', W - 10, 40);
+  ctx.fillText('h = ' + hVal + ' m', W - 10, 60);
+
+  if (massHeavy) {
+    ctx.fillStyle = '#FF3B30';
+    ctx.font = '11px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('⚡ 大质量', bx, by - radius - 10);
+  }
+
+  document.getElementById('dispEk').textContent = Ek;
+  document.getElementById('dispEp').textContent = Ep;
+  document.getElementById('dispV').textContent = speed + 'm/s';
+  document.getElementById('dispH').textContent = hVal + 'm';
+}
+
+function drawObserve(W, H) {
+  if (!isPlaying) {
+    ctx.fillStyle = '#141626';
+    ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = 'rgba(255,255,255,0.35)';
+    ctx.font = '15px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('点击"播放演示"开始观察滚摆实验', W / 2, H / 2);
+    return;
+  }
+  drawRollingBall(W, H, null, heavyMass);
+}
+
+function drawExplore(W, H) {
+  const slider = document.getElementById('heightSlider');
+  const hVal = slider.value;
+  document.getElementById('heightVal').textContent = hVal;
+
+  // Map slider to animation phase
+  const phase = (100 - hVal) / 100 * Math.PI;
+  const savedTime = animTime;
+  animTime = phase;
+  drawRollingBall(W, H, null, heavyMass);
+  animTime = savedTime || 0;
+}
+
+function drawChallenge(W, H) {
+  ctx.fillStyle = '#141626'; ctx.fillRect(0, 0, W, H);
+  const ch = CHALLENGES[state.challengeIdx] || CHALLENGES[0];
+  ctx.fillStyle = '#ffffff'; ctx.font = '15px sans-serif'; ctx.textAlign = 'center';
+  const maxW = W - 40;
+  let lines = [], line = '';
+  for (let c of ch.goal) { line += c; if (ctx.measureText(line).width > maxW && line.length > 10) { lines.push(line); line = ''; } }
+  if (line) lines.push(line);
+  let y = 50;
+  lines.forEach(function(l) { ctx.fillText(l.trim(), W / 2, y); y += 28; });
+  ctx.fillStyle = '#06B6D4'; ctx.font = '14px sans-serif';
+  ctx.fillText('公式: Ek = ½mv²  Ep = mgh', W / 2, y + 20);
+  ctx.fillStyle = 'rgba(255,255,255,0.08)'; roundRect(ctx, W / 2 - 100, H / 2 + 20, 200, 50, 10); ctx.fill();
+  ctx.fillStyle = 'rgba(255,255,255,0.35)'; ctx.font = '13px sans-serif'; ctx.textBaseline = 'middle';
+  ctx.fillText('点击输入答案', W / 2, H / 2 + 45);
+  ctx.fillStyle = 'rgba(255,255,255,0.25)'; ctx.font = '12px sans-serif'; ctx.textBaseline = 'bottom';
+  ctx.fillText('第 ' + (state.challengeIdx + 1) + ' / ' + CHALLENGES.length + ' 关', W / 2, H - 10);
+}
+
+function drawQuizBg(W, H) { ctx.fillStyle = '#141626'; ctx.fillRect(0, 0, W, H); }
+
+function animate() {
+  if (isPlaying && state.currentMission === 0) { animTime += 0.03; }
+  drawScene();
+  animId = requestAnimationFrame(animate);
+}
+
+function switchMission(idx) { state.currentMission = idx; saveState(); updateUI(); drawScene();
+  setKnowledge(idx);
+}
+
+function updateUI() {
+  const m = MISSIONS[state.currentMission];
+  document.getElementById('missionLabel').textContent = m.label;
+  document.getElementById('missionTitle').textContent = m.title;
+  const desc = document.getElementById('missionDesc');
+  const done = state.done.includes(state.currentMission);
+  if (state.currentMission === 0) {
+    if (done) {
+      desc.innerHTML = '✅ 已观看。 <button onclick="startObserve()" style="padding:6px 16px;background:#06B6D4;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:13px;">▶ 再看一次</button>';
+    } else {
+      desc.innerHTML = m.desc + ' <button onclick="startObserve()" style="padding:6px 16px;background:#06B6D4;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:13px;">▶ 播放演示</button>';
+    }
+    document.getElementById('modeToggle').className = 'mode-toggle show';
+    document.getElementById('sliderControl').className = 'slider-control';
+    document.getElementById('extraInfo').style.display = 'flex';
+  } else if (state.currentMission === 1) {
+    if (done) {
+      desc.innerHTML = '✅ 已探索。 <button onclick="switchMission(1)" style="padding:6px 16px;background:#06B6D4;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:13px;">▶ 重新探索</button>';
+    } else {
+      desc.innerHTML = m.desc + ' <button onclick="markExploreDone()" style="padding:6px 16px;background:#06B6D4;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:13px;">✅ 已完成探索</button>';
+    }
+    document.getElementById('modeToggle').className = 'mode-toggle show';
+    document.getElementById('sliderControl').className = 'slider-control show';
+    document.getElementById('extraInfo').style.display = 'flex';
+  } else if (state.currentMission === 2) {
+    if (state.done.includes(2)) {
+      desc.innerHTML = '🎉 全部通关！ <button onclick="resetChallenges()" style="padding:6px 16px;background:#06B6D4;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:13px;">🔄 重新挑战</button>';
+    } else {
+      desc.innerHTML = m.desc + ' 第 ' + (state.challengeIdx + 1) + '/' + CHALLENGES.length + ' 关。';
+    }
+    document.getElementById('modeToggle').className = 'mode-toggle';
+    document.getElementById('sliderControl').className = 'slider-control';
+    document.getElementById('extraInfo').style.display = 'none';
+  } else if (state.currentMission === 3) {
+    if (state.done.includes(3)) {
+      desc.innerHTML = '✅ 测验完成！ <button onclick="startQuiz()" style="padding:6px 16px;background:#06B6D4;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:13px;">🔄 再来一轮</button>';
+    } else {
+      desc.innerHTML = m.desc + ' 点击下方按钮开始。';
+    }
+    document.getElementById('modeToggle').className = 'mode-toggle';
+    document.getElementById('sliderControl').className = 'slider-control';
+    document.getElementById('extraInfo').style.display = 'none';
+  }
+  const tabs = document.getElementById('missionTabs');
+  tabs.innerHTML = MISSIONS.map(function(_, i) {
+    const cls = i === state.currentMission ? 'tab active' : state.done.includes(i) ? 'tab done' : 'tab';
+    const check = state.done.includes(i) ? '<span class="tab-check">✅</span>' : '';
+    return '<div class="' + cls + '" onclick="switchMission(' + i + ')">' + MISSIONS[i].label + check + '</div>';
+  }).join('');
+  MISSIONS.forEach(function(_, i) {
+    var d = document.getElementById('pdot' + i);
+    if (state.done.includes(i)) d.className = 'dot done';
+    else if (i === state.currentMission) d.className = 'dot active';
+    else d.className = 'dot';
+  });
+  document.getElementById('challengeHud').className = state.currentMission === 2 ? 'challenge-hud show' : 'challenge-hud';
+  if (state.currentMission === 2) document.getElementById('chLevel').textContent = '🎯 第 ' + (state.challengeIdx + 1) + '/' + CHALLENGES.length + ' 关';
+  document.getElementById('quizOverlay').className = state.currentMission === 3 && state.quizIdx < QUIZ_POOL.length ? 'quiz-overlay show' : 'quiz-overlay';
+  document.querySelector('.canvas-wrap').className = state.currentMission === 3 && state.quizIdx < QUIZ_POOL.length ? 'canvas-wrap quiz-active' : 'canvas-wrap';
+
+  if (state.currentMission === 3 && state.quizIdx < QUIZ_POOL.length) showQuiz();}
+
+function startObserve() { isPlaying = true; animTime = 0; }
+
+document.getElementById('modeToggle').addEventListener('click', function() {
+  if (state.currentMission === 0) {
+    heavyMass = !heavyMass;
+    document.getElementById('modeToggle').textContent = heavyMass ? '切换小质量' : '切换大质量';
+    isPlaying = true;
+    animTime = 0;
+    drawScene();
+  } else if (state.currentMission === 1) {
+    heavyMass = !heavyMass;
+    document.getElementById('modeToggle').textContent = heavyMass ? '小质量' : '大质量';
+    drawScene();
+  }
+});
+
+document.getElementById('heightSlider').addEventListener('input', function() {
+  if (state.currentMission === 1) drawScene();
+});
+
+function markExploreDone() { if (!state.done.includes(1)) { state.done.push(1); saveState(); updateUI(); } }
+
+canvas.addEventListener('click', function(e) {
+  if (state.currentMission !== 2) return;
+  const rect = canvas.getBoundingClientRect();
+  const scaleX = canvas.width / rect.width;
+  const x = (e.clientX - rect.left) * scaleX;
+  const y = (e.clientY - rect.top) * scaleX;
+  const W = canvas.width, H = canvas.height;
+  if (x >= W / 2 - 100 && x <= W / 2 + 100 && y >= H / 2 + 20 && y <= H / 2 + 70) {
+    const userInput = prompt('输入你的答案:', '');
+    if (userInput === null) return;
+    // Challenge 4: answer check for text
+    if (state.challengeIdx === 3) {
+      if (userInput.trim() === '大' || userInput.trim() === '大质量') {
+        state.challengeIdx++;
+        if (state.challengeIdx >= CHALLENGES.length) { if (!state.done.includes(2)) state.done.push(2); saveState(); updateUI(); alert('🎉 恭喜通关！'); }
+        else { saveState(); updateUI(); alert('✅ 正确！进入下一关。'); }
+        return;
+      }
+    }
+    const num = parseFloat(userInput);
+    if (isNaN(num)) return;
+    const ch = CHALLENGES[state.challengeIdx];
+    if (Math.abs(num - ch.answer) <= 1) {
+      state.challengeIdx++;
+      if (state.challengeIdx >= CHALLENGES.length) { if (!state.done.includes(2)) state.done.push(2); saveState(); updateUI(); alert('🎉 恭喜通关！'); }
+      else { saveState(); updateUI(); alert('✅ 正确！进入下一关。'); }
+    } else { alert('❌ 答案不对！想想影响因素。'); }
+  }
+});
+
+function resetChallenges() { state.challengeIdx = 0; const idx = state.done.indexOf(2); if (idx >= 0) state.done.splice(idx, 1); saveState(); updateUI(); }
+function startQuiz() { state.quizIdx = 0; state.quizDone = []; saveState(); showQuiz(); }
+function showQuiz() {
+  if (state.quizIdx >= QUIZ_POOL.length) { if (!state.done.includes(3)) { state.done.push(3); saveState(); } updateUI(); return; }
+  const q = QUIZ_POOL[state.quizIdx];
+  document.getElementById('quizQ').textContent = (state.quizIdx + 1) + '. ' + q.q;
+  document.getElementById('quizOptions').innerHTML = q.opts.map(function(o, i) { return '<div class="quiz-opt" onclick="selectQuiz(' + i + ')">' + o + '</div>'; }).join('');
+  document.getElementById('quizResult').textContent = ''; document.getElementById('quizNext').style.display = 'none';
+  document.getElementById('quizOverlay').className = 'quiz-overlay show';
+  document.querySelector('.canvas-wrap').className = state.currentMission === 3 && state.quizIdx < QUIZ_POOL.length ? 'canvas-wrap quiz-active' : 'canvas-wrap';
+}
+function selectQuiz(idx) {
+  const q = QUIZ_POOL[state.quizIdx];
+  const opts = document.querySelectorAll('.quiz-opt');
+  opts.forEach(function(el, i) { el.style.pointerEvents = 'none'; if (i === q.ans) el.className = 'quiz-opt correct'; else if (i === idx && idx !== q.ans) el.className = 'quiz-opt wrong'; });
+  document.getElementById('quizResult').textContent = idx === q.ans ? '✅ 正确！' + q.explain : '❌ 正确答案是 ' + q.opts[q.ans] + '。' + q.explain;
+  document.getElementById('quizNext').style.display = 'block';
+}
+function nextQuiz() { state.quizIdx++; saveState(); showQuiz(); }
+
+switchMission(state.currentMission);
+animate();
+
+// ══════════════════════════════════════════
+// Knowledge Points - 功和机械能 ch3
+// ══════════════════════════════════════════
+const KNOWLEDGE = {
+  0: {
+    title: '💡 动能',
+    body: '物体由于<em>运动</em>而具有的能量叫做动能。\n' +
+         '\n' +
+         '<span class="kb-formula">Ek = ½ m v²</span>\n' +
+         '\n' +
+         '影响因素：\n' +
+         '• <em>质量 m</em> 越大 → 动能越大\n' +
+         '• <em>速度 v</em> 越大 → 动能越大\n' +
+         '\n' +
+         '速度对动能的影响更大（平方关系）！'
+  },
+  1: {
+    title: '💡 重力势能',
+    body: '物体由于被<em>举高</em>而具有的能量叫做重力势能。\n' +
+         '\n' +
+         '<span class="kb-formula">Ep = m g h</span>\n' +
+         '\n' +
+         '影响因素：\n' +
+         '• <em>质量 m</em> 越大 → 重力势能越大\n' +
+         '• <em>高度 h</em> 越大 → 重力势能越大\n' +
+         '\n' +
+         '注意：重力势能的参考平面（零势能面）是人为选择的。'
+  },
+  2: {
+    title: '💡 弹性势能',
+    body: '物体由于发生<em>弹性形变</em>而具有的能量叫做弹性势能。\n' +
+         '\n' +
+         '影响弹性势能大小的因素：\n' +
+         '• <em>形变程度</em>越大 → 弹性势能越大\n' +
+         '\n' +
+         '生活中弹性势能的例子：\n' +
+         '拉弓射箭、压缩弹簧、蹦床、弹弓等。\n' +
+         '\n' +
+         '弹性势能可以转化为动能。'
+  },
+  3: {
+    title: '💡 能量知识检测',
+    body: '核心要点：\n' +
+         '\n' +
+         '<strong>动能</strong>：<span class="kb-formula">Ek = ½ m v²</span>\n' +
+         '<strong>重力势能</strong>：<span class="kb-formula">Ep = m g h</span>\n' +
+         '<strong>弹性势能</strong>：与形变程度有关\n' +
+         '\n' +
+         '• 动能与 m 和 v 有关\n' +
+         '• 重力势能与 m 和 h 有关\n' +
+         '• 各种形式的能量可以<em>相互转化</em>'
+  },
+};
+
+function toggleKnowledge() {
+  const box = document.getElementById('knowledgeBox');
+  const toggle = document.getElementById('kbToggle');
+  box.classList.toggle('collapsed');
+  toggle.classList.toggle('open');
+}
+
+function setKnowledge(idx) {
+  const k = KNOWLEDGE[idx];
+  if (k) {
+    document.getElementById('kbTitle').textContent = k.title;
+    document.getElementById('kbBody').innerHTML = k.body.replace(/\n/g, '<br>');
+    const box = document.getElementById('knowledgeBox');
+    if (box.classList.contains('collapsed')) {
+      box.classList.remove('collapsed');
+      document.getElementById('kbToggle').classList.add('open');
+    }
+  }
+}
+
+function closeQuiz() { switchMission(0); }
+</script>
+</body>
+</html>

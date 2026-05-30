@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>物理实验室 · 分子热运动</title>
+<style>
+/* NB_LAB */
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "PingFang SC", "Helvetica Neue", sans-serif;
+    min-height: 100dvh;
+    background: linear-gradient(135deg, #0c0e1a 0%, #1a1e3a 30%, #0d1b2a 60%, #0a0e1a 100%) !important;
+    display: flex; justify-content: center; align-items: center; margin: 0; position: relative;
+  }
+  body::before {
+    content: ''; position: fixed; top: -50%; left: -50%; width: 200%; height: 200%;
+    background: radial-gradient(ellipse at 20% 50%, rgba(255,59,48,0.08) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 20%, rgba(255,59,48,0.05) 0%, transparent 50%);
+    pointer-events: none; z-index: 0;
+  }
+
+  /* COMPACT_V5 - balanced layout */
+  .app { height: 100dvh !important; max-height: 100dvh !important; }
+  .top-bar { padding: 6px 12px !important; min-height: 34px !important; }
+  .top-bar h1 { font-size: 12px !important; }
+  .top-bar .back { font-size: 14px !important; }
+  .top-bar .progress-dots .dot { width: 6px !important; height: 6px !important; }
+  .main-area { padding: 6px !important; gap: 6px !important; flex: 1 !important; min-height: 0 !important; overflow: hidden !important; }
+  .canvas-wrap { flex: 1 !important; min-height: 200px !important; max-height: none !important; overflow: hidden !important; position: relative !important; }
+  .canvas-wrap canvas { width: 100% !important; height: 100% !important; display: block !important; }
+.canvas-wrap.quiz-active { flex-shrink: 1 !important; min-height: 55dvh !important; max-height: 75dvh !important; }
+  .canvas-wrap.quiz-active canvas { display: none !important; }
+  .info-panel { padding: 4px 10px !important; flex-shrink: 0 !important; min-height: 50px !important; max-height: 30dvh !important; overflow-y: auto !important; }
+  .info-panel .mission-label { font-size: 9px !important; line-height: 14px !important; }
+  .info-panel .mission-title { font-size: 12px !important; line-height: 16px !important; margin: 0 !important; }
+  .info-panel .mission-desc { font-size: 11px !important; line-height: 15px !important; }
+  .info-panel .mission-desc button { padding: 3px 10px !important; font-size: 10px !important; border-radius: 6px !important; }
+  .info-panel .data-display, .info-panel .speed-display,
+  .info-panel .noise-display, .info-panel .sonar-display,
+  .info-panel .wave-controls, .info-panel .angle-display { margin-top: 2px !important; padding-top: 2px !important; gap: 6px !important; }
+  .info-panel .data-item, .info-panel .speed-item,
+  .info-panel .noise-item, .info-panel .sonar-item { font-size: 10px !important; }
+  .info-panel .data-item .value, .info-panel .speed-item .value { font-size: 12px !important; }
+  .info-panel .wave-controls input[type=range] { width: 60px !important; }
+  .mission-tabs { padding: 2px 8px 6px !important; flex-shrink: 0 !important; }
+  .mission-tabs .tab { padding: 5px 4px !important; font-size: 11px !important; border-radius: 6px !important; }
+  .mission-tabs .tab .tab-check { font-size: 9px !important; margin-top: 1px !important; }
+  .knowledge-box { padding: 3px 8px !important; }
+  .knowledge-box .kb-title { font-size: 9px !important; }
+  .knowledge-box .kb-body { font-size: 10px !important; line-height: 1.3 !important; }
+  .challenge-hud { padding: 4px 8px !important; font-size: 10px !important; top: 8px !important; right: 8px !important; }
+  .challenge-hud .ch-restart { padding: 2px 8px !important; font-size: 10px !important; }
+  .mode-toggle { padding: 3px 8px !important; font-size: 9px !important; top: 8px !important; left: 8px !important; }
+  .noise-btn, .timbre-btn, .app-btn, .lens-btn { padding: 4px 10px !important; font-size: 10px !important; }
+
+  .top-bar { padding: 6px 12px !important; min-height: 36px !important; }
+  .top-bar h1 { font-size: 12px !important; }
+  .top-bar .back { font-size: 14px !important; line-height: 20px !important; }
+  .top-bar .progress-dots .dot { width: 6px !important; height: 6px !important; }
+  .main-area { padding: 4px !important; gap: 4px !important; flex: 1 !important; min-height: 0 !important; }
+  .canvas-wrap { flex-shrink: 0 !important; }
+.info-panel { padding: 4px 8px !important; flex: 1 !important; min-height: 30px !important; overflow-y: auto !important; }
+  .info-panel .mission-label { font-size: 9px !important; line-height: 14px !important; }
+  .info-panel .mission-title { font-size: 12px !important; line-height: 16px !important; margin: 0 !important; }
+  .info-panel .mission-desc { font-size: 11px !important; line-height: 15px !important; }
+  .info-panel .mission-desc button { padding: 3px 10px !important; font-size: 10px !important; border-radius: 6px !important; }
+  .info-panel .data-display, .info-panel .speed-display,
+  .info-panel .noise-display, .info-panel .sonar-display,
+  .info-panel .wave-controls, .info-panel .angle-display { margin-top: 3px !important; padding-top: 3px !important; gap: 6px !important; }
+  .info-panel .data-item, .info-panel .speed-item,
+  .info-panel .noise-item, .info-panel .sonar-item { font-size: 10px !important; }
+  .info-panel .data-item .value, .info-panel .speed-item .value { font-size: 12px !important; }
+  .info-panel .wave-controls input[type=range] { width: 60px !important; }
+  .mission-tabs { padding: 1px 6px 4px !important; flex-shrink: 0 !important; }
+  .mission-tabs .tab { padding: 4px 3px !important; font-size: 10px !important; border-radius: 6px !important; }
+  .mission-tabs .tab .tab-check { font-size: 9px !important; margin-top: 1px !important; }
+  .knowledge-box { padding: 3px 8px !important; }
+  .knowledge-box .kb-title { font-size: 9px !important; }
+  .challenge-hud { padding: 4px 8px !important; font-size: 10px !important; top: 8px !important; right: 8px !important; }
+  .challenge-hud .ch-restart { padding: 2px 8px !important; font-size: 10px !important; }
+  .mode-toggle { padding: 3px 8px !important; font-size: 9px !important; top: 8px !important; left: 8px !important; }
+  .noise-btn, .timbre-btn, .app-btn, .lens-btn { padding: 4px 10px !important; font-size: 10px !important; }
+
+  .app { background: rgba(255,255,255,0.04) !important; border: 1px solid rgba(255,255,255,0.06) !important; backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); position: relative; z-index: 1; }
+  .top-bar { background: rgba(255,255,255,0.03) !important; border-bottom: 1px solid rgba(255,255,255,0.06) !important; }
+  .top-bar h1, .top-bar h2 { color: #fff !important; }
+  .top-bar .back { color: rgba(255,255,255,0.5) !important; }
+  .top-bar .back:hover { color: #fff !important; }
+  .top-bar .progress-dots .dot { background: rgba(255,255,255,0.1) !important; }
+  .top-bar .progress-dots .dot.active { background: #FF3B30 !important; }
+  .top-bar .progress-dots .dot.done { background: #34C759 !important; }
+  .canvas-wrap { background: rgba(10,12,26,0.6) !important; border-color: rgba(255,255,255,0.06) !important; }
+  .canvas-wrap canvas { filter: brightness(1.05) contrast(1.05); }
+  .info-panel { background: rgba(255,255,255,0.03) !important; border-color: rgba(255,255,255,0.06) !important; }
+  .info-panel .mission-label, .card .num { color: #FF3B30 !important; }
+  .info-panel .mission-title, .card h3, .hero h1, .top-bar h1 { color: #fff !important; }
+  .info-panel .mission-desc, p, .card p, .hero p { color: rgba(255,255,255,0.4) !important; }
+  .info-panel .mission-desc button, .card .status.new, .tab.active { background: #FF3B30 !important; color: #fff !important; border: none !important; }
+  .mission-tabs .tab { background: rgba(255,255,255,0.03) !important; border-color: rgba(255,255,255,0.08) !important; color: rgba(255,255,255,0.3) !important; }
+  .mission-tabs .tab:hover { border-color: #FF3B30 !important; color: #FF3B30 !important; }
+  .mission-tabs .tab.active { background: #FF3B30 !important; color: #fff !important; border-color: #FF3B30 !important; }
+  .mission-tabs .tab.done { border-color: #34C759 !important; color: #34C759 !important; }
+  .challenge-hud, .mode-toggle { background: rgba(0,0,0,0.5) !important; backdrop-filter: blur(10px) !important; }
+
+  .knowledge-box { background: rgba(255,59,48,0.08) !important; border-left-color: #FF3B30 !important; }
+  .knowledge-box .kb-title, .knowledge-box .kb-toggle { color: #FF3B30 !important; }
+  .knowledge-box .kb-body, .card p, .hero p { color: rgba(255,255,255,0.7) !important; }
+  .knowledge-box .kb-body em { color: #FF3B30 !important; }
+  .knowledge-box .kb-formula { background: rgba(255,255,255,0.06) !important; border-color: rgba(255,255,255,0.1) !important; color: #fff !important; }
+  .card { background: rgba(255,255,255,0.04) !important; border: 1px solid rgba(255,255,255,0.06) !important; backdrop-filter: blur(20px) !important; color: #fff !important; }
+  .card:hover { border-color: #FF3B30 !important; transform: translateY(-2px); }
+  .card .status.done { background: rgba(52,199,89,0.12) !important; color: #34C759 !important; border: 1px solid rgba(52,199,89,0.15) !important; }
+  .card .status.new { background: rgba(255,59,48,0.1) !important; color: #FF3B30 !important; border: 1px solid rgba(255,59,48,0.15) !important; }
+  .card .status.partial { background: rgba(255,255,255,0.05) !important; color: rgba(255,255,255,0.4) !important; border: 1px solid rgba(255,255,255,0.08) !important; }
+  .hero .progress-module, .module-progress { color: #FF3B30 !important; background: rgba(255,59,48,0.1) !important; border: 1px solid rgba(255,59,48,0.15) !important; }
+
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","SF Pro Text","Helvetica Neue",sans-serif;background:#f5f5f7;color:#1d1d1f;height:100dvh;display:flex;justify-content:center;align-items:center;margin:0}
+.app{width:820px;max-width:96vw;height:100dvh;max-height:100dvh;background:#fff;border-radius:20px;box-shadow:0 20px 60px rgba(0,0,0,0.08);display:flex;flex-direction:column;overflow:hidden}
+.top-bar{display:flex;align-items:center;padding:14px 20px;flex-shrink:0;background:#fafafa;border-bottom:1px solid #e8e8ed}
+.top-bar .back{font-size:20px;cursor:pointer;opacity:0.6}
+.top-bar .back:hover{opacity:1}
+.top-bar h1{font-size:15px;font-weight:600;margin-left:10px;flex:1}
+.top-bar .progress-dots{font-size:13px;color:#86868b;display:flex;gap:6px;align-items:center}
+.top-bar .progress-dots .dot{width:8px;height:8px;border-radius:50%;background:#e8e8ed}
+.top-bar .progress-dots .dot.active{background:#FF3B30}
+.top-bar .progress-dots .dot.done{background:#34C759}
+.main-area{padding:10px;flex:1;display:flex;flex-direction:column;overflow:hidden;gap:8px}
+.canvas-wrap{position:relative;background:#fff;border-radius:14px;border:1px solid #e8e8ed;overflow:hidden;flex-shrink:0}
+.canvas-wrap canvas{display:block;width:100%;height:auto}
+.info-panel{background:#fafafa;border-radius:14px;border:1px solid #e8e8ed;padding:10px 16px;overflow-y:auto;min-height:0}
+.info-panel .mission-label{font-size:11px;font-weight:600;color:#FF3B30;letter-spacing:0.5px;text-transform:uppercase}
+.info-panel .mission-title{font-size:15px;font-weight:600;margin:0 0 2px}
+.info-panel .mission-desc{font-size:13px;color:#86868b;line-height:1.4}
+.mission-tabs{display:flex;gap:4px;padding:2px 10px 8px;flex-shrink:0}
+.mission-tabs .tab{flex:1;padding:8px 4px;border-radius:8px;border:1px solid #e8e8ed;background:#fff;text-align:center;cursor:pointer;font-size:12px;font-weight:500;color:#86868b;transition:all 0.2s}
+.mission-tabs .tab:hover{border-color:#FF3B30;color:#FF3B30}
+.mission-tabs .tab.active{background:#FF3B30;color:#fff;border-color:#FF3B30}
+.mission-tabs .tab.done{border-color:#34C759;color:#34C759}
+.mission-tabs .tab .tab-check{font-size:11px;display:block;margin-top:2px}
+.mode-toggle{position:absolute;top:12px;left:12px;background:rgba(0,0,0,0.7);backdrop-filter:blur(10px);border-radius:8px;padding:5px 12px;color:#fff;font-size:11px;cursor:pointer;display:none;transition:all 0.2s;white-space:nowrap}
+.mode-toggle.show{display:block}
+.mode-toggle:hover{background:rgba(255,59,48,0.8)}
+.challenge-hud{position:absolute;top:12px;right:12px;background:rgba(0,0,0,0.7);backdrop-filter:blur(10px);border-radius:10px;padding:8px 14px;color:#fff;font-size:13px;display:none}
+.challenge-hud.show{display:block}
+.challenge-hud .ch-level{font-weight:600;margin-bottom:2px}
+.challenge-hud .ch-goal{color:#aaa;font-size:12px}
+.challenge-hud .ch-restart{margin-top:6px;padding:4px 10px;background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.25);border-radius:6px;color:#fff;font-size:11px;cursor:pointer}
+.quiz-overlay{position:absolute;inset:0;background:rgba(255,255,255,0.85);backdrop-filter:blur(20px);display:none;flex-direction:column;align-items:center;justify-content:center;padding:30px;z-index:10}
+.quiz-overlay.show{display:flex}
+.quiz-overlay .quiz-q{font-size:17px;font-weight:600;text-align:center;max-width:480px;margin-bottom:16px;line-height:1.5}
+.quiz-overlay .quiz-options{display:flex;flex-direction:column;gap:8px;width:100%;max-width:400px}
+.quiz-overlay .quiz-opt{padding:12px 20px;background:#fff;border:1.5px solid #e8e8ed;border-radius:12px;font-size:14px;cursor:pointer;transition:all 0.2s;text-align:left}
+.quiz-overlay .quiz-opt:hover{border-color:#FF3B30;background:#ffe8e6}
+.quiz-overlay .quiz-opt.correct{border-color:#34C759;background:#e8f8ee}
+.quiz-overlay .quiz-opt.wrong{border-color:#FF3B30;background:#ffe8e6}
+.quiz-overlay .quiz-result{margin-top:14px;font-size:14px;font-weight:500}
+.quiz-overlay .quiz-next{margin-top:12px;padding:10px 30px;background:#FF3B30;color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:500;cursor:pointer}
+	.knowledge-box { padding: 6px 12px; background: #f0f7ff; border-radius: 10px; border-left: 3px solid #FF3B30; flex-shrink: 0; cursor: pointer; user-select: none; }
+	.knowledge-box .kb-title { font-weight: 600; font-size: 11px; color: #FF3B30; letter-spacing: 0.3px; display: flex; align-items: center; gap: 4px; }
+	.knowledge-box .kb-toggle { font-size: 9px; color: #FF3B30; opacity: 0.5; transition: transform 0.2s; }
+	.knowledge-box .kb-toggle.open { transform: rotate(90deg); }
+	.knowledge-box .kb-body { font-size: 11.5px; color: #1d1d1f; line-height: 1.5; margin-top: 3px; }
+	.knowledge-box .kb-body em { color: #FF3B30; font-style: normal; font-weight: 500; }
+	.knowledge-box .kb-formula { display: inline-block; background: #fff; border: 1px solid #dce8f5; border-radius: 5px; padding: 1px 8px; font-family: "SF Mono", monospace; font-size: 12px; font-weight: 600; color: #1d1d1f; margin: 0 2px; }
+	.knowledge-box.collapsed .kb-body { display: none; }
+@media(max-width:600px){.mission-tabs .tab{font-size:11px;padding:8px 4px}.mission-tabs{padding:2px 6px 6px}}
+</style>
+</head>
+<body>
+<div class="app">
+<div class="top-bar">
+<span class="back" onclick="location.href='index.html'">&#8592;</span>
+<h1>分子热运动</h1>
+<div class="progress-dots" id="progressDots">
+<span class="dot" id="pdot0"></span><span class="dot" id="pdot1"></span><span class="dot" id="pdot2"></span><span class="dot" id="pdot3"></span>
+</div>
+</div>
+<div class="main-area">
+<div class="canvas-wrap">
+<canvas id="labCanvas" width="780" height="300"></canvas>
+<div class="challenge-hud" id="challengeHud">
+<div class="ch-level" id="chLevel">&#127919; 第 1/5 关</div>
+<div class="ch-goal" id="chGoal">目标加载中...</div>
+<div class="ch-restart" onclick="resetChallenges()">&#128260; 重来</div>
+</div>
+<div class="quiz-overlay" id="quizOverlay">
+<div class="quiz-q" id="quizQ">题目加载中...</div>
+<div class="quiz-options" id="quizOptions"></div>
+<div class="quiz-result" id="quizResult"></div>
+<button class="quiz-next" id="quizNext" onclick="nextQuiz()">下一题</button>
+        <button class="quiz-close" id="quizClose" onclick="closeQuiz()" style="margin-top:10px;padding:6px 16px;background:rgba(255,255,255,0.1);color:rgba(255,255,255,0.6);border:1px solid rgba(255,255,255,0.15);border-radius:8px;cursor:pointer;font-size:12px;">✕ 关闭</button>
+</div>
+</div>
+<div class="info-panel">
+<div class="mission-label" id="missionLabel">&#128300; 观察</div>
+<div class="mission-title" id="missionTitle">扩散现象</div>
+<div class="mission-desc" id="missionDesc">观看红墨水在水中的扩散现象。</div>
+</div>
+<div class="knowledge-box collapsed" id="knowledgeBox" onclick="toggleKnowledge()">
+  <div class="kb-title"><span class="kb-toggle" id="kbToggle">▶</span> 💡 <span id="kbTitle">知识要点</span></div>
+  <div class="kb-body" id="kbBody"></div>
+</div>
+</div>
+</div>
+<div class="mission-tabs" id="missionTabs"></div>
+</div>
+<script>
+const STORAGE_KEY='physics_nei_neng_ch1';
+const saved=(()=>{try{return JSON.parse(localStorage.getItem(STORAGE_KEY))}catch(e){}return null})()||{};
+let state={done:saved.done||[],currentMission:saved.currentMission||0,challengeIdx:saved.challengeIdx||0,quizIdx:saved.quizIdx||0,quizDone:saved.quizDone||[]};
+function saveState(){try{localStorage.setItem(STORAGE_KEY,JSON.stringify(state))}catch(e){}}
+
+var MISSIONS=[
+{id:'observe',label:'🔬 观察',title:'扩散现象',desc:'观看红墨水在水中的扩散过程。分子在不停地做无规则运动。'},
+{id:'explore',label:'✋ 探索',title:'温度对扩散的影响',desc:'比较红墨水在冷水和热水中的扩散速度。'},
+{id:'challenge',label:'🎯 挑战',title:'扩散速度挑战',desc:'运用分子动理论知识完成5关挑战！'},
+{id:'quiz',label:'⭐ 测验',title:'知识检测',desc:'完成5道选择题，巩固分子动理论知识。'}
+];
+
+var CHALLENGES=[
+{goal:'红墨水在热水中扩散比在冷水中___（填0=慢, 1=快）',answer:1,unit:'',tolerance:0},
+{goal:'通常情况下气体分子间距约为液体分子间距的多少倍？（填约数）',answer:10,unit:'倍',tolerance:3},
+{goal:'分子热运动的剧烈程度主要与什么有关？（0=颜色 1=温度 2=体积）',answer:1,unit:'',tolerance:0},
+{goal:'水温20℃时红墨水扩散需20秒，60℃时约需几秒？（每升10℃速度翻倍）',answer:5,unit:'秒',tolerance:2},
+{goal:'扩散现象最终红墨水在清水中会怎样？（0=沉底 1=均匀分布 2=浮表面）',answer:1,unit:'',tolerance:0}
+];
+
+var QUIZ_POOL=[
+{q:'扩散现象表明：',opts:['A. 分子间有引力','B. 分子在不停地做无规则运动','C. 分子间有斥力','D. 分子有质量'],ans:1,explain:'扩散现象直接说明了分子在不停地做无规则运动。'},
+{q:'下列现象中属于扩散的是：',opts:['A. 风吹树叶动','B. 扫地灰尘飞','C. 桂花满园香','D. 雪花飘飘'],ans:2,explain:'桂花香味扩散到空气中是分子运动，其他都是宏观物体的机械运动。'},
+{q:'分子热运动的剧烈程度与___有关：',opts:['A. 温度','B. 质量','C. 体积','D. 颜色'],ans:0,explain:'温度越高，分子热运动越剧烈，扩散越快。'},
+{q:'固体分子间的距离比气体分子间的距离：',opts:['A. 大','B. 小','C. 一样','D. 无法比较'],ans:1,explain:'固体分子间距最小，气体分子间距最大，液体居中。'},
+{q:'下列哪种现象说明分子间有引力？',opts:['A. 铁块很难被拉断','B. 水往低处流','C. 扩散现象','D. 蒸发'],ans:0,explain:'铁块很难被拉断是因为分子间存在引力。'}
+];
+
+const canvas=document.getElementById('labCanvas');
+const ctx=canvas.getContext('2d');
+let animId=null,animTime=0,isPlaying=false;
+let exploreHotWater=true;
+
+function roundRect(x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.lineTo(x+w-r,y);ctx.arcTo(x+w,y,x+w,y+r,r);ctx.lineTo(x+w,y+h-r);ctx.arcTo(x+w,y+h,x+w-r,y+h,r);ctx.lineTo(x+r,y+h);ctx.arcTo(x,y+h,x,y+h-r,r);ctx.lineTo(x,y+r);ctx.arcTo(x,y,x+r,y,r);ctx.closePath()}
+
+function drawScene(){const W=canvas.width,H=canvas.height;ctx.clearRect(0,0,W,H);const m=state.currentMission;if(m===0)drawObserve(W,H);else if(m===1)drawExplore(W,H);else if(m===2)drawChallenge(W,H)}
+
+// ── Observe: 扩散现象 ──
+function drawObserve(W,H){
+ctx.fillStyle='#fafafa';ctx.fillRect(0,0,W,H);
+// Beaker
+const bx=W/2-80,by=60,bw=160,bh=200;
+ctx.fillStyle='#e8f4ff';ctx.fillRect(bx,by,bw,bh);
+ctx.strokeStyle='#007AFF';ctx.lineWidth=2;ctx.strokeRect(bx,by,bw,bh);
+// Water level label
+ctx.fillStyle='#007AFF';ctx.font='11px sans-serif';ctx.textAlign='center';ctx.fillText('水',W/2,by-8);
+// Red ink diffusion
+const progress=isPlaying?Math.min(1,animTime/120):0;
+const centerY=by+bh/2;
+for(let i=0;i<60;i++){
+const angle=Math.random()*Math.PI*2;
+const r=Math.random()*80*progress;
+const px=W/2+Math.cos(angle)*r;
+const py=centerY+Math.sin(angle)*r;
+const alpha=0.3*(1-r/(80*progress+1))+0.1;
+ctx.fillStyle=`rgba(255,50,50,${alpha})`;
+ctx.beginPath();ctx.arc(px,py,3+Math.random()*3,0,Math.PI*2);ctx.fill();
+}
+// Ink drop at top
+if(progress<0.1){
+ctx.fillStyle='rgba(255,0,0,0.8)';
+ctx.beginPath();ctx.arc(W/2,by+20,6,0,Math.PI*2);ctx.fill();
+}
+// Molecules (small circles jiggling)
+ctx.fillStyle='rgba(100,100,100,0.3)';
+for(let i=0;i<20;i++){
+const angle=i*1.2+animTime*0.02;
+const r=30+Math.sin(animTime*0.05+i)*20;
+const mx=W/2+Math.cos(angle)*r;
+const my=centerY+Math.sin(angle*1.3)*r*0.8;
+ctx.beginPath();ctx.arc(mx,my,3,0,Math.PI*2);ctx.fill();
+}
+// Label
+ctx.fillStyle='#666';ctx.font='13px sans-serif';ctx.textAlign='center';
+if(!isPlaying)ctx.fillText('▶ 点击下方"观察"按钮开始演示',W/2,H-15);
+else if(progress<1)ctx.fillText('🔬 红墨水正在扩散中...',W/2,H-15);
+else ctx.fillText('✅ 红墨水已扩散均匀',W/2,H-15);
+}
+
+// ── Explore: 温度对扩散的影响 ──
+function drawExplore(W,H){
+ctx.fillStyle='#fafafa';ctx.fillRect(0,0,W,H);
+// Two beakers
+for(let side=0;side<2;side++){
+const cx=W/4+side*W/2,by=60,bw=120,bh=180;
+// Beaker
+ctx.fillStyle=side===0?'#ffe8e6':'#e8f4ff';
+ctx.fillRect(cx-bw/2,by,bw,bh);
+ctx.strokeStyle=side===0?'#FF3B30':'#007AFF';ctx.lineWidth=2;ctx.strokeRect(cx-bw/2,by,bw,bh);
+// Label
+ctx.fillStyle='#666';ctx.font='12px sans-serif';ctx.textAlign='center';
+ctx.fillText(side===0?'热水 (60℃)':'冷水 (10℃)',cx,by+bh+25);
+// Icon
+ctx.fillStyle=side===0?'#FF3B30':'#007AFF';ctx.font='16px sans-serif';
+ctx.fillText(side===0?'🔥':'❄️',cx,by-10);
+// Ink in this beaker
+const speed=side===0?1:0.15;
+const t=isPlaying?animTime*0.01*speed:0;
+const prog=Math.min(1,t);
+for(let i=0;i<30;i++){
+const angle=Math.random()*Math.PI*2;
+const r=Math.random()*50*prog;
+const px=cx+Math.cos(angle)*r;
+const py=by+bh/2+Math.sin(angle)*r;
+const alpha=0.3*(1-r/(50*prog+1));
+ctx.fillStyle=`rgba(255,50,50,${alpha})`;
+ctx.beginPath();ctx.arc(px,py,2+i%3,0,Math.PI*2);ctx.fill();
+}
+// Progress indicator
+if(isPlaying){
+ctx.fillStyle='#999';ctx.font='11px sans-serif';
+ctx.fillText(side===0?`已扩散 ${Math.round(prog*100)}%`:`已扩散 ${Math.round(prog*100)}%`,cx,by+bh+45);
+
+// Instructions
+if(!isPlaying){
+ctx.fillStyle='#999';ctx.font='12px sans-serif';ctx.textAlign='center';
+ctx.fillText('点击"开始探索"按钮，观察冷热水中扩散速度差异',W/2,H-10);
+}else{
+ctx.fillStyle='#FF3B30';ctx.font='13px sans-serif';font-weight='bold';
+ctx.fillText('🔥 热水中扩散更快！',W/2,25);
+
+// ── Challenge ──
+function drawChallenge(W,H){
+ctx.fillStyle='#fafafa';ctx.fillRect(0,0,W,H);
+const ch=CHALLENGES[state.challengeIdx]||CHALLENGES[0];
+ctx.fillStyle='#333';ctx.font='15px sans-serif';ctx.textAlign='center';
+// Word wrap
+const maxW=W-40;let lines=[],line='';
+for(let c of ch.goal){line+=c;if(ctx.measureText(line).width>maxW&&line.length>10){lines.push(line);line=''}}
+if(line)lines.push(line);
+let y=40;lines.forEach(l=>{ctx.fillText(l.trim(),W/2,y);y+=28});
+// Click hint
+ctx.fillStyle='#999';ctx.font='13px sans-serif';ctx.textBaseline='bottom';
+ctx.fillText('点击Canvas输入答案',W/2,H-10);
+// Animation molecules
+for(let i=0;i<12;i++){
+const angle=i*0.5+animTime*0.03;
+const r=60+Math.sin(animTime*0.04+i)*40;
+const mx=W/2+Math.cos(angle)*r-200;
+const my=120+Math.sin(angle*1.1)*30;
+ctx.fillStyle='rgba(255,59,48,0.15)';ctx.beginPath();ctx.arc(mx,my,4,0,Math.PI*2);ctx.fill();
+
+// ── Animation ──
+function animate(){if(isPlaying)animTime+=1;drawScene();animId=requestAnimationFrame(animate)}
+
+// ── Mission Switching ──
+function switchMission(idx){
+state.currentMission=idx;saveState();updateUI();drawScene();
+if(idx===0){isPlaying=true;animTime=0;
+setTimeout(()=>{if(state.currentMission===0&&isPlaying){isPlaying=false;if(!state.done.includes(0)){state.done.push(0);saveState();updateUI()}}},5000);
+} else if(idx!==1)isPlaying=false;
+}
+
+function updateUI(){
+const m=MISSIONS[state.currentMission];
+document.getElementById('missionLabel').textContent=m.label;
+document.getElementById('missionTitle').textContent=m.title;
+const desc=document.getElementById('missionDesc');
+const done=state.done.includes(state.currentMission);
+if(state.currentMission===0)desc.innerHTML=done?'✅ 已观看扩散演示。 <button onclick="switchMission(0)" style="padding:6px 16px;background:#FF3B30;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:13px;">▶ 再看一次</button>':m.desc+' <button onclick="switchMission(0)" style="padding:6px 16px;background:#FF3B30;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:13px;">▶ 播放演示</button>';
+else if(state.currentMission===1)desc.innerHTML=done?'✅ 已探索温度对扩散的影响。 <button onclick="startExplore()" style="padding:6px 16px;background:#FF3B30;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:13px;">▶ 重新探索</button>':m.desc+' <button onclick="startExplore()" style="padding:6px 16px;background:#FF3B30;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:13px;">▶ 开始探索</button>';
+else if(state.currentMission===2)desc.innerHTML=state.done.includes(2)?'🎉 所有关卡挑战成功！ <button onclick="resetChallenges()" style="padding:6px16px;background:#FF3B30;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:13px;">🔄 重新挑战</button>':`${m.desc} 当前第 ${state.challengeIdx+1}/${CHALLENGES.length} 关。`;
+else if(state.currentMission===3)desc.innerHTML=done?'✅ 测验已完成！ <button onclick="startQuiz()" style="padding:6px16px;background:#FF3B30;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:13px;">🔄 再来一轮</button>':m.desc+' 点击下方按钮开始。';
+// Tabs
+const tabs=document.getElementById('missionTabs');
+tabs.innerHTML=MISSIONS.map((m,i)=>{const a=i===state.currentMission,d=state.done.includes(i);return`<div class="${a?'tab active':d?'tab done':'tab'}" onclick="switchMission(${i})">${m.label}${d?'<span class="tab-check">✅</span>':''}</div>`}).join('');
+// Dots
+MISSIONS.forEach((_,i)=>{const dot=document.getElementById('pdot'+i);if(state.done.includes(i))dot.className='dot done';else if(i===state.currentMission)dot.className='dot active';else dot.className='dot'});
+// HUD
+document.getElementById('challengeHud').className=state.currentMission===2?'challenge-hud show':'challenge-hud';
+if(state.currentMission===2){document.getElementById('chLevel').textContent='🎯 第 '+(state.challengeIdx+1)+'/'+CHALLENGES.length+' 关';document.getElementById('chGoal').textContent=(CHALLENGES[state.challengeIdx]?.goal.slice(0,35)||'')+'...'}
+// Quiz overlay
+document.getElementById('quizOverlay').className=state.currentMission===3&&state.quizIdx<QUIZ_POOL.length?'quiz-overlay show':'quiz-overlay';
+}
+
+function startExplore(){isPlaying=true;animTime=0;setTimeout(()=>{if(state.currentMission===1&&isPlaying){isPlaying=false;if(!state.done.includes(1)){state.done.push(1);saveState();updateUI()}}},6000)}
+
+// ── Challenge ──
+canvas.addEventListener('click',(e)=>{
+if(state.currentMission!==2)return;
+const input=prompt('输入你的答案（数字）:','');
+if(input===null)return;
+const num=parseFloat(input);
+if(isNaN(num))return;
+const ch=CHALLENGES[state.challengeIdx];
+if(!ch)return;
+if(Math.abs(num-ch.answer)<=ch.tolerance){
+state.challengeIdx++;
+if(state.challengeIdx>=CHALLENGES.length){if(!state.done.includes(2))state.done.push(2);saveState();updateUI();alert('🎉 恭喜通关！')}
+else{saveState();updateUI()}
+}else{alert('❌ 答案不对，再想想！')}
+});
+
+function resetChallenges(){state.challengeIdx=0;const idx=state.done.indexOf(2);if(idx>=0)state.done.splice(idx,1);saveState();updateUI()}
+
+// ── Quiz ──
+function startQuiz(){state.quizIdx=0;state.quizDone=[];saveState();showQuiz()}
+function showQuiz(){
+if(state.quizIdx>=QUIZ_POOL.length){if(!state.done.includes(3)){state.done.push(3);saveState()}updateUI();return}
+const q=QUIZ_POOL[state.quizIdx];
+document.getElementById('quizQ').textContent=(state.quizIdx+1)+'. '+q.q;
+document.getElementById('quizOptions').innerHTML=q.opts.map((o,i)=>'<div class="quiz-opt" onclick="selectQuiz('+i+')">'+o+'</div>').join('');
+document.getElementById('quizResult').textContent='';document.getElementById('quizNext').style.display='none';document.getElementById('quizOverlay').className='quiz-overlay show';showQuiz()
+}
+function selectQuiz(idx){
+const q=QUIZ_POOL[state.quizIdx];const opts=document.querySelectorAll('.quiz-opt');
+opts.forEach((el,i)=>{el.style.pointerEvents='none';if(i===q.ans)el.className='quiz-opt correct';else if(i===idx&&idx!==q.ans)el.className='quiz-opt wrong'});
+document.getElementById('quizResult').textContent=idx===q.ans?'✅ 正确！'+q.explain:'❌ 正确答案是 '+q.opts[q.ans]+'。'+q.explain;
+document.getElementById('quizNext').style.display='block'
+}
+function nextQuiz(){state.quizIdx++;saveState();showQuiz()}
+
+// ── Init ──
+
+// ── Knowledge Points ──
+const KNOWLEDGE = {
+  0: {
+    title: '💡 分子动理论',
+    body: `物质是由大量分子组成的，分子在不停地做无规则运动，分子间存在引力和斥力。
+
+这就是分子动理论的三个基本内容。`
+  },
+  1: {
+    title: '💡 扩散现象',
+    body: `不同物质相互接触时，彼此进入对方的现象叫做扩散。
+
+扩散现象直接说明了分子在不停地做无规则运动。
+
+温度越高，扩散越快，说明分子运动越剧烈。`
+  },
+  2: {
+    title: '💡 温度与分子运动',
+    body: `分子的无规则运动与温度有关，温度越高，分子运动越剧烈。
+
+• 热水中扩散快 → 分子运动剧烈
+• 冷水中扩散慢 → 分子运动缓慢
+
+分子的这种无规则运动叫做热运动。`
+  },
+  3: {
+    title: '💡 检测你的掌握',
+    body: `通过几道选择题来检验你是否真正理解了分子动理论和扩散现象。
+
+关键点：分子在不停地做无规则运动，温度越高运动越剧烈。`
+  },
+};
+
+function toggleKnowledge() {
+  const box = document.getElementById('knowledgeBox');
+  const toggle = document.getElementById('kbToggle');
+  box.classList.toggle('collapsed');
+  toggle.classList.toggle('open');
+}
+
+function setKnowledge(idx) {
+  const k = KNOWLEDGE[idx];
+  if (k) {
+    document.getElementById('kbTitle').textContent = k.title;
+    document.getElementById('kbBody').innerHTML = k.body.replace(/\n/g, '<br>');
+    // Auto-expand when switching to a new mission
+    const box = document.getElementById('knowledgeBox');
+    if (box.classList.contains('collapsed')) {
+      box.classList.remove('collapsed');
+      document.getElementById('kbToggle').classList.add('open');
+    }
+  }
+}
+
+switchMission(state.currentMission);animate();
+
+function closeQuiz() { switchMission(0); }
+</script>
+</body>
+</html>

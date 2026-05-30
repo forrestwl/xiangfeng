@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>压强 · 第2节</title>
+<style>
+/* NB_LAB */
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "PingFang SC", "Helvetica Neue", sans-serif;
+    min-height: 100dvh;
+    background: linear-gradient(135deg, #0c0e1a 0%, #1a1e3a 30%, #0d1b2a 60%, #0a0e1a 100%) !important;
+    display: flex; justify-content: center; align-items: center; margin: 0; position: relative;
+  }
+  body::before {
+    content: ''; position: fixed; top: -50%; left: -50%; width: 200%; height: 200%;
+    background: radial-gradient(ellipse at 20% 50%, rgba(175,82,222,0.08) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 20%, rgba(175,82,222,0.05) 0%, transparent 50%);
+    pointer-events: none; z-index: 0;
+  }
+
+  /* COMPACT_V5 - balanced layout */
+  .app { height: 100dvh !important; max-height: 100dvh !important; }
+  .top-bar { padding: 6px 12px !important; min-height: 34px !important; }
+  .top-bar h1 { font-size: 12px !important; }
+  .top-bar .back { font-size: 14px !important; }
+  .top-bar .progress-dots .dot { width: 6px !important; height: 6px !important; }
+  .main-area { padding: 6px !important; gap: 6px !important; flex: 1 !important; min-height: 0 !important; overflow: hidden !important; }
+  .canvas-wrap { flex: 1 !important; min-height: 200px !important; max-height: none !important; overflow: hidden !important; position: relative !important; }
+  .canvas-wrap canvas { width: 100% !important; height: 100% !important; display: block !important; }
+.canvas-wrap.quiz-active { flex-shrink: 1 !important; min-height: 55dvh !important; max-height: 75dvh !important; }
+  .canvas-wrap.quiz-active canvas { display: none !important; }
+  .info-panel { padding: 4px 10px !important; flex-shrink: 0 !important; min-height: 50px !important; max-height: 30dvh !important; overflow-y: auto !important; }
+  .info-panel .mission-label { font-size: 9px !important; line-height: 14px !important; }
+  .info-panel .mission-title { font-size: 12px !important; line-height: 16px !important; margin: 0 !important; }
+  .info-panel .mission-desc { font-size: 11px !important; line-height: 15px !important; }
+  .info-panel .mission-desc button { padding: 3px 10px !important; font-size: 10px !important; border-radius: 6px !important; }
+  .info-panel .data-display, .info-panel .speed-display,
+  .info-panel .noise-display, .info-panel .sonar-display,
+  .info-panel .wave-controls, .info-panel .angle-display { margin-top: 2px !important; padding-top: 2px !important; gap: 6px !important; }
+  .info-panel .data-item, .info-panel .speed-item,
+  .info-panel .noise-item, .info-panel .sonar-item { font-size: 10px !important; }
+  .info-panel .data-item .value, .info-panel .speed-item .value { font-size: 12px !important; }
+  .info-panel .wave-controls input[type=range] { width: 60px !important; }
+  .mission-tabs { padding: 2px 8px 6px !important; flex-shrink: 0 !important; }
+  .mission-tabs .tab { padding: 5px 4px !important; font-size: 11px !important; border-radius: 6px !important; }
+  .mission-tabs .tab .tab-check { font-size: 9px !important; margin-top: 1px !important; }
+  .knowledge-box { padding: 3px 8px !important; }
+  .knowledge-box .kb-title { font-size: 9px !important; }
+  .knowledge-box .kb-body { font-size: 10px !important; line-height: 1.3 !important; }
+  .challenge-hud { padding: 4px 8px !important; font-size: 10px !important; top: 8px !important; right: 8px !important; }
+  .challenge-hud .ch-restart { padding: 2px 8px !important; font-size: 10px !important; }
+  .mode-toggle { padding: 3px 8px !important; font-size: 9px !important; top: 8px !important; left: 8px !important; }
+  .noise-btn, .timbre-btn, .app-btn, .lens-btn { padding: 4px 10px !important; font-size: 10px !important; }
+
+  .top-bar { padding: 6px 12px !important; min-height: 36px !important; }
+  .top-bar h1 { font-size: 12px !important; }
+  .top-bar .back { font-size: 14px !important; line-height: 20px !important; }
+  .top-bar .progress-dots .dot { width: 6px !important; height: 6px !important; }
+  .main-area { padding: 4px !important; gap: 4px !important; flex: 1 !important; min-height: 0 !important; }
+  .canvas-wrap { flex-shrink: 0 !important; }
+.info-panel { padding: 4px 8px !important; flex: 1 !important; min-height: 30px !important; overflow-y: auto !important; }
+  .info-panel .mission-label { font-size: 9px !important; line-height: 14px !important; }
+  .info-panel .mission-title { font-size: 12px !important; line-height: 16px !important; margin: 0 !important; }
+  .info-panel .mission-desc { font-size: 11px !important; line-height: 15px !important; }
+  .info-panel .mission-desc button { padding: 3px 10px !important; font-size: 10px !important; border-radius: 6px !important; }
+  .info-panel .data-display, .info-panel .speed-display,
+  .info-panel .noise-display, .info-panel .sonar-display,
+  .info-panel .wave-controls, .info-panel .angle-display { margin-top: 3px !important; padding-top: 3px !important; gap: 6px !important; }
+  .info-panel .data-item, .info-panel .speed-item,
+  .info-panel .noise-item, .info-panel .sonar-item { font-size: 10px !important; }
+  .info-panel .data-item .value, .info-panel .speed-item .value { font-size: 12px !important; }
+  .info-panel .wave-controls input[type=range] { width: 60px !important; }
+  .mission-tabs { padding: 1px 6px 4px !important; flex-shrink: 0 !important; }
+  .mission-tabs .tab { padding: 4px 3px !important; font-size: 10px !important; border-radius: 6px !important; }
+  .mission-tabs .tab .tab-check { font-size: 9px !important; margin-top: 1px !important; }
+  .knowledge-box { padding: 3px 8px !important; }
+  .knowledge-box .kb-title { font-size: 9px !important; }
+  .challenge-hud { padding: 4px 8px !important; font-size: 10px !important; top: 8px !important; right: 8px !important; }
+  .challenge-hud .ch-restart { padding: 2px 8px !important; font-size: 10px !important; }
+  .mode-toggle { padding: 3px 8px !important; font-size: 9px !important; top: 8px !important; left: 8px !important; }
+  .noise-btn, .timbre-btn, .app-btn, .lens-btn { padding: 4px 10px !important; font-size: 10px !important; }
+
+  .app { background: rgba(255,255,255,0.04) !important; border: 1px solid rgba(255,255,255,0.06) !important; backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); position: relative; z-index: 1; }
+  .top-bar { background: rgba(255,255,255,0.03) !important; border-bottom: 1px solid rgba(255,255,255,0.06) !important; }
+  .top-bar h1, .top-bar h2 { color: #fff !important; }
+  .top-bar .back { color: rgba(255,255,255,0.5) !important; }
+  .top-bar .back:hover { color: #fff !important; }
+  .top-bar .progress-dots .dot { background: rgba(255,255,255,0.1) !important; }
+  .top-bar .progress-dots .dot.active { background: #AF52DE !important; }
+  .top-bar .progress-dots .dot.done { background: #34C759 !important; }
+  .canvas-wrap { background: rgba(10,12,26,0.6) !important; border-color: rgba(255,255,255,0.06) !important; }
+  .canvas-wrap canvas { filter: brightness(1.05) contrast(1.05); }
+  .info-panel { background: rgba(255,255,255,0.03) !important; border-color: rgba(255,255,255,0.06) !important; }
+  .info-panel .mission-label, .card .num { color: #AF52DE !important; }
+  .info-panel .mission-title, .card h3, .hero h1, .top-bar h1 { color: #fff !important; }
+  .info-panel .mission-desc, p, .card p, .hero p { color: rgba(255,255,255,0.4) !important; }
+  .info-panel .mission-desc button, .card .status.new, .tab.active { background: #AF52DE !important; color: #fff !important; border: none !important; }
+  .mission-tabs .tab { background: rgba(255,255,255,0.03) !important; border-color: rgba(255,255,255,0.08) !important; color: rgba(255,255,255,0.3) !important; }
+  .mission-tabs .tab:hover { border-color: #AF52DE !important; color: #AF52DE !important; }
+  .mission-tabs .tab.active { background: #AF52DE !important; color: #fff !important; border-color: #AF52DE !important; }
+  .mission-tabs .tab.done { border-color: #34C759 !important; color: #34C759 !important; }
+  .challenge-hud, .mode-toggle { background: rgba(0,0,0,0.5) !important; backdrop-filter: blur(10px) !important; }
+  .
+
+quiz-overlay { background: rgba(10,12,26,0.88) !important; backdrop-filter: blur(24px) !important; }
+  .knowledge-box { background: rgba(175,82,222,0.08) !important; border-left-color: #AF52DE !important; }
+  .knowledge-box .kb-title, .knowledge-box .kb-toggle { color: #AF52DE !important; }
+  .knowledge-box .kb-body, .card p, .hero p { color: rgba(255,255,255,0.7) !important; }
+  .knowledge-box .kb-body em { color: #AF52DE !important; }
+  .knowledge-box .kb-formula { background: rgba(255,255,255,0.06) !important; border-color: rgba(255,255,255,0.1) !important; color: #fff !important; }
+  .card { background: rgba(255,255,255,0.04) !important; border: 1px solid rgba(255,255,255,0.06) !important; backdrop-filter: blur(20px) !important; color: #fff !important; }
+  .card:hover { border-color: #AF52DE !important; transform: translateY(-2px); }
+  .card .status.done { background: rgba(52,199,89,0.12) !important; color: #34C759 !important; border: 1px solid rgba(52,199,89,0.15) !important; }
+  .card .status.new { background: rgba(175,82,222,0.1) !important; color: #AF52DE !important; border: 1px solid rgba(175,82,222,0.15) !important; }
+  .card .status.partial { background: rgba(255,255,255,0.05) !important; color: rgba(255,255,255,0.4) !important; border: 1px solid rgba(255,255,255,0.08) !important; }
+  .hero .progress-module, .module-progress { color: #AF52DE !important; background: rgba(175,82,222,0.1) !important; border: 1px solid rgba(175,82,222,0.15) !important; }
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", sans-serif; background: #f5f5f7; color: #1d1d1f; display: flex; justify-content: center; padding: 16px; }
+.app { width: 820px; max-width: 100%; background: #fff; border-radius: 20px; box-shadow: 0 20px 60px rgba(0,0,0,0.08); overflow: hidden; }
+.top-bar { display: flex; align-items: center; padding: 12px 20px; border-bottom: 1px solid #e8e8ed; }
+.top-bar .back { font-size: 20px; cursor: pointer; opacity: 0.6; text-decoration: none; color: inherit; background: none; border: none; padding: 0 8px 0 0; }
+.top-bar .back:hover { opacity: 1; }
+.top-bar h2 { font-size: 14px; font-weight: 600; opacity: 0.8; }
+.top-bar .ch-title { margin-left: auto; font-size: 13px; color: #AF52DE; font-weight: 600; }
+canvas { display: block; width: 100%; height: auto; background: #fafafe; border-bottom: 1px solid #e8e8ed; aspect-ratio: 780/300; }
+.tabs { display: flex; border-bottom: 1px solid #e8e8ed; }
+.tabs .tab { flex: 1; padding: 12px 6px; text-align: center; font-size: 14px; font-weight: 500; cursor: pointer; border: none; background: none; color: #86868b; transition: all 0.2s; border-bottom: 2px solid transparent; }
+.tabs .tab:hover { color: #1d1d1f; background: #fafafe; }
+.tabs .tab.active { color: #AF52DE; border-bottom-color: #AF52DE; }
+.content { padding: 20px 24px 28px; min-height: 340px; }
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+.tab-content h3 { font-size: 17px; font-weight: 600; margin-bottom: 12px; }
+.tab-content p { font-size: 14px; line-height: 1.8; color: #3a3a3c; margin-bottom: 10px; }
+.tab-content ul { padding-left: 20px; font-size: 14px; line-height: 2; color: #3a3a3c; }
+.tab-content .highlight { background: #f5f0ff; border-left: 3px solid #AF52DE; padding: 12px 16px; border-radius: 8px; margin: 12px 0; font-size: 14px; line-height: 1.7; }
+.tab-content .btn { display: inline-block; padding: 10px 24px; border-radius: 10px; border: none; font-size: 14px; font-weight: 600; cursor: pointer; background: #AF52DE; color: #fff; transition: all 0.2s; }
+.tab-content .btn:hover { opacity: 0.85; transform: translateY(-1px); }
+.tab-content .btn.secondary { background: #f0f0f5; color: #1d1d1f; }
+.tab-content .btn.secondary:hover { background: #e5e5ea; }
+.tab-content .challenge-box { background: #fafafe; border: 1px solid #e8e8ed; border-radius: 12px; padding: 16px; margin-bottom: 12px; }
+.tab-content .challenge-box .q { font-weight: 600; margin-bottom: 6px; }
+.tab-content .challenge-box .a { color: #86868b; font-size: 13px; }
+.quiz-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 999; justify-content: center; align-items: center; padding: 20px; }
+.quiz-overlay.show { display: flex; background: rgba(10,12,26,0.92) !important; backdrop-filter: blur(20px) !important; -webkit-backdrop-filter: blur(20px) !important; }
+.quiz-panel { background: #fff; border-radius: 20px; max-width: 540px; width: 100%; max-height: 90vh; overflow-y: auto; padding: 28px 24px; }
+.quiz-panel h3 { font-size: 18px; font-weight: 700; margin-bottom: 16px; }
+.quiz-panel .q-item { margin-bottom: 18px; padding-bottom: 16px; border-bottom: 1px solid #e8e8ed; }
+.quiz-panel .q-item:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+.quiz-panel .q-text { font-weight: 600; font-size: 14px; margin-bottom: 8px; line-height: 1.6; }
+.quiz-panel .q-opts { display: flex; flex-direction: column; gap: 5px; }
+.quiz-panel .q-opts label { font-size: 14px; display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 6px 10px; border-radius: 8px; transition: background 0.15s; }
+.quiz-panel .q-opts label:hover { background: #f5f5f7; }
+.quiz-panel .q-opts input[type="radio"] { accent-color: #AF52DE; }
+.quiz-panel .quiz-result { margin-top: 16px; padding: 14px 16px; border-radius: 12px; font-weight: 600; text-align: center; }
+.quiz-panel .quiz-result.pass { background: #e8f8ee; color: #34C759; }
+.quiz-panel .quiz-result.fail { background: #fff2f2; color: #FF3B30; }
+.quiz-panel .quiz-actions { display: flex; gap: 10px; margin-top: 16px; }
+.quiz-panel .quiz-actions .btn { flex: 1; }
+@media (max-width: 600px) { body { padding: 8px; } .content { padding: 16px; } .quiz-panel { padding: 20px 16px; } }
+.knowledge-box { padding: 6px 12px; background: #f5f0ff; border-radius: 10px; border-left: 3px solid #AF52DE; flex-shrink: 0; cursor: pointer; user-select: none; margin-top: 10px; }
+.knowledge-box .kb-title { font-weight: 600; font-size: 11px; color: #AF52DE; letter-spacing: 0.3px; display: flex; align-items: center; gap: 4px; }
+.knowledge-box .kb-toggle { font-size: 9px; color: #AF52DE; opacity: 0.5; transition: transform 0.2s; }
+.knowledge-box .kb-toggle.open { transform: rotate(90deg); }
+.knowledge-box .kb-body { font-size: 11.5px; color: #1d1d1f; line-height: 1.5; margin-top: 3px; }
+.knowledge-box .kb-body em { color: #AF52DE; font-style: normal; font-weight: 500; }
+.knowledge-box .kb-formula { display: inline-block; background: #fff; border: 1px solid #e0d0f0; border-radius: 5px; padding: 1px 8px; font-family: "SF Mono", monospace; font-size: 12px; font-weight: 600; color: #1d1d1f; margin: 0 2px; }
+.knowledge-box.collapsed .kb-body { display: none; }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="top-bar">
+    <button class="back" onclick="location.href='index.html'">←</button>
+        <button class="quiz-close" id="quizClose" onclick="closeQuiz()" style="margin-top:10px;padding:6px 16px;background:rgba(255,255,255,0.1);color:rgba(255,255,255,0.6);border:1px solid rgba(255,255,255,0.15);border-radius:8px;cursor:pointer;font-size:12px;">✕ 关闭</button>
+    <h2>物理实验室</h2>
+    <span class="ch-title">第2节 液体压强</span>
+  </div>
+  <canvas id="simCanvas" width="780" height="300"></canvas>
+  <div class="tabs">
+    <button class="tab active" data-tab="observe">观察</button>
+    <button class="tab" data-tab="explore">探索</button>
+    <button class="tab" data-tab="challenge">挑战</button>
+    <button class="tab" data-tab="quiz">测验</button>
+  </div>
+  <div class="content">
+    <!-- 观察 -->
+    <div id="observe" class="tab-content active">
+      <h3>🔍 观察：液体压强计 U 型管</h3>
+      <p>液体压强计通过U型管两侧液面的高度差来反映液体压强的大小。</p>
+      <div class="highlight">
+        <strong>实验现象：</strong><br>
+        探头在水中越深，U型管两侧液面高度差越大，说明液体压强随深度增加而增大。<br><br>
+        <strong>原理：</strong>液体内部压强与深度和液体密度有关。同一深度，各方向压强相等。
+      </div>
+      <p>左侧动画展示了U型管压强计的工作原理：左侧探头放入液体中，右侧为连通大气，两管液面出现高度差。</p>
+    </div>
+    <!-- 探索 -->
+    <div id="explore" class="tab-content">
+      <h3>🧪 探索：深度与密度变量控制</h3>
+      <p>拖动滑块改变液体深度和密度，观察U型管液面高度差变化。</p>
+      <div style="margin: 16px 0;">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;flex-wrap:wrap;">
+          <span style="font-size:14px;min-width:80px;">深度 h:</span>
+          <input type="range" id="sliderDepth" min="1" max="10" value="5" style="flex:1;max-width:300px;" oninput="updateExplore()">
+          <span id="depthVal" style="font-size:14px;font-weight:600;color:#AF52DE;">5 m</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;flex-wrap:wrap;">
+          <span style="font-size:14px;min-width:80px;">密度 ρ:</span>
+          <input type="range" id="sliderDensity" min="800" max="13600" value="1000" step="100" style="flex:1;max-width:300px;" oninput="updateExplore()">
+          <span id="densityVal" style="font-size:14px;font-weight:600;color:#AF52DE;">1000 kg/m³</span>
+        </div>
+        <div style="font-size:15px;padding:10px 14px;background:#f5f0ff;border-radius:10px;">
+          液体压强 p = ρgh = <strong id="pResult">49000</strong> Pa &nbsp;(g = 9.8 N/kg)
+        </div>
+      </div>
+      <p style="font-size:13px;color:#86868b;">深度越大或液体密度越大，压强越大。</p>
+    </div>
+    <!-- 挑战 -->
+    <div id="challenge" class="tab-content">
+      <h3>🏆 挑战：液体压强计算</h3>
+      <p>运用 p = ρgh 完成以下题目（g 取 10 N/kg）。</p>
+      <div id="challengeList">
+        <div class="challenge-box" data-cid="c1">
+          <div class="q">【计算 1】水的密度 1000 kg/m³，深度 2 m，求水底压强。（单位：Pa）</div>
+          <div class="a"><button class="btn secondary" onclick="doChallenge('c1','20000','20000 Pa (ρgh = 1000×10×2)')">提交答案</button> <span id="sc1"></span></div>
+        </div>
+        <div class="challenge-box" data-cid="c2">
+          <div class="q">【计算 2】某液体密度 1200 kg/m³，4 m 深处压强为多少？（单位：Pa）</div>
+          <div class="a"><button class="btn secondary" onclick="doChallenge('c2','48000','48000 Pa (1200×10×4)')">提交答案</button> <span id="sc2"></span></div>
+        </div>
+        <div class="challenge-box" data-cid="c3">
+          <div class="q">【计算 3】潜水器在海水下 200 m，海水密度 1030 kg/m³，求海水压强。（单位：Pa）</div>
+          <div class="a"><button class="btn secondary" onclick="doChallenge('c3','2060000','2.06×10⁶ Pa (1030×10×200)')">提交答案</button> <span id="sc3"></span></div>
+        </div>
+        <div class="challenge-box" data-cid="c4">
+          <div class="q">【简答】连通器的原理是什么？</div>
+          <div class="a"><button class="btn secondary" onclick="doSimple('c4','连通器中装有同种液体且不流动时，各容器中的液面总是相平的。')">查看答案</button> <span id="sc4"></span></div>
+        </div>
+        <div class="challenge-box" data-cid="c5">
+          <div class="q">【应用】三峡船闸利用了哪个物理原理？</div>
+          <div class="a"><button class="btn secondary" onclick="doSimple('c5','三峡船闸利用了连通器原理。')">查看答案</button> <span id="sc5"></span></div>
+        </div>
+      </div>
+    </div>
+    <!-- 测验 -->
+    <div id="quiz" class="tab-content">
+      <h3>📝 测验：液体压强与连通器</h3>
+      <p>共 5 道选择题，点击下方按钮开始测验。</p>
+      <button class="btn" onclick="startQuiz()">开始测验</button>
+    </div>
+      <div class="knowledge-box collapsed" id="knowledgeBox" onclick="toggleKnowledge()">
+        <div class="kb-title"><span class="kb-toggle" id="kbToggle">▶</span> 💡 <span id="kbTitle">知识要点</span></div>
+        <div class="kb-body" id="kbBody"></div>
+      </div>
+  </div>
+</div>
+
+<div class="quiz-overlay" id="quizOverlay">
+
+    showQuiz();  <div class="quiz-panel">
+    <h3>📝 液体压强测验</h3>
+    <div id="quizQuestions"></div>
+    <div id="quizResult" class="quiz-result" style="display:none;"></div>
+    <div class="quiz-actions">
+      <button class="btn" id="quizSubmitBtn" onclick="submitQuiz()">提交</button>
+      <button class="btn secondary" onclick="closeQuiz()">关闭</button>
+    </div>
+  </div>
+</div>
+
+<script>
+var STORAGE_KEY = 'physics_ya_qiang_ch2';
+
+function saveProgress(tabId) {
+  var data = { done: [] };
+  try { data = JSON.parse(localStorage.getItem(STORAGE_KEY)) || { done: [] }; } catch(e) {}
+  if (data.done.indexOf(tabId) === -1) {
+    data.done.push(tabId);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  }
+}
+
+document.querySelectorAll('.tab').forEach(function(tab) {
+  tab.addEventListener('click', function() {
+    document.querySelectorAll('.tab').forEach(function(t) { t.classList.remove('active'); });
+    document.querySelectorAll('.tab-content').forEach(function(c) { c.classList.remove('active'); });
+    this.classList.add('active');
+    document.getElementById(this.dataset.tab).classList.add('active');
+    saveProgress(this.dataset.tab);
+    var tabOrder = ['observe', 'explore', 'challenge', 'quiz'];
+    var idx = tabOrder.indexOf(this.dataset.tab);
+    if (idx >= 0) setKnowledge(idx);
+  });
+});
+
+// ========== CANVAS ==========
+var canvas = document.getElementById('simCanvas');
+var ctx = canvas.getContext('2d');
+var cw = canvas.width, ch = canvas.height;
+
+function drawCanvas() {
+  ctx.clearRect(0, 0, cw, ch);
+
+  // Draw U-tube manometer
+  var cx = 390, cy = 40;
+  var tubeW = 20, tubeH = 220;
+  var leftX = cx - 60, rightX = cx + 60;
+
+  // Tube outline
+  ctx.strokeStyle = '#c7c7cc';
+  ctx.lineWidth = 2;
+  ctx.fillStyle = '#f0f0ff';
+
+  // Left tube
+  ctx.beginPath();
+  ctx.moveTo(leftX - tubeW/2, cy + tubeH);
+  ctx.lineTo(leftX - tubeW/2, cy + 10);
+  ctx.lineTo(leftX + tubeW/2, cy + 10);
+  ctx.lineTo(leftX + tubeW/2, cy + tubeH);
+  ctx.stroke();
+
+  // Right tube
+  ctx.beginPath();
+  ctx.moveTo(rightX - tubeW/2, cy + tubeH);
+  ctx.lineTo(rightX - tubeW/2, cy + 10);
+  ctx.lineTo(rightX + tubeW/2, cy + 10);
+  ctx.lineTo(rightX + tubeW/2, cy + tubeH);
+  ctx.stroke();
+
+  // Bottom connection
+  ctx.beginPath();
+  ctx.moveTo(leftX + tubeW/2, cy + tubeH);
+  ctx.lineTo(rightX - tubeW/2, cy + tubeH);
+  ctx.stroke();
+
+  // Liquid (gradient fill)
+  var liquidH = 140; // height of liquid
+  var leftLiquidTop = cy + tubeH - liquidH;
+  var rightLiquidTop = cy + tubeH - liquidH - 40; // displaced
+
+  var grad = ctx.createLinearGradient(leftX, cy, leftX, cy + tubeH);
+  grad.addColorStop(0, 'rgba(175,82,222,0.3)');
+  grad.addColorStop(1, 'rgba(175,82,222,0.6)');
+
+  // Left liquid
+  ctx.fillStyle = grad;
+  ctx.fillRect(leftX - tubeW/2 + 2, leftLiquidTop, tubeW - 4, liquidH);
+
+  // Right liquid
+  ctx.fillRect(rightX - tubeW/2 + 2, rightLiquidTop, tubeW - 4, liquidH + 40);
+
+  // Height difference arrow
+  ctx.setLineDash([4, 4]);
+  ctx.strokeStyle = '#AF52DE';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(leftX + tubeW/2 + 10, leftLiquidTop);
+  ctx.lineTo(leftX + tubeW/2 + 10, rightLiquidTop);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Height label
+  ctx.fillStyle = '#AF52DE';
+  ctx.font = '12px sans-serif';
+  ctx.textAlign = 'left';
+  ctx.fillText('Δh 高度差', leftX + tubeW/2 + 14, leftLiquidTop + 20);
+
+  // Probe at bottom
+  ctx.fillStyle = '#8e8e93';
+  ctx.fillRect(cx - 15, cy + tubeH + 5, 30, 8);
+  ctx.fillRect(cx - 4, cy + tubeH + 13, 8, 20);
+
+  // Liquid depth indicator
+  ctx.fillStyle = '#3a3a3c';
+  ctx.font = '13px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('压强计探头', cx, cy + tubeH + 52);
+
+  // Title
+  ctx.fillStyle = '#ffffff';
+  ctx.font = 'bold 14px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('U 型管液体压强计', cx, 22);
+}
+
+drawCanvas();
+
+// ========== EXPLORE ==========
+function updateExplore() {
+  var h = parseInt(document.getElementById('sliderDepth').value);
+  var rho = parseInt(document.getElementById('sliderDensity').value);
+  document.getElementById('depthVal').textContent = h + ' m';
+  document.getElementById('densityVal').textContent = rho + ' kg/m³';
+  var g = 9.8;
+  var p = (rho * g * h);
+  document.getElementById('pResult').textContent = p.toFixed(0) + ' Pa';
+}
+updateExplore();
+
+// ========== CHALLENGE ==========
+function doChallenge(id, answer, hint) {
+  var u = window.prompt('请输入你的答案：');
+  if (u === null) return;
+  var span = document.getElementById('s' + id);
+  if (u.trim() === answer) {
+    span.innerHTML = '✅ 正确！';
+    span.style.color = '#34C759';
+  } else {
+    span.innerHTML = '❌ 不正确。参考：' + hint;
+    span.style.color = '#FF3B30';
+  }
+  checkAllDone();
+}
+
+function doSimple(id, hint) {
+  var span = document.getElementById('s' + id);
+  span.innerHTML = '💡 ' + hint;
+  span.style.color = '#AF52DE';
+  checkAllDone();
+}
+
+function checkAllDone() {
+  var allDone = true;
+  document.querySelectorAll('#challengeList .challenge-box').forEach(function(box) {
+    var sid = 's' + box.dataset.cid;
+    if (document.getElementById(sid).innerHTML.indexOf('✅') === -1 && document.getElementById(sid).innerHTML.indexOf('💡') === -1) allDone = false;
+  });
+  if (allDone) saveProgress('challenge');
+}
+
+// ========== QUIZ ==========
+var quizData = [
+  { q: '液体内部压强的特点，以下哪个是正确的？', opts: ['A. 液体只对容器底部有压强', 'B. 液体内部向各个方向都有压强', 'C. 液体压强与深度无关', 'D. 液体压强与液体密度无关'], ans: 1 },
+  { q: '液体压强随深度的增加而如何变化？', opts: ['A. 减小', 'B. 不变', 'C. 增大', 'D. 不确定'], ans: 2 },
+  { q: '连通器的原理在实际中的典型应用是？', opts: ['A. 温度计', 'B. 船闸', 'C. 气压计', 'D. 弹簧测力计'], ans: 1 },
+  { q: '关于液体压强公式 p = ρgh，下列说法正确的是？', opts: ['A. h 是液体的高度', 'B. h 是液面到所求点的竖直深度', 'C. ρ 是固体密度', 'D. g 取 0'], ans: 1 },
+  { q: '甲、乙两个容器中装有同种液体，甲中某点深度是乙中某点深度的 2 倍，则甲处的压强是乙处的？', opts: ['A. 1/2', 'B. 相等', 'C. 2 倍', 'D. 4 倍'], ans: 2 }
+];
+
+var quizAnswers = [];
+
+function startQuiz() {
+  quizAnswers = [];
+  var html = '';
+  quizData.forEach(function(item, i) {
+    html += '<div class="q-item"><div class="q-text">' + (i+1) + '. ' + item.q + '</div><div class="q-opts">';
+    item.opts.forEach(function(opt, j) {
+      html += '<label><input type="radio" name="q' + i + '" value="' + j + '" onchange="quizAnswers[' + i + ']=' + j + '"> ' + opt + '</label>';
+    });
+    html += '</div></div>';
+  });
+  document.getElementById('quizQuestions').innerHTML = html;
+  document.getElementById('quizResult').style.display = 'none';
+  document.getElementById('quizSubmitBtn').textContent = '提交';
+  document.getElementById('quizOverlay').classList.add('show');
+    document.querySelector('.canvas-wrap').classList.add('quiz-active');
+}
+
+function submitQuiz() {
+  var score = 0;
+  quizData.forEach(function(item, i) {
+    if (quizAnswers[i] === item.ans) score++;
+  });
+  var result = document.getElementById('quizResult');
+  result.style.display = 'block';
+  if (score >= 4) {
+    result.className = 'quiz-result pass';
+    result.textContent = '🎉 通过！得分：' + score + '/' + quizData.length;
+    saveProgress('quiz');
+    document.getElementById('quizSubmitBtn').textContent = '已完成';
+  } else {
+    result.className = 'quiz-result fail';
+    result.textContent = '😅 得分：' + score + '/' + quizData.length + '，再接再厉！';
+  }
+}
+
+function closeQuiz() {
+  document.getElementById('quizOverlay').classList.remove('show');
+    document.querySelector('.canvas-wrap').classList.remove('quiz-active');
+}
+
+const KNOWLEDGE = {
+  0: {
+    title: '💡 液体压强的特点',
+    body: '液体内部压强的特点：\n\n' +
+         '• 液体对容器 <em>底部和侧壁</em> 都有压强\n' +
+         '• 液体内部 <em>向各个方向</em> 都有压强\n' +
+         '• 同一深度，<em>各方向</em> 压强相等\n' +
+         '• 深度越大，压强 <em>越大</em>\n' +
+         '• 液体压强与液体 <em>密度</em> 有关，密度越大压强越大'
+  },
+  1: {
+    title: '💡 液体压强公式',
+    body: '液体压强公式：<span class="kb-formula">p = ρgh</span>\n\n' +
+         '• ρ 表示液体密度（kg/m³）\n' +
+         '• g 取 <em>9.8 N/kg</em>（粗略计算可取 10 N/kg）\n' +
+         '• h 表示从液面到所求点的 <em>竖直深度</em>（m）\n\n' +
+         '注意：液体压强只与 <em>深度</em> 和 <em>液体密度</em> 有关，与容器的形状、大小无关。'
+  },
+  2: {
+    title: '💡 连通器',
+    body: '<em>连通器</em>：上端开口、下端连通的容器。\n\n' +
+         '原理：连通器中装有 <em>同种液体</em> 且 <em>不流动</em> 时，各容器中的液面总是 <em>相平的</em>。\n\n' +
+         '应用：\n' +
+         '• <em>茶壶</em> • 锅炉水位计\n' +
+         '• <em>船闸</em>（三峡大坝）• 水渠的过路涵洞'
+  },
+  3: {
+    title: '💡 检测你的掌握',
+    body: '通过选择题来检验你对液体压强的理解。\n\n' +
+         '关键点：<em>p = ρgh</em>；液体内部向各个方向都有压强；连通器液面相平。\n\n' +
+         '液体压强只与 <em>深度</em> 和 <em>密度</em> 有关，与容器形状无关。'
+  }
+};
+
+function toggleKnowledge() {
+  var box = document.getElementById('knowledgeBox');
+  var toggle = document.getElementById('kbToggle');
+  box.classList.toggle('collapsed');
+  toggle.classList.toggle('open');
+}
+
+function setKnowledge(idx) {
+  var k = KNOWLEDGE[idx];
+  if (k) {
+    document.getElementById('kbTitle').textContent = k.title;
+    document.getElementById('kbBody').innerHTML = k.body.replace(/\n/g, '<br>');
+    var box = document.getElementById('knowledgeBox');
+    if (box.classList.contains('collapsed')) {
+      box.classList.remove('collapsed');
+      document.getElementById('kbToggle').classList.add('open');
+    }
+  }
+}
+
+function closeQuiz() { switchMission(0); }
+</script>
+</body>
+</html>

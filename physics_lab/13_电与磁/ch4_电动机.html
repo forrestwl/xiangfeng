@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>物理实验室 · 电动机</title>
+<style>
+/* NB_LAB */
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "PingFang SC", "Helvetica Neue", sans-serif;
+    min-height: 100dvh;
+    background: linear-gradient(135deg, #0c0e1a 0%, #1a1e3a 30%, #0d1b2a 60%, #0a0e1a 100%) !important;
+    display: flex; justify-content: center; align-items: center; margin: 0; position: relative;
+  }
+  body::before {
+    content: ''; position: fixed; top: -50%; left: -50%; width: 200%; height: 200%;
+    background: radial-gradient(ellipse at 20% 50%, rgba(175,82,222,0.08) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 20%, rgba(175,82,222,0.05) 0%, transparent 50%);
+    pointer-events: none; z-index: 0;
+  }
+
+  /* COMPACT_V5 - balanced layout */
+  .app { height: 100dvh !important; max-height: 100dvh !important; }
+  .top-bar { padding: 6px 12px !important; min-height: 34px !important; }
+  .top-bar h1 { font-size: 12px !important; }
+  .top-bar .back { font-size: 14px !important; }
+  .top-bar .progress-dots .dot { width: 6px !important; height: 6px !important; }
+  .main-area { padding: 6px !important; gap: 6px !important; flex: 1 !important; min-height: 0 !important; overflow: hidden !important; }
+  .canvas-wrap { flex: 1 !important; min-height: 200px !important; max-height: none !important; overflow: hidden !important; position: relative !important; }
+  .canvas-wrap canvas { width: 100% !important; height: 100% !important; display: block !important; }
+.canvas-wrap.quiz-active { flex-shrink: 1 !important; min-height: 55dvh !important; max-height: 75dvh !important; }
+  .canvas-wrap.quiz-active canvas { display: none !important; }
+  .info-panel { padding: 4px 10px !important; flex-shrink: 0 !important; min-height: 50px !important; max-height: 30dvh !important; overflow-y: auto !important; }
+  .info-panel .mission-label { font-size: 9px !important; line-height: 14px !important; }
+  .info-panel .mission-title { font-size: 12px !important; line-height: 16px !important; margin: 0 !important; }
+  .info-panel .mission-desc { font-size: 11px !important; line-height: 15px !important; }
+  .info-panel .mission-desc button { padding: 3px 10px !important; font-size: 10px !important; border-radius: 6px !important; }
+  .info-panel .data-display, .info-panel .speed-display,
+  .info-panel .noise-display, .info-panel .sonar-display,
+  .info-panel .wave-controls, .info-panel .angle-display { margin-top: 2px !important; padding-top: 2px !important; gap: 6px !important; }
+  .info-panel .data-item, .info-panel .speed-item,
+  .info-panel .noise-item, .info-panel .sonar-item { font-size: 10px !important; }
+  .info-panel .data-item .value, .info-panel .speed-item .value { font-size: 12px !important; }
+  .info-panel .wave-controls input[type=range] { width: 60px !important; }
+  .mission-tabs { padding: 2px 8px 6px !important; flex-shrink: 0 !important; }
+  .mission-tabs .tab { padding: 5px 4px !important; font-size: 11px !important; border-radius: 6px !important; }
+  .mission-tabs .tab .tab-check { font-size: 9px !important; margin-top: 1px !important; }
+  .knowledge-box { padding: 3px 8px !important; }
+  .knowledge-box .kb-title { font-size: 9px !important; }
+  .knowledge-box .kb-body { font-size: 10px !important; line-height: 1.3 !important; }
+  .challenge-hud { padding: 4px 8px !important; font-size: 10px !important; top: 8px !important; right: 8px !important; }
+  .challenge-hud .ch-restart { padding: 2px 8px !important; font-size: 10px !important; }
+  .mode-toggle { padding: 3px 8px !important; font-size: 9px !important; top: 8px !important; left: 8px !important; }
+  .noise-btn, .timbre-btn, .app-btn, .lens-btn { padding: 4px 10px !important; font-size: 10px !important; }
+
+  .top-bar { padding: 6px 12px !important; min-height: 36px !important; }
+  .top-bar h1 { font-size: 12px !important; }
+  .top-bar .back { font-size: 14px !important; line-height: 20px !important; }
+  .top-bar .progress-dots .dot { width: 6px !important; height: 6px !important; }
+  .main-area { padding: 4px !important; gap: 4px !important; flex: 1 !important; min-height: 0 !important; }
+  .canvas-wrap { flex-shrink: 0 !important; }
+.info-panel { padding: 4px 8px !important; flex: 1 !important; min-height: 30px !important; overflow-y: auto !important; }
+  .info-panel .mission-label { font-size: 9px !important; line-height: 14px !important; }
+  .info-panel .mission-title { font-size: 12px !important; line-height: 16px !important; margin: 0 !important; }
+  .info-panel .mission-desc { font-size: 11px !important; line-height: 15px !important; }
+  .info-panel .mission-desc button { padding: 3px 10px !important; font-size: 10px !important; border-radius: 6px !important; }
+  .info-panel .data-display, .info-panel .speed-display,
+  .info-panel .noise-display, .info-panel .sonar-display,
+  .info-panel .wave-controls, .info-panel .angle-display { margin-top: 3px !important; padding-top: 3px !important; gap: 6px !important; }
+  .info-panel .data-item, .info-panel .speed-item,
+  .info-panel .noise-item, .info-panel .sonar-item { font-size: 10px !important; }
+  .info-panel .data-item .value, .info-panel .speed-item .value { font-size: 12px !important; }
+  .info-panel .wave-controls input[type=range] { width: 60px !important; }
+  .mission-tabs { padding: 1px 6px 4px !important; flex-shrink: 0 !important; }
+  .mission-tabs .tab { padding: 4px 3px !important; font-size: 10px !important; border-radius: 6px !important; }
+  .mission-tabs .tab .tab-check { font-size: 9px !important; margin-top: 1px !important; }
+  .knowledge-box { padding: 3px 8px !important; }
+  .knowledge-box .kb-title { font-size: 9px !important; }
+  .canvas-wrap.quiz-active { min-height: 60dvh !important; flex-shrink: 1 !important; }
+  .canvas-wrap.quiz-active canvas { display: none !important; }
+  .challenge-hud { padding: 4px 8px !important; font-size: 10px !important; top: 8px !important; right: 8px !important; }
+  .challenge-hud .ch-restart { padding: 2px 8px !important; font-size: 10px !important; }
+  .mode-toggle { padding: 3px 8px !important; font-size: 9px !important; top: 8px !important; left: 8px !important; }
+  .noise-btn, .timbre-btn, .app-btn, .lens-btn { padding: 4px 10px !important; font-size: 10px !important; }
+
+  .app { background: rgba(255,255,255,0.04) !important; border: 1px solid rgba(255,255,255,0.06) !important; backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); position: relative; z-index: 1; }
+  .top-bar { background: rgba(255,255,255,0.03) !important; border-bottom: 1px solid rgba(255,255,255,0.06) !important; }
+  .top-bar h1, .top-bar h2 { color: #fff !important; }
+  .top-bar .back { color: rgba(255,255,255,0.5) !important; }
+  .top-bar .back:hover { color: #fff !important; }
+  .top-bar .progress-dots .dot { background: rgba(255,255,255,0.1) !important; }
+  .top-bar .progress-dots .dot.active { background: #AF52DE !important; }
+  .top-bar .progress-dots .dot.done { background: #34C759 !important; }
+  .canvas-wrap { background: rgba(10,12,26,0.6) !important; border-color: rgba(255,255,255,0.06) !important; }
+  .canvas-wrap canvas { filter: brightness(1.05) contrast(1.05); }
+  .info-panel { background: rgba(255,255,255,0.03) !important; border-color: rgba(255,255,255,0.06) !important; }
+  .info-panel .mission-label, .card .num { color: #AF52DE !important; }
+  .info-panel .mission-title, .card h3, .hero h1, .top-bar h1 { color: #fff !important; }
+  .info-panel .mission-desc, p, .card p, .hero p { color: rgba(255,255,255,0.4) !important; }
+  .info-panel .mission-desc button, .card .status.new, .tab.active { background: #AF52DE !important; color: #fff !important; border: none !important; }
+  .mission-tabs .tab { background: rgba(255,255,255,0.03) !important; border-color: rgba(255,255,255,0.08) !important; color: rgba(255,255,255,0.3) !important; }
+  .mission-tabs .tab:hover { border-color: #AF52DE !important; color: #AF52DE !important; }
+  .mission-tabs .tab.active { background: #AF52DE !important; color: #fff !important; border-color: #AF52DE !important; }
+  .mission-tabs .tab.done { border-color: #34C759 !important; color: #34C759 !important; }
+  .challenge-hud, .mode-toggle { background: rgba(0,0,0,0.5) !important; backdrop-filter: blur(10px) !important; }
+
+  .knowledge-box { background: rgba(175,82,222,0.08) !important; border-left-color: #AF52DE !important; }
+  .knowledge-box .kb-title, .knowledge-box .kb-toggle { color: #AF52DE !important; }
+  .knowledge-box .kb-body, .card p, .hero p { color: rgba(255,255,255,0.7) !important; }
+  .knowledge-box .kb-body em { color: #AF52DE !important; }
+  .knowledge-box .kb-formula { background: rgba(255,255,255,0.06) !important; border-color: rgba(255,255,255,0.1) !important; color: #fff !important; }
+  .card { background: rgba(255,255,255,0.04) !important; border: 1px solid rgba(255,255,255,0.06) !important; backdrop-filter: blur(20px) !important; color: #fff !important; }
+  .card:hover { border-color: #AF52DE !important; transform: translateY(-2px); }
+  .card .status.done { background: rgba(52,199,89,0.12) !important; color: #34C759 !important; border: 1px solid rgba(52,199,89,0.15) !important; }
+  .card .status.new { background: rgba(175,82,222,0.1) !important; color: #AF52DE !important; border: 1px solid rgba(175,82,222,0.15) !important; }
+  .card .status.partial { background: rgba(255,255,255,0.05) !important; color: rgba(255,255,255,0.4) !important; border: 1px solid rgba(255,255,255,0.08) !important; }
+  .hero .progress-module, .module-progress { color: #AF52DE !important; background: rgba(175,82,222,0.1) !important; border: 1px solid rgba(175,82,222,0.15) !important; }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", sans-serif; background: #f5f5f7; color: #1d1d1f; height: 100dvh; display: flex; justify-content: center; align-items: center; margin: 0; }
+  .app { width: 820px; max-width: 96vw; height: 100dvh; max-height: 100dvh; background: #fff; border-radius: 20px; box-shadow: 0 20px 60px rgba(0,0,0,0.08); display: flex; flex-direction: column; overflow: hidden; }
+  .top-bar { display: flex; align-items: center; padding: 14px 20px; flex-shrink: 0; background: #fafafa; border-bottom: 1px solid #e8e8ed; }
+  .top-bar .back { font-size: 20px; cursor: pointer; opacity: 0.6; }
+  .top-bar .back:hover { opacity: 1; }
+  .top-bar h1 { font-size: 15px; font-weight: 600; margin-left: 10px; flex:1; }
+  .top-bar .progress-dots { font-size: 13px; color: #86868b; display: flex; gap: 6px; align-items: center; }
+  .top-bar .progress-dots .dot { width: 8px; height: 8px; border-radius: 50%; background: #e8e8ed; }
+  .top-bar .progress-dots .dot.active { background: #AF52DE; }
+  .top-bar .progress-dots .dot.done { background: #34C759; }
+  .main-area { padding: 10px; flex: 1; display: flex; flex-direction: column; overflow: hidden; gap: 8px; }
+  .canvas-wrap { position: relative; background: #fff; border-radius: 14px; border: 1px solid #e8e8ed; overflow: hidden; flex-shrink: 0; }
+  .canvas-wrap canvas { display: block; width: 100%; height: auto; cursor: pointer; }
+  .info-panel { background: #fafafa; border-radius: 14px; border: 1px solid #e8e8ed; padding: 10px 16px; overflow-y: auto; min-height: 0; }
+  .info-panel .mission-label { font-size: 11px; font-weight: 600; color: #AF52DE; letter-spacing: 0.5px; text-transform: uppercase; }
+  .info-panel .mission-title { font-size: 15px; font-weight: 600; margin: 0 0 2px; }
+  .info-panel .mission-desc { font-size: 13px; color: #86868b; line-height: 1.4; }
+  .info-panel .field-controls { display: flex; gap: 16px; margin-top: 6px; padding-top: 6px; border-top: 1px solid #e8e8ed; flex-wrap: wrap; align-items: center; }
+  .info-panel .field-controls .ctrl { font-size: 12px; }
+  .info-panel .field-controls .ctrl .label { color: #86868b; }
+  .info-panel .field-controls .ctrl .value { font-weight: 600; font-size: 14px; color: #AF52DE; }
+  .info-panel .field-controls button { padding: 4px 12px; border-radius: 6px; border: 1px solid #AF52DE; background: #fff; color: #AF52DE; font-size: 11px; cursor: pointer; margin: 0 2px; }
+  .info-panel .field-controls button.active { background: #AF52DE; color: #fff; }
+  .mission-tabs { display: flex; gap: 4px; padding: 2px 10px 8px; flex-shrink: 0; }
+  .mission-tabs .tab { flex: 1; padding: 8px 4px; border-radius: 8px; border: 1px solid #e8e8ed; background: #fff; text-align: center; cursor: pointer; font-size: 12px; font-weight: 500; color: #86868b; transition: all 0.2s; }
+  .mission-tabs .tab:hover { border-color: #AF52DE; color: #AF52DE; }
+  .mission-tabs .tab.active { background: #AF52DE; color: #fff; border-color: #AF52DE; }
+  .mission-tabs .tab.done { border-color: #34C759; color: #34C759; }
+  .mission-tabs .tab .tab-check { font-size: 11px; display: block; margin-top: 2px; }
+  .challenge-hud { position: absolute; top: 12px; right: 12px; background: rgba(0,0,0,0.7); backdrop-filter: blur(10px); border-radius: 10px; padding: 8px 14px; color: #fff; font-size: 13px; display: none; }
+  .challenge-hud.show { display: block; }
+  .challenge-hud .ch-level { font-weight: 600; margin-bottom: 2px; }
+  .challenge-hud .ch-goal { color: #aaa; font-size: 12px; }
+  .challenge-hud .ch-restart { margin-top: 6px; padding: 4px 10px; background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.25); border-radius: 6px; color: #fff; font-size: 11px; cursor: pointer; }
+  .quiz-overlay { position: absolute; inset: 0; background: rgba(255,255,255,0.85); backdrop-filter: blur(20px); display: none; flex-direction: column; align-items: center; justify-content: center; padding: 30px; z-index: 10; }
+  .quiz-overlay.show { display: flex; background: rgba(10,12,26,0.92) !important; backdrop-filter: blur(20px) !important; -webkit-backdrop-filter: blur(20px) !important; }
+  .quiz-overlay .quiz-q { font-size: 18px; font-weight: 600; text-align: center; max-width: 480px; margin-bottom: 20px; line-height: 1.5; }
+  .quiz-overlay .quiz-options { display: flex; flex-direction: column; gap: 10px; width: 100%; max-width: 400px; }
+  .quiz-overlay .quiz-opt { padding: 14px 20px; background: #fff; border: 1.5px solid #e8e8ed; border-radius: 12px; font-size: 15px; cursor: pointer; transition: all 0.2s; text-align: left; }
+  .quiz-overlay .quiz-opt:hover { border-color: #AF52DE; background: #f5f0ff; }
+  .quiz-overlay .quiz-opt.correct { border-color: #34C759; background: #e8f8ee; }
+  .quiz-overlay .quiz-opt.wrong { border-color: #FF3B30; background: #ffe8e6; }
+  .quiz-overlay .quiz-result { margin-top: 16px; font-size: 15px; font-weight: 500; }
+  .quiz-overlay .quiz-next { margin-top: 14px; padding: 10px 30px; background: #AF52DE; color: #fff; border: none; border-radius: 10px; font-size: 15px; font-weight: 500; cursor: pointer; }
+	.knowledge-box { padding: 6px 12px; background: #f0f7ff; border-radius: 10px; border-left: 3px solid #AF52DE; flex-shrink: 0; cursor: pointer; user-select: none; }
+	.knowledge-box .kb-title { font-weight: 600; font-size: 11px; color: #AF52DE; letter-spacing: 0.3px; display: flex; align-items: center; gap: 4px; }
+	.knowledge-box .kb-toggle { font-size: 9px; color: #AF52DE; opacity: 0.5; transition: transform 0.2s; }
+	.knowledge-box .kb-toggle.open { transform: rotate(90deg); }
+	.knowledge-box .kb-body { font-size: 11.5px; color: #1d1d1f; line-height: 1.5; margin-top: 3px; }
+	.knowledge-box .kb-body em { color: #AF52DE; font-style: normal; font-weight: 500; }
+	.knowledge-box .kb-formula { display: inline-block; background: #fff; border: 1px solid #dce8f5; border-radius: 5px; padding: 1px 8px; font-family: "SF Mono", monospace; font-size: 12px; font-weight: 600; color: #1d1d1f; margin: 0 2px; }
+	.knowledge-box.collapsed .kb-body { display: none; }
+  @media (max-width: 600px) { .mission-tabs .tab { font-size: 11px; padding: 8px 4px; } .mission-tabs { padding: 2px 6px 6px; } }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="top-bar">
+    <span class="back" onclick="location.href='index.html'">←</span>
+    <h1>电动机</h1>
+    <div class="progress-dots" id="progressDots">
+      <span class="dot" id="pdot0"></span><span class="dot" id="pdot1"></span>
+      <span class="dot" id="pdot2"></span><span class="dot" id="pdot3"></span>
+    </div>
+  </div>
+  <div class="main-area">
+    <div class="canvas-wrap">
+      <canvas id="labCanvas" width="780" height="300"></canvas>
+      <div class="challenge-hud" id="challengeHud">
+        <div class="ch-level" id="chLevel">🎯 第 1/5 关</div>
+        <div class="ch-goal" id="chGoal">目标加载中...</div>
+        <div class="ch-restart" onclick="resetChallenges()">🔄 重来</div>
+      </div>
+      <div class="quiz-overlay" id="quizOverlay">
+        <div class="quiz-q" id="quizQ">题目加载中...</div>
+        <div class="quiz-options" id="quizOptions"></div>
+        <div class="quiz-result" id="quizResult"></div>
+        <button class="quiz-next" id="quizNext" onclick="nextQuiz()">下一题</button>
+        <button class="quiz-close" id="quizClose" onclick="closeQuiz()" style="margin-top:10px;padding:6px 16px;background:rgba(255,255,255,0.1);color:rgba(255,255,255,0.6);border:1px solid rgba(255,255,255,0.15);border-radius:8px;cursor:pointer;font-size:12px;">✕ 关闭</button>
+      </div>
+    </div>
+    <div class="info-panel">
+      <div class="mission-label" id="missionLabel">🔬 观察</div>
+      <div class="mission-title" id="missionTitle">磁场对电流的作用</div>
+      <div class="mission-desc" id="missionDesc">观察通电导体在磁场中受力的运动。</div>
+      <div class="field-controls" id="fieldControls">
+        <div class="ctrl"><span class="label">状态: </span><span class="value" id="dispState">运转中</span></div>
+      </div>
+
+      </div>
+
+      </div>
+
+      </div>
+      <div class="knowledge-box collapsed" id="knowledgeBox" onclick="toggleKnowledge()">
+        <div class="kb-title"><span class="kb-toggle" id="kbToggle">▶</span> 💡 <span id="kbTitle">知识要点</span></div>
+        <div class="kb-body" id="kbBody"></div>
+      </div>
+    </div>
+  </div>
+  <div class="mission-tabs" id="missionTabs"></div>
+</div>
+
+<script>
+const STORAGE_KEY = 'physics_dian_yu_ci_ch4';
+const saved = (() => { try { return JSON.parse(localStorage.getIt
+
+      </div>
+
+    em(STORAGE_KEY)); } catch(e) {} return null; })() || {};
+let state = {
+  done: saved.done || [], currentMission: saved.currentMission || 0,
+  challengeIdx: saved.challengeIdx || 0, quizIdx: saved.quizIdx || 0, quizDone: saved.quizDone || []
+};
+function saveState() { try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch(e) {} }
+
+const MISSIONS = [
+  { id: 'observe', label: '🔬 观察', title: '磁场对电流的作用', desc: '通电线圈在磁场中受力转动——电动机的基本原理。', doneLabel: '已观看' },
+  { id: 'explore', label: '✋ 探索', title: '换向器工作', desc: '点击切换观察换向器如何改变电流方向，使线圈持续转动。', doneLabel: '已探索' },
+  { id: 'challenge', label: '🎯 挑战', title: '左手定则', desc: '运用左手定则判断通电导体在磁场中的受力方向！', doneLabel: '已闯关' },
+  { id: 'quiz', label: '⭐ 测验', title: '知识检测', desc: '完成选择题，巩固电动机的知识。', doneLabel: '已完成' }
+];
+
+const CHALLENGES = [
+  { goal: '左手定则中，磁感线穿过手心，四指指向电流方向，则拇指指向的是？(0=受力方向, 1=运动反方向)', answer: 0, unit: '', tolerance: 0 },
+  { goal: '电动机工作时，电能转化为？(0=机械能, 1=内能)', answer: 0, unit: '', tolerance: 0 },
+  { goal: '换向器的作用是改变线圈中的？(0=电流方向, 1=磁感线方向)', answer: 0, unit: '', tolerance: 0 },
+  { goal: '直流电动机的线圈每转多少圈换向器改变一次电流方向？(0=半圈, 1=一圈)', answer: 0, unit: '', tolerance: 0 },
+  { goal: '使电动机转动的力是磁场对什么的力？(0=通电导体, 1=磁铁)', answer: 0, unit: '', tolerance: 0 }
+];
+
+const QUIZ_POOL = [
+  { q: '电动机的基本原理是？', opts: ['A. 电磁感应', 'B. 通电导体在磁场中受力', 'C. 电流的热效应', 'D. 磁化'], ans: 1, explain: '电动机是利用通电导体（线圈）在磁场中受力的原理工作的。' },
+  { q: '电动机工作时能量转化的方式是？', opts: ['A. 机械能→电能', 'B. 电能→机械能', 'C. 电能→内能', 'D. 内能→电能'], ans: 1, explain: '电动机将电能转化为机械能，带动负载转动。' },
+  { q: '直流电动机中的换向器的作用是？', opts: ['A. 改变磁极方向', 'B. 改变电流方向', 'C. 调节转速', 'D. 散热'], ans: 1, explain: '线圈转过平衡位置时，换向器改变线圈中的电流方向，使线圈持续转动。' },
+  { q: '直流电动机线圈转动的快慢与什么有关？', opts: ['A. 电流大小', 'B. 磁铁大小', 'C. 换向器数量', 'D. 线圈材质'], ans: 0, explain: '电流越大，磁场越强，线圈受力越大，转动越快。' },
+  { q: '左手定则用来判断什么？', opts: ['A. 感应电流方向', 'B. 通电导体的受力方向', 'C. 磁场方向', 'D. 电流方向'], ans: 1, explain: '左手定则用于判断通电导体在磁场中的受力方向，伸开左手让磁感线穿入手心，四指指向电流方向，大拇指指向受力方向。' }
+];
+
+const canvas = document.getElementById('labCanvas');
+const ctx = canvas.getContext('2d');
+let animId, animTime = 0;
+let isRunning = true;
+let commutatorPos = 0; // 0=normal, 1=switched
+
+// ── Drawing ──
+function drawScene() {
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0, 0, W, H);
+  if (state.currentMission === 0) drawObserve(W, H);
+  else if (state.currentMission === 1) drawExplore(W, H);
+  else if (state.currentMission === 2) drawChallenge(W, H);
+  else if (state.currentMission === 3) drawQuizBg(W, H);
+}
+
+function drawObserve(W, H) {
+  ctx.fillStyle = '#141626';
+  ctx.fillRect(0, 0, W, H);
+
+  const cx = W / 2, cy = H / 2 + 5;
+
+  // Magnetic field (N-S)
+  // N pole
+  ctx.fillStyle = '#e74c3c';
+  roundRect(ctx, 40, cy - 90, 40, 180, 6);
+  ctx.fill();
+  ctx.fillStyle = '#fff';
+  ctx.font = 'bold 16px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('N', 60, cy);
+
+  // S pole
+  ctx.fillStyle = '#3498db';
+  roundRect(ctx, W - 80, cy - 90, 40, 180, 6);
+  ctx.fill();
+  ctx.fillStyle = '#fff';
+  ctx.fillText('S', W - 60, cy);
+
+  // Field lines between poles
+  ctx.strokeStyle = 'rgba(175, 82, 222, 0.15)';
+  ctx.lineWidth = 1.5;
+  for (let i = 0; i < 5; i++) {
+    const ly = cy - 60 + i * 30;
+    ctx.beginPath();
+    ctx.moveTo(80, ly);
+    ctx.lineTo(W - 80, ly);
+    ctx.stroke();
+  }
+
+  // Coil (rectangle rotating)
+  const angle = isRunning ? animTime * 0.03 : 0;
+  const coilW = 100, coilH = 60;
+
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.rotate(angle);
+
+  // Coil
+  ctx.strokeStyle = '#AF52DE';
+  ctx.lineWidth = 3;
+  ctx.strokeRect(-coilW / 2, -coilH / 2, coilW, coilH);
+
+  // Current direction indicators
+  ctx.fillStyle = '#e74c3c';
+  ctx.font = '14px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('I', 0, -coilH / 2 - 14);
+
+  // Force arrows
+  const fAngle = Math.sin(angle);
+  ctx.fillStyle = '#e74c3c';
+  ctx.font = '13px sans-serif';
+  if (fAngle > 0.1) {
+    ctx.fillText('⬆ F', -coilW / 2 - 20, 0);
+    ctx.fillText('⬇ F', coilW / 2 + 20, 0);
+  } else if (fAngle < -0.1) {
+    ctx.fillText('⬇ F', -coilW / 2 - 20, 0);
+    ctx.fillText('⬆ F', coilW / 2 + 20, 0);
+  }
+
+  ctx.restore();
+
+  // Brushes
+  ctx.fillStyle = 'rgba(255,255,255,0.45)';
+  ctx.fillRect(cx - 4, cy - 70, 8, 20);
+  ctx.fillRect(cx - 4, cy + 50, 8, 20);
+
+  // Labels
+  ctx.fillStyle = 'rgba(255,255,255,0.35)';
+  ctx.font = '12px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'bottom';
+  ctx.fillText(isRunning ? '🔄 线圈在磁场中转动（电动机原理）' : '⏸ 暂停', W / 2, H - 6);
+  ctx.fillText('💡 点击暂停/继续', W / 2, H - 22);
+}
+
+function drawExplore(W, H) {
+  ctx.fillStyle = '#141626';
+  ctx.fillRect(0, 0, W, H);
+
+  const cx = W / 2, cy = H / 2 + 5;
+
+  // Magnet field (simplified)
+  ctx.fillStyle = '#e74c3c';
+  roundRect(ctx, 50, cy - 80, 30, 160, 5);
+  ctx.fill();
+  ctx.fillStyle = '#fff';
+  ctx.font = 'bold 14px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('N', 65, cy);
+
+  ctx.fillStyle = '#3498db';
+  roundRect(ctx, W - 80, cy - 80, 30, 160, 5);
+  ctx.fill();
+  ctx.fillStyle = '#fff';
+  ctx.fillText('S', W - 65, cy);
+
+  // Coil half-turn
+  const angle = isRunning ? animTime * 0.02 : 0;
+  const halfTurn = Math.floor(angle / Math.PI) % 2;
+
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.rotate(angle);
+
+  // Coil
+  ctx.strokeStyle = '#AF52DE';
+  ctx.lineWidth = 3;
+  ctx.strokeRect(-90 / 2, -50 / 2, 90, 50);
+
+  // Current direction
+  ctx.fillStyle = '#e74c3c';
+  ctx.font = '11px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('I', 0, -50 / 2 - 12);
+
+  ctx.restore();
+
+  // Commutator info
+  const changeCount = Math.floor(angle / Math.PI);
+  ctx.fillStyle = '#ffffff';
+  ctx.font = '13px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'bottom';
+  ctx.fillText(`🔄 换向器已切换 ${changeCount} 次`, W / 2, H - 20);
+
+  // Info
+  ctx.fillStyle = 'rgba(255,255,255,0.35)';
+  ctx.font = '12px sans-serif';
+  ctx.fillText('💡 换向器每半圈改变一次电流方向，使线圈持续转动', W / 2, H - 4);
+}
+
+function drawChallenge(W, H) {
+  ctx.fillStyle = '#141626';
+  ctx.fillRect(0, 0, W, H);
+  const ch = CHALLENGES[state.challengeIdx] || CHALLENGES[0];
+  const maxW = W - 40;
+  ctx.fillStyle = '#ffffff';
+  ctx.font = '15px sans-serif';
+  ctx.textAlign = 'center';
+  let lines = [], line = '';
+  for (let c of ch.goal) {
+    line += c;
+    if (ctx.measureText(line).width > maxW && line.length > 10) { lines.push(line); line = ''; }
+  }
+  if (line) lines.push(line);
+  let y = 40;
+  lines.forEach(l => { ctx.fillText(l.trim(), W / 2, y); y += 28; });
+
+  const opts = ['0：对/是/正', '1：错/否/反'];
+  const btnW = 120, btnH = 44;
+  const startX = (W - (btnW * 2 + 12)) / 2;
+  opts.forEach((b, i) => {
+    const bx = startX + i * (btnW + 12);
+    ctx.fillStyle = 'rgba(255,255,255,0.04)';
+    roundRect(ctx, bx, H / 2 - 10, btnW, btnH, 10);
+    ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,0.65)';
+    ctx.font = '14px sans-serif';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(b, bx + btnW / 2, H / 2 + 12);
+  });
+  ctx.fillStyle = 'rgba(255,255,255,0.35)';
+  ctx.font = '13px sans-serif';
+  ctx.textBaseline = 'bottom';
+  ctx.fillText('点击选择答案（0 或 1）', W / 2, H - 6);
+}
+
+function drawQuizBg(W, H) {
+  ctx.fillStyle = '#141626';
+  ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = 'rgba(255,255,255,0.08)';
+  ctx.font = '48px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('⭐', W / 2, H / 2);
+}
+
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y); ctx.lineTo(x + w - r, y); ctx.arcTo(x + w, y, x + w, y + r, r);
+  ctx.lineTo(x + w, y + h - r); ctx.arcTo(x + w, y + h, x + w - r, y + h, r);
+  ctx.lineTo(x + r, y + h); ctx.arcTo(x, y + h, x, y + h - r, r);
+  ctx.lineTo(x, y + r); ctx.arcTo(x, y, x + r, y, r);
+  ctx.closePath();
+}
+
+function animate() {
+  animTime += 1;
+  drawScene();
+  animId = requestAnimationFrame(animate);
+}
+
+function switchMission(idx) {
+  state.currentMission = idx;
+  saveState();
+    updateUI();
+}
+
+function updateUI() {
+  const m = MISSIONS[state.currentMission];
+  document.getElementById('missionLabel').textContent = m.label;
+  document.getElementById('missionTitle').textContent = m.title;
+  const desc = document.getElementById('missionDesc');
+  const done = state.done.includes(state.currentMission);
+  document.getElementById('fieldControls').style.display = (state.currentMission <= 1) ? 'flex' : 'none';
+
+  if (state.currentMission === 0) {
+    if (done) desc.innerHTML = '✅ 已观看。 <button onclick="if(!state.done.includes(0)){state.done.push(0);saveState();updateUI()}" style="padding:6px 16px;background:#AF52DE;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:13px;">✅ 标记完成</button>';
+    else desc.innerHTML = `${m.desc}<br><button onclick="isRunning=!isRunning;updateUI()" style="padding:4px 12px;background:#AF52DE;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:12px;">${isRunning?'暂停':'继续'}</button>`;
+    document.getElementById('dispState').textContent = isRunning ? '运转中' : '已暂停';
+  } else if (state.currentMission === 1) {
+    if (done) desc.innerHTML = '✅ 已探索。';
+    else desc.innerHTML = `${m.desc}<br><button onclick="isRunning=!isRunning;updateUI()" style="padding:4px 12px;background:#AF52DE;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:12px;">${isRunning?'暂停':'继续转动'}</button>`;
+    if (!state.done.includes(1)) {
+      setTimeout(() => { if (state.currentMission === 1) { state.done.push(1); saveState(); updateUI(); } }, 7000);
+    }
+  } else if (state.currentMission === 2) {
+    if (state.done.includes(2)) desc.innerHTML = '🎉 全部通关！ <button onclick="resetChallenges()" style="padding:6px 16px;background:#AF52DE;color:#fff;border:none;border-radius:8px;cursor:pointer;">🔄 重新挑战</button>';
+    else desc.innerHTML = `🎯 第 ${state.challengeIdx+1}/${CHALLENGES.length} 关`;
+    drawChallengeHUD();
+  } else if (state.currentMission === 3) {
+    if (state.done.includes(3)) desc.innerHTML = '✅ 测验已完成。 <button onclick="startQuiz()" style="padding:6px 16px;background:#AF52DE;color:#fff;border:none;border-radius:8px;cursor:pointer;">🔄 再来一轮</button>';
+    else desc.innerHTML = m.desc;
+    document.getElementById('quizOverlay').className = state.quizIdx < QUIZ_POOL.length ? 'quiz-overlay show' : 'quiz-overlay';
+  document.querySelector('.canvas-wrap').className = state.currentMission === 3 && state.quizIdx < QUIZ_POOL.length ? 'canvas-wrap quiz-active' : 'canvas-wrap';
+    if (state.quizIdx < QUIZ_POOL.length) showQuiz();
+  }
+
+  const tabs = document.getElementById('missionTabs');
+  tabs.innerHTML = MISSIONS.map((m, i) => {
+    const isActive = i === state.currentMission;
+    const isDone = state.done.includes(i);
+    const cls = isActive ? 'tab active' : isDone ? 'tab done' : 'tab';
+    const check = isDone ? '<span class="tab-check">✅</span>' : '';
+    return `<div class="${cls}" onclick="switchMission(${i})">${m.label}${check}</div>`;
+  }).join('');
+
+  MISSIONS.forEach((_, i) => {
+    const dot = document.getElementById('pdot' + i);
+    if (state.done.includes(i)) dot.className = 'dot done';
+    else if (i === state.currentMission) dot.className = 'dot active';
+    else dot.className = 'dot';
+  });
+}
+
+function drawChallengeHUD() {
+  document.getElementById('challengeHud').className = 'challenge-hud show';
+  document.getElementById('chLevel').textContent = `🎯 第 ${state.challengeIdx+1}/${CHALLENGES.length} 关`;
+  document.getElementById('chGoal').textContent = CHALLENGES[state.challengeIdx]?.goal.slice(0, 35) + '...' || '';
+}
+
+function resetChallenges() {
+  state.challengeIdx = 0;
+  const idx = state.done.indexOf(2);
+  if (idx >= 0) state.done.splice(idx, 1);
+  saveState(); updateUI();
+}
+
+canvas.addEventListener('click', (e) => {
+  if (state.currentMission === 0 || state.currentMission === 1) {
+    isRunning = !isRunning;
+    updateUI();
+    return;
+  }
+  if (state.currentMission === 2) {
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const x = (e.clientX - rect.left) * scaleX;
+    const W = canvas.width;
+    const btnW = 120, btnH = 44;
+    const startX = (W - (btnW * 2 + 12)) / 2;
+    for (let i = 0; i < 2; i++) {
+      const bx = startX + i * (btnW + 12);
+      const by = canvas.height / 2 - 10;
+      if (x >= bx && x <= bx + btnW) {
+        const ch = CHALLENGES[state.challengeIdx];
+        if (ch && Math.abs(i - ch.answer) <= ch.tolerance) {
+          state.challengeIdx++;
+          if (state.challengeIdx >= CHALLENGES.length) {
+            if (!state.done.includes(2)) state.done.push(2);
+            saveState(); updateUI();
+            alert('🎉 恭喜通关！');
+          } else { saveState(); updateUI(); }
+        } else {
+          alert('❌ 答案不对，再想想！');
+        }
+        return;
+
+  }
+});
+
+function startQuiz() {
+  state.quizIdx = 0; state.quizDone = []; saveState();
+  document.getElementById('quizOverlay').className = 'quiz-overlay show';
+  document.querySelector('.canvas-wrap').className = state.currentMission === 3 && state.quizIdx < QUIZ_POOL.length ? 'canvas-wrap quiz-active' : 'canvas-wrap';
+  showQuiz();
+}
+
+function showQuiz() {
+  if (state.quizIdx >= QUIZ_POOL.length) {
+    if (!state.done.includes(3)) { state.done.push(3); saveState(); }
+    updateUI(); return;
+  }
+  const q = QUIZ_POOL[state.quizIdx];
+  document.getElementById('quizQ').textContent = `${state.quizIdx+1}. ${q.q}`;
+  const opts = document.getElementById('quizOptions');
+  opts.innerHTML = q.opts.map((o,i) => `<div class="quiz-opt" onclick="selectQuiz(${i})">${o}</div>`).join('');
+  document.getElementById('quizResult').textContent = '';
+  document.getElementById('quizNext').style.display = 'none';
+}
+
+function selectQuiz(idx) {
+  const q = QUIZ_POOL[state.quizIdx];
+  const opts = document.querySelectorAll('.quiz-opt');
+  opts.forEach((el, i) => {
+    el.style.pointerEvents = 'none';
+    if (i === q.ans) el.className = 'quiz-opt correct';
+    else if (i === idx && idx !== q.ans) el.className = 'quiz-opt wrong';
+  });
+  document.getElementById('quizResult').textContent = idx === q.ans ? `✅ 正确！${q.explain}` : `❌ 正确答案是 ${q.opts[q.ans]}。${q.explain}`;
+  document.getElementById('quizNext').style.display = 'block';
+}
+
+function nextQuiz() { state.quizIdx++; saveState(); showQuiz(); }
+
+// ── Knowledge Points ──
+const KNOWLEDGE = {
+  0: {
+    title: '💡 磁场对电流的作用',
+    body: `通电导体在磁场中会受到力的作用。
+
+受力方向与电流方向和磁场方向都有关系。`
+  },
+  1: {
+    title: '💡 电动机的工作原理',
+    body: `电动机将电能转化为机械能。
+
+换向器的作用：自动改变线圈中的电流方向，使线圈持续转动。`
+  },
+  2: {
+    title: '💡 电动机的应用',
+    body: `优点：效率高、无污染、控制方便。
+应用：电风扇、洗衣机、电动车、电梯。`
+  },
+  3: {
+    title: '💡 检测你的掌握',
+    body: `通过几道选择题来检验你对电动机工作原理的理解。`
+  },
+};
+
+function toggleKnowledge() {
+  const box = document.getElementById('knowledgeBox');
+  const toggle = document.getElementById('kbToggle');
+  box.classList.toggle('collapsed');
+  toggle.classList.toggle('open');
+}
+
+function setKnowledge(idx) {
+  const k = KNOWLEDGE[idx];
+  if (k) {
+    document.getElementById('kbTitle').textContent = k.title;
+    document.getElementById('kbBody').innerHTML = k.body.replace(/\n/g, '<br>');
+    // Auto-expand when switching to a new mission
+    const box = document.getElementById('knowledgeBox');
+    if (box.classList.contains('collapsed')) {
+      box.classList.remove('collapsed');
+      document.getElementById('kbToggle').classList.add('open');
+    }
+  }
+}
+
+switchMission(state.currentMission);
+animate();
+
+function closeQuiz() { switchMission(0); }
+</script>
+</body>
+</html>

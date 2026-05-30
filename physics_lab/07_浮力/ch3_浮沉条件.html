@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>浮力 · 第3节</title>
+<style>
+/* NB_LAB */
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "PingFang SC", "Helvetica Neue", sans-serif;
+    min-height: 100dvh;
+    background: linear-gradient(135deg, #0c0e1a 0%, #1a1e3a 30%, #0d1b2a 60%, #0a0e1a 100%) !important;
+    display: flex; justify-content: center; align-items: center; margin: 0; position: relative;
+  }
+  body::before {
+    content: ''; position: fixed; top: -50%; left: -50%; width: 200%; height: 200%;
+    background: radial-gradient(ellipse at 20% 50%, rgba(255,59,48,0.08) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 20%, rgba(255,59,48,0.05) 0%, transparent 50%);
+    pointer-events: none; z-index: 0;
+  }
+
+  /* COMPACT_V5 - balanced layout */
+  .app { height: 100dvh !important; max-height: 100dvh !important; }
+  .top-bar { padding: 6px 12px !important; min-height: 34px !important; }
+  .top-bar h1 { font-size: 12px !important; }
+  .top-bar .back { font-size: 14px !important; }
+  .top-bar .progress-dots .dot { width: 6px !important; height: 6px !important; }
+  .main-area { padding: 6px !important; gap: 6px !important; flex: 1 !important; min-height: 0 !important; overflow: hidden !important; }
+  .canvas-wrap { flex: 1 !important; min-height: 200px !important; max-height: none !important; overflow: hidden !important; position: relative !important; }
+  .canvas-wrap canvas { width: 100% !important; height: 100% !important; display: block !important; }
+.canvas-wrap.quiz-active { flex-shrink: 1 !important; min-height: 55dvh !important; max-height: 75dvh !important; }
+  .canvas-wrap.quiz-active canvas { display: none !important; }
+  .info-panel { padding: 4px 10px !important; flex-shrink: 0 !important; min-height: 50px !important; max-height: 30dvh !important; overflow-y: auto !important; }
+  .info-panel .mission-label { font-size: 9px !important; line-height: 14px !important; }
+  .info-panel .mission-title { font-size: 12px !important; line-height: 16px !important; margin: 0 !important; }
+  .info-panel .mission-desc { font-size: 11px !important; line-height: 15px !important; }
+  .info-panel .mission-desc button { padding: 3px 10px !important; font-size: 10px !important; border-radius: 6px !important; }
+  .info-panel .data-display, .info-panel .speed-display,
+  .info-panel .noise-display, .info-panel .sonar-display,
+  .info-panel .wave-controls, .info-panel .angle-display { margin-top: 2px !important; padding-top: 2px !important; gap: 6px !important; }
+  .info-panel .data-item, .info-panel .speed-item,
+  .info-panel .noise-item, .info-panel .sonar-item { font-size: 10px !important; }
+  .info-panel .data-item .value, .info-panel .speed-item .value { font-size: 12px !important; }
+  .info-panel .wave-controls input[type=range] { width: 60px !important; }
+  .mission-tabs { padding: 2px 8px 6px !important; flex-shrink: 0 !important; }
+  .mission-tabs .tab { padding: 5px 4px !important; font-size: 11px !important; border-radius: 6px !important; }
+  .mission-tabs .tab .tab-check { font-size: 9px !important; margin-top: 1px !important; }
+  .knowledge-box { padding: 3px 8px !important; }
+  .knowledge-box .kb-title { font-size: 9px !important; }
+  .knowledge-box .kb-body { font-size: 10px !important; line-height: 1.3 !important; }
+  .challenge-hud { padding: 4px 8px !important; font-size: 10px !important; top: 8px !important; right: 8px !important; }
+  .challenge-hud .ch-restart { padding: 2px 8px !important; font-size: 10px !important; }
+  .mode-toggle { padding: 3px 8px !important; font-size: 9px !important; top: 8px !important; left: 8px !important; }
+  .noise-btn, .timbre-btn, .app-btn, .lens-btn { padding: 4px 10px !important; font-size: 10px !important; }
+
+  .top-bar { padding: 6px 12px !important; min-height: 36px !important; }
+  .top-bar h1 { font-size: 12px !important; }
+  .top-bar .back { font-size: 14px !important; line-height: 20px !important; }
+  .top-bar .progress-dots .dot { width: 6px !important; height: 6px !important; }
+  .main-area { padding: 4px !important; gap: 4px !important; flex: 1 !important; min-height: 0 !important; }
+  .canvas-wrap { flex-shrink: 0 !important; }
+.info-panel { padding: 4px 8px !important; flex: 1 !important; min-height: 30px !important; overflow-y: auto !important; }
+  .info-panel .mission-label { font-size: 9px !important; line-height: 14px !important; }
+  .info-panel .mission-title { font-size: 12px !important; line-height: 16px !important; margin: 0 !important; }
+  .info-panel .mission-desc { font-size: 11px !important; line-height: 15px !important; }
+  .info-panel .mission-desc button { padding: 3px 10px !important; font-size: 10px !important; border-radius: 6px !important; }
+  .info-panel .data-display, .info-panel .speed-display,
+  .info-panel .noise-display, .info-panel .sonar-display,
+  .info-panel .wave-controls, .info-panel .angle-display { margin-top: 3px !important; padding-top: 3px !important; gap: 6px !important; }
+  .info-panel .data-item, .info-panel .speed-item,
+  .info-panel .noise-item, .info-panel .sonar-item { font-size: 10px !important; }
+  .info-panel .data-item .value, .info-panel .speed-item .value { font-size: 12px !important; }
+  .info-panel .wave-controls input[type=range] { width: 60px !important; }
+  .mission-tabs { padding: 1px 6px 4px !important; flex-shrink: 0 !important; }
+  .mission-tabs .tab { padding: 4px 3px !important; font-size: 10px !important; border-radius: 6px !important; }
+  .mission-tabs .tab .tab-check { font-size: 9px !important; margin-top: 1px !important; }
+  .knowledge-box { padding: 3px 8px !important; }
+  .knowledge-box .kb-title { font-size: 9px !important; }
+  .challenge-hud { padding: 4px 8px !important; font-size: 10px !important; top: 8px !important; right: 8px !important; }
+  .challenge-hud .ch-restart { padding: 2px 8px !important; font-size: 10px !important; }
+  .mode-toggle { padding: 3px 8px !important; font-size: 9px !important; top: 8px !important; left: 8px !important; }
+  .noise-btn, .timbre-btn, .app-btn, .lens-btn { padding: 4px 10px !important; font-size: 10px !important; }
+
+  .app { background: rgba(255,255,255,0.04) !important; border: 1px solid rgba(255,255,255,0.06) !important; backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); position: relative; z-index: 1; }
+  .top-bar { background: rgba(255,255,255,0.03) !important; border-bottom: 1px solid rgba(255,255,255,0.06) !important; }
+  .top-bar h1, .top-bar h2 { color: #fff !important; }
+  .top-bar .back { color: rgba(255,255,255,0.5) !important; }
+  .top-bar .back:hover { color: #fff !important; }
+  .top-bar .progress-dots .dot { background: rgba(255,255,255,0.1) !important; }
+  .top-bar .progress-dots .dot.active { background: #FF3B30 !important; }
+  .top-bar .progress-dots .dot.done { background: #34C759 !important; }
+  .canvas-wrap { background: rgba(10,12,26,0.6) !important; border-color: rgba(255,255,255,0.06) !important; }
+  .canvas-wrap canvas { filter: brightness(1.05) contrast(1.05); }
+  .info-panel { background: rgba(255,255,255,0.03) !important; border-color: rgba(255,255,255,0.06) !important; }
+  .info-panel .mission-label, .card .num { color: #FF3B30 !important; }
+  .info-panel .mission-title, .card h3, .hero h1, .top-bar h1 { color: #fff !important; }
+  .info-panel .mission-desc, p, .card p, .hero p { color: rgba(255,255,255,0.4) !important; }
+  .info-panel .mission-desc button, .card .status.new, .tab.active { background: #FF3B30 !important; color: #fff !important; border: none !important; }
+  .mission-tabs .tab { background: rgba(255,255,255,0.03) !important; border-color: rgba(255,255,255,0.08) !important; color: rgba(255,255,255,0.3) !important; }
+  .mission-tabs .tab:hover { border-color: #FF3B30 !important; color: #FF3B30 !important; }
+  .mission-tabs .tab.active { background: #FF3B30 !important; color: #fff !important; border-color: #FF3B30 !important; }
+  .mission-tabs .tab.done { border-color: #34C759 !important; color: #34C759 !important; }
+  .challenge-hud, .mode-toggle { background: rgba(0,0,0,0.5) !important; backdrop-filter: blur(10px) !important; }
+  .
+
+quiz-overlay { background: rgba(10,12,26,0.88) !important; backdrop-filter: blur(24px) !important; }
+  .knowledge-box { background: rgba(255,59,48,0.08) !important; border-left-color: #FF3B30 !important; }
+  .knowledge-box .kb-title, .knowledge-box .kb-toggle { color: #FF3B30 !important; }
+  .knowledge-box .kb-body, .card p, .hero p { color: rgba(255,255,255,0.7) !important; }
+  .knowledge-box .kb-body em { color: #FF3B30 !important; }
+  .knowledge-box .kb-formula { background: rgba(255,255,255,0.06) !important; border-color: rgba(255,255,255,0.1) !important; color: #fff !important; }
+  .card { background: rgba(255,255,255,0.04) !important; border: 1px solid rgba(255,255,255,0.06) !important; backdrop-filter: blur(20px) !important; color: #fff !important; }
+  .card:hover { border-color: #FF3B30 !important; transform: translateY(-2px); }
+  .card .status.done { background: rgba(52,199,89,0.12) !important; color: #34C759 !important; border: 1px solid rgba(52,199,89,0.15) !important; }
+  .card .status.new { background: rgba(255,59,48,0.1) !important; color: #FF3B30 !important; border: 1px solid rgba(255,59,48,0.15) !important; }
+  .card .status.partial { background: rgba(255,255,255,0.05) !important; color: rgba(255,255,255,0.4) !important; border: 1px solid rgba(255,255,255,0.08) !important; }
+  .hero .progress-module, .module-progress { color: #FF3B30 !important; background: rgba(255,59,48,0.1) !important; border: 1px solid rgba(255,59,48,0.15) !important; }
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", sans-serif; background: #f5f5f7; color: #1d1d1f; display: flex; justify-content: center; padding: 16px; }
+.app { width: 820px; max-width: 100%; background: #fff; border-radius: 20px; box-shadow: 0 20px 60px rgba(0,0,0,0.08); overflow: hidden; }
+.top-bar { display: flex; align-items: center; padding: 12px 20px; border-bottom: 1px solid #e8e8ed; }
+.top-bar .back { font-size: 20px; cursor: pointer; opacity: 0.6; text-decoration: none; color: inherit; background: none; border: none; padding: 0 8px 0 0; }
+.top-bar .back:hover { opacity: 1; }
+.top-bar h2 { font-size: 14px; font-weight: 600; opacity: 0.8; }
+.top-bar .ch-title { margin-left: auto; font-size: 13px; color: #FF3B30; font-weight: 600; }
+canvas { display: block; width: 100%; height: auto; background: #fafafe; border-bottom: 1px solid #e8e8ed; aspect-ratio: 780/300; }
+.tabs { display: flex; border-bottom: 1px solid #e8e8ed; }
+.tabs .tab { flex: 1; padding: 12px 6px; text-align: center; font-size: 14px; font-weight: 500; cursor: pointer; border: none; background: none; color: #86868b; transition: all 0.2s; border-bottom: 2px solid transparent; }
+.tabs .tab:hover { color: #1d1d1f; background: #fafafe; }
+.tabs .tab.active { color: #FF3B30; border-bottom-color: #FF3B30; }
+.content { padding: 20px 24px 28px; min-height: 340px; }
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+.tab-content h3 { font-size: 17px; font-weight: 600; margin-bottom: 12px; }
+.tab-content p { font-size: 14px; line-height: 1.8; color: #3a3a3c; margin-bottom: 10px; }
+.tab-content ul { padding-left: 20px; font-size: 14px; line-height: 2; color: #3a3a3c; }
+.tab-content .highlight { background: #fff0f0; border-left: 3px solid #FF3B30; padding: 12px 16px; border-radius: 8px; margin: 12px 0; font-size: 14px; line-height: 1.7; }
+.tab-content .btn { display: inline-block; padding: 10px 24px; border-radius: 10px; border: none; font-size: 14px; font-weight: 600; cursor: pointer; background: #FF3B30; color: #fff; transition: all 0.2s; }
+.tab-content .btn:hover { opacity: 0.85; transform: translateY(-1px); }
+.tab-content .btn.secondary { background: #f0f0f5; color: #1d1d1f; }
+.tab-content .btn.secondary:hover { background: #e5e5ea; }
+.tab-content .challenge-box { background: #fafafe; border: 1px solid #e8e8ed; border-radius: 12px; padding: 16px; margin-bottom: 12px; }
+.tab-content .challenge-box .q { font-weight: 600; margin-bottom: 6px; }
+.tab-content .challenge-box .a { color: #86868b; font-size: 13px; }
+.quiz-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 999; justify-content: center; align-items: center; padding: 20px; }
+.quiz-overlay.show { display: flex; background: rgba(10,12,26,0.92) !important; backdrop-filter: blur(20px) !important; -webkit-backdrop-filter: blur(20px) !important; }
+.quiz-panel { background: #fff; border-radius: 20px; max-width: 540px; width: 100%; max-height: 90vh; overflow-y: auto; padding: 28px 24px; }
+.quiz-panel h3 { font-size: 18px; font-weight: 700; margin-bottom: 16px; }
+.quiz-panel .q-item { margin-bottom: 18px; padding-bottom: 16px; border-bottom: 1px solid #e8e8ed; }
+.quiz-panel .q-item:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+.quiz-panel .q-text { font-weight: 600; font-size: 14px; margin-bottom: 8px; line-height: 1.6; }
+.quiz-panel .q-opts { display: flex; flex-direction: column; gap: 5px; }
+.quiz-panel .q-opts label { font-size: 14px; display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 6px 10px; border-radius: 8px; transition: background 0.15s; }
+.quiz-panel .q-opts label:hover { background: #f5f5f7; }
+.quiz-panel .q-opts input[type="radio"] { accent-color: #FF3B30; }
+.quiz-panel .quiz-result { margin-top: 16px; padding: 14px 16px; border-radius: 12px; font-weight: 600; text-align: center; }
+.quiz-panel .quiz-result.pass { background: #e8f8ee; color: #34C759; }
+.quiz-panel .quiz-result.fail { background: #fff2f2; color: #FF3B30; }
+.quiz-panel .quiz-actions { display: flex; gap: 10px; margin-top: 16px; }
+.quiz-panel .quiz-actions .btn { flex: 1; }
+@media (max-width: 600px) { body { padding: 8px; } .content { padding: 16px; } .quiz-panel { padding: 20px 16px; } }
+
+  .knowledge-box { padding: 6px 12px; background: #FF3B3018; border-radius: 10px; border-left: 3px solid #FF3B30; flex-shrink: 0; cursor: pointer; user-select: none; }
+  .knowledge-box .kb-title { font-weight: 600; font-size: 11px; color: #FF3B30; letter-spacing: 0.3px; display: flex; align-items: center; gap: 4px; }
+  .knowledge-box .kb-toggle { font-size: 9px; color: #FF3B30; opacity: 0.5; transition: transform 0.2s; }
+  .knowledge-box .kb-toggle.open { transform: rotate(90deg); }
+  .knowledge-box .kb-body { font-size: 11.5px; color: #1d1d1f; line-height: 1.5; margin-top: 3px; }
+  .knowledge-box .kb-body em { color: #FF3B30; font-style: normal; font-weight: 500; }
+  .knowledge-box .kb-formula { display: inline-block; background: #fff; border: 1px solid #FF3B3040; border-radius: 5px; padding: 1px 8px; font-family: "SF Mono", monospace; font-size: 12px; font-weight: 600; color: #1d1d1f; margin: 0 2px; }
+  .knowledge-box.collapsed .kb-body { display: none; }
+
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="top-bar">
+    <button class="back" onclick="location.href='index.html'">←</button>
+        <button class="quiz-close" id="quizClose" onclick="closeQuiz()" style="margin-top:10px;padding:6px 16px;background:rgba(255,255,255,0.1);color:rgba(255,255,255,0.6);border:1px solid rgba(255,255,255,0.15);border-radius:8px;cursor:pointer;font-size:12px;">✕ 关闭</button>
+    <h2>物理实验室</h2>
+    <span class="ch-title">第3节 浮沉条件</span>
+  </div>
+  <canvas id="simCanvas" width="780" height="300"></canvas>
+  <div class="tabs">
+    <button class="tab active" data-tab="observe">观察</button>
+    <button class="tab" data-tab="explore">探索</button>
+    <button class="tab" data-tab="challenge">挑战</button>
+    <button class="tab" data-tab="quiz">测验</button>
+  </div>
+  <div class="content">
+    <!-- 观察 -->
+    <div id="observe" class="tab-content active">
+      <h3>🔍 观察：物体在不同液体中的浮沉</h3>
+      <p>同一物体在不同液体中可能表现为漂浮、悬浮或沉底。</p>
+      <div class="highlight">
+        <strong>浮沉条件（比较 F浮 与 G）：</strong><br>
+        - <strong>上浮 → 漂浮：</strong> F浮 > G &nbsp;（最终漂浮时 F浮 = G）<br>
+        - <strong>悬浮：</strong> F浮 = G &nbsp;（可停留在液体中任意位置）<br>
+        - <strong>下沉 → 沉底：</strong> F浮 < G &nbsp;（最终静止在容器底部）<br><br>
+        <strong>密度关系（比较 ρ物 与 ρ液）：</strong><br>
+        - ρ物 < ρ液 → 上浮（最终漂浮）<br>
+        - ρ物 = ρ液 → 悬浮<br>
+        - ρ物 > ρ液 → 下沉（最终沉底）
+      </div>
+      <p>左侧动画展示了三种情况：木头漂浮在水面（ρ木<ρ水），鸡蛋悬浮在盐水中（ρ蛋=ρ盐水），石头沉底（ρ石>ρ水）。</p>
+    </div>
+    <!-- 探索 -->
+    <div id="explore" class="tab-content">
+      <h3>🧪 探索：改变液体密度</h3>
+      <p>通过改变液体密度，观察同一物体在液体中的浮沉状态变化。</p>
+      <div style="margin: 16px 0;">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;flex-wrap:wrap;">
+          <span style="font-size:14px;min-width:100px;">液体密度 ρ液:</span>
+          <input type="range" id="sliderDensity" min="700" max="1300" value="1000" step="10" style="flex:1;max-width:300px;" oninput="updateExplore()">
+          <span id="densityVal" style="font-size:14px;font-weight:600;color:#FF3B30;">1000 kg/m³</span>
+        </div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;">
+          <div style="font-size:14px;padding:10px 14px;background:#fff0f0;border-radius:10px;flex:1;text-align:center;">
+            物体密度 ρ物 = <strong>900</strong> kg/m³
+          </div>
+          <div style="font-size:14px;padding:10px 14px;background:#e8f8ee;border-radius:10px;flex:1;text-align:center;">
+            当前状态: <strong id="stateResult" style="color:#FF3B30;">沉底</strong>
+          </div>
+        </div>
+        <div id="stateDetail" style="font-size:14px;padding:8px 14px;background:#fff8f0;border-radius:8px;margin-top:8px;text-align:center;">
+          <span id="stateDesc">ρ物 > ρ液，物体下沉</span>
+        </div>
+      </div>
+      <p style="font-size:13px;color:#86868b;">调节液体密度滑块，观察当 ρ液 相对于 ρ物 变化时，物体的浮沉状态如何改变。</p>
+      <ul style="font-size:13px;color:#86868b;margin-top:8px;">
+        <li>当 ρ液 < 900 kg/m³：ρ物 > ρ液 → 下沉</li>
+        <li>当 ρ液 = 900 kg/m³：ρ物 = ρ液 → 悬浮</li>
+        <li>当 ρ液 > 900 kg/m³：ρ物 < ρ液 → 上浮</li>
+      </ul>
+    </div>
+    <!-- 挑战 -->
+    <div id="challenge" class="tab-content">
+      <h3>🏆 挑战：悬浮/漂浮/沉底判断</h3>
+      <p>根据物体密度和液体密度的关系判断浮沉状态。</p>
+      <div id="challengeList">
+        <div class="challenge-box" data-cid="c1">
+          <div class="q">【判断 1】ρ木 = 600 kg/m³，放入水中（ρ水=1000 kg/m³），木头会？</div>
+          <div class="a"><button class="btn secondary" onclick="doChallenge('c1','漂浮','漂浮（ρ木 < ρ水，最终漂浮在水面）')">提交答案</button> <span id="sc1"></span></div>
+        </div>
+        <div class="challenge-box" data-cid="c2">
+          <div class="q">【判断 2】ρ蛋 = 1100 kg/m³，放入水中（ρ水=1000 kg/m³），鸡蛋会？</div>
+          <div class="a"><button class="btn secondary" onclick="doChallenge('c2','沉底','沉底（ρ蛋 > ρ水）')">提交答案</button> <span id="sc2"></span></div>
+        </div>
+        <div class="challenge-box" data-cid="c3">
+          <div class="q">【判断 3】ρ物 = 1000 kg/m³，放入水中（ρ水=1000 kg/m³），物体会？</div>
+          <div class="a"><button class="btn secondary" onclick="doChallenge('c3','悬浮','悬浮（ρ物 = ρ水）')">提交答案</button> <span id="sc3"></span></div>
+        </div>
+        <div class="challenge-box" data-cid="c4">
+          <div class="q">【判断 4】冰块（ρ=900 kg/m³）放入盐水中（ρ=1100 kg/m³），冰块会？</div>
+          <div class="a"><button class="btn secondary" onclick="doChallenge('c4','漂浮','漂浮（ρ冰 < ρ盐水）')">提交答案</button> <span id="sc4"></span></div>
+        </div>
+        <div class="challenge-box" data-cid="c5">
+          <div class="q">【计算】一个物体重 5 N，完全浸没时受到的浮力为 6 N，撤去外力后物体会？</div>
+          <div class="a"><button class="btn secondary" onclick="doChallenge('c5','上浮','上浮（F浮=6N > G=5N，所以上浮，最终漂浮）')">提交答案</button> <span id="sc5"></span></div>
+        </div>
+      </div>
+    </div>
+    <!-- 测验 -->
+    <div id="quiz" class="tab-content">
+      <h3>📝 测验：浮沉条件</h3>
+      <p>共 5 道选择题，点击下方按钮开始测验。</p>
+      <button class="btn" onclick="startQuiz()">开始测验</button>
+    </div>
+  </div>
+  <div class="knowledge-box collapsed" id="knowledgeBox" onclick="toggleKnowledge()">
+        <div class="kb-title"><span class="kb-toggle" id="kbToggle">▶</span> 💡 <span id="kbTitle">知识要点</span></div>
+        <div class="kb-body" id="kbBody"></div>
+      </div>
+
+</div>
+
+<div class="quiz-overlay" id="quizOverlay">
+
+    showQuiz();  <div class="quiz-panel">
+    <h3>📝 浮沉条件测验</h3>
+    <div id="quizQuestions"></div>
+    <div id="quizResult" class="quiz-result" style="display:none;"></div>
+    <div class="quiz-actions">
+      <button class="btn" id="quizSubmitBtn" onclick="submitQuiz()">提交</button>
+      <button class="btn secondary" onclick="closeQuiz()">关闭</button>
+    </div>
+  </div>
+</div>
+
+<script>
+var STORAGE_KEY = 'physics_fu_li_ch3';
+
+function saveProgress(tabId) {
+  var data = { done: [] };
+  try { data = JSON.parse(localStorage.getItem(STORAGE_KEY)) || { done: [] }; } catch(e) {}
+  if (data.done.indexOf(tabId) === -1) {
+    data.done.push(tabId);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  }
+}
+
+document.querySelectorAll('.tab').forEach(function(tab) {
+  tab.addEventListener('click', function() {
+    document.querySelectorAll('.tab').forEach(function(t) { t.classList.remove('active'); });
+    document.querySelectorAll('.tab-content').forEach(function(c) { c.classList.remove('active'); });
+    this.classList.add('active');
+    document.getElementById(this.dataset.tab).classList.add('active');
+    saveProgress(this.dataset.tab);
+	    var tabIdx = ['observe','explore','challenge','quiz'].indexOf(this.dataset.tab);
+	    if (tabIdx >= 0) setKnowledge(tabIdx);
+  });
+});
+
+// ========== CANVAS ==========
+var canvas = document.getElementById('simCanvas');
+var ctx = canvas.getContext('2d');
+var cw = canvas.width, ch = canvas.height;
+var floatAnim = 0;
+
+function drawCanvas() {
+  ctx.clearRect(0, 0, cw, ch);
+  floatAnim = (floatAnim + 0.5) % 100;
+
+  // Three containers
+  var containers = [
+    { x: 80, label: '水', color: 'rgba(52,199,89,0.15)' },
+    { x: 300, label: '盐水', color: 'rgba(175,82,222,0.15)' },
+    { x: 520, label: '水', color: 'rgba(52,199,89,0.15)' }
+  ];
+
+  containers.forEach(function(c) {
+    var cx = c.x;
+
+    // Container
+    ctx.strokeStyle = '#c7c7cc';
+    ctx.lineWidth = 1.5;
+    ctx.fillStyle = c.color;
+    ctx.fillRect(cx, 70, 180, 210);
+    ctx.strokeRect(cx, 70, 180, 210);
+
+    // Water wave
+    ctx.strokeStyle = 'rgba(52,199,89,0.25)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(cx + 2, 75 + Math.sin(floatAnim * 0.08) * 2);
+    ctx.quadraticCurveTo(cx + 45, 70 + Math.sin(floatAnim * 0.08 + 1) * 2, cx + 90, 75 + Math.sin(floatAnim * 0.08 + 2) * 2);
+    ctx.quadraticCurveTo(cx + 135, 70 + Math.sin(floatAnim * 0.08 + 3) * 2, cx + 178, 75 + Math.sin(floatAnim * 0.08 + 4) * 2);
+    ctx.stroke();
+
+    // Label
+    ctx.fillStyle = '#ffffff';
+    ctx.font = '12px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(c.label, cx + 90, 290);
+  });
+
+  // Container 1: Wood floating (ρ < water)
+  ctx.shadowColor = 'rgba(139,87,42,0.15)';
+  ctx.shadowBlur = 6;
+  ctx.fillStyle = '#8B5E3C';
+  var floatY = 68 + Math.sin(floatAnim * 0.05) * 2;
+  ctx.fillRect(130, floatY, 60, 40);
+  ctx.shadowBlur = 0;
+  ctx.strokeStyle = '#6B3F1F';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(130, floatY, 60, 40);
+  ctx.fillStyle = '#8B5E3C';
+  ctx.font = '10px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('木头 (漂浮)', 160, floatY + 25);
+
+  // Container 2: Egg suspended (ρ = salt water)
+  ctx.shadowColor = 'rgba(255,59,48,0.15)';
+  ctx.shadowBlur = 6;
+  ctx.fillStyle = '#FFB347';
+  ctx.beginPath();
+  ctx.ellipse(390, 170, 30, 40, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.shadowBlur = 0;
+  ctx.fillStyle = '#ffffff';
+  ctx.font = '10px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('鸡蛋 (悬浮)', 390, 220);
+
+  // Container 3: Stone sunk (ρ > water)
+  ctx.shadowColor = 'rgba(100,100,100,0.15)';
+  ctx.shadowBlur = 6;
+  ctx.fillStyle = '#8e8e93';
+  ctx.beginPath();
+  ctx.ellipse(610, 250, 35, 20, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.shadowBlur = 0;
+  ctx.fillStyle = '#8e8e93';
+  ctx.font = '10px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('石头 (沉底)', 610, 278);
+
+  // Title labels
+  ctx.fillStyle = '#ffffff';
+  ctx.font = 'bold 14px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('漂浮', 170, 30);
+  ctx.fillText('悬浮', 390, 30);
+  ctx.fillText('沉底', 610, 30);
+
+  ctx.fillStyle = 'rgba(255,255,255,0.35)';
+  ctx.font = '11px sans-serif';
+  ctx.fillText('ρ物 < ρ液', 170, 46);
+  ctx.fillText('ρ物 = ρ液', 390, 46);
+  ctx.fillText('ρ物 > ρ液', 610, 46);
+}
+
+function animate() {
+  drawCanvas();
+  requestAnimationFrame(animate);
+}
+animate();
+
+// ========== EXPLORE ==========
+function updateExplore() {
+  var rhoLiquid = parseInt(document.getElementById('sliderDensity').value);
+  var rhoObject = 900;
+  document.getElementById('densityVal').textContent = rhoLiquid + ' kg/m³';
+
+  var state, desc;
+  if (rhoObject < rhoLiquid) {
+    state = '上浮 / 漂浮';
+    desc = 'ρ物 < ρ液 → 物体上浮，最终漂浮在液面上';
+  } else if (rhoObject === rhoLiquid) {
+    state = '悬浮';
+    desc = 'ρ物 = ρ液 → 物体悬浮在液体中任意位置';
+  } else {
+    state = '下沉 / 沉底';
+    desc = 'ρ物 > ρ液 → 物体下沉，最终沉入容器底部';
+  }
+  document.getElementById('stateResult').textContent = state;
+  document.getElementById('stateDesc').textContent = desc;
+}
+updateExplore();
+
+// ========== CHALLENGE ==========
+function doChallenge(id, answer, hint) {
+  var u = window.prompt('请输入你的答案：');
+  if (u === null) return;
+  var span = document.getElementById('s' + id);
+  if (u.trim() === answer) {
+    span.innerHTML = '✅ 正确！';
+    span.style.color = '#34C759';
+  } else {
+    span.innerHTML = '❌ 不正确。参考：' + hint;
+    span.style.color = '#FF3B30';
+  }
+  checkAllDone();
+}
+
+function checkAllDone() {
+  var allDone = true;
+  document.querySelectorAll('#challengeList .challenge-box').forEach(function(box) {
+    var sid = 's' + box.dataset.cid;
+    if (document.getElementById(sid).innerHTML.indexOf('✅') === -1) allDone = false;
+  });
+  if (allDone) saveProgress('challenge');
+}
+
+// ========== QUIZ ==========
+var quizData = [
+  { q: '当 ρ物 < ρ液 时，物体在液体中将？', opts: ['A. 下沉', 'B. 上浮', 'C. 悬浮', 'D. 静止不动'], ans: 1 },
+  { q: '物体在液体中悬浮时，浮力与重力的关系是？', opts: ['A. F浮 > G', 'B. F浮 < G', 'C. F浮 = G', 'D. 无关'], ans: 2 },
+  { q: '一艘船从河里驶入海里（海水密度更大），船会？', opts: ['A. 上浮一些', 'B. 下沉一些', 'C. 不变', 'D. 无法判断'], ans: 0 },
+  { q: '潜水艇上浮是通过改变什么来实现的？', opts: ['A. 体积', 'B. 自身重力', 'C. 浮力方向', 'D. 液体密度'], ans: 1 },
+  { q: '漂浮在液面上的物体，其浮力大小等于？', opts: ['A. 物体体积', 'B. 物体密度', 'C. 物体重力', 'D. 排开液体密度'], ans: 2 }
+];
+
+var quizAnswers = [];
+
+function startQuiz() {
+  quizAnswers = [];
+  var html = '';
+  quizData.forEach(function(item, i) {
+    html += '<div class="q-item"><div class="q-text">' + (i+1) + '. ' + item.q + '</div><div class="q-opts">';
+    item.opts.forEach(function(opt, j) {
+      html += '<label><input type="radio" name="q' + i + '" value="' + j + '" onchange="quizAnswers[' + i + ']=' + j + '"> ' + opt + '</label>';
+    });
+    html += '</div></div>';
+  });
+  document.getElementById('quizQuestions').innerHTML = html;
+  document.getElementById('quizResult').style.display = 'none';
+  document.getElementById('quizSubmitBtn').textContent = '提交';
+  document.getElementById('quizOverlay').classList.add('show');
+    document.querySelector('.canvas-wrap').classList.add('quiz-active');
+}
+
+function submitQuiz() {
+  var score = 0;
+  quizData.forEach(function(item, i) {
+    if (quizAnswers[i] === item.ans) score++;
+  });
+  var result = document.getElementById('quizResult');
+  result.style.display = 'block';
+  if (score >= 4) {
+    result.className = 'quiz-result pass';
+    result.textContent = '🎉 通过！得分：' + score + '/' + quizData.length;
+    saveProgress('quiz');
+    document.getElementById('quizSubmitBtn').textContent = '已完成';
+  } else {
+    result.className = 'quiz-result fail';
+    result.textContent = '😅 得分：' + score + '/' + quizData.length + '，再接再厉！';
+  }
+}
+
+function closeQuiz() {
+  document.getElementById('quizOverlay').classList.remove('show');
+    document.querySelector('.canvas-wrap').classList.remove('quiz-active');
+}
+
+// ══════════════════════════════════════════
+// Knowledge Points - 浮力 ch3
+// ══════════════════════════════════════════
+const KNOWLEDGE = {
+  0: {
+    title: '💡 物体的浮沉条件',
+    body: '比较 <em>F浮</em> 与 <em>G</em> 的大小：\n' +
+         '\n' +
+         '• <strong>上浮（最终漂浮）</strong>：F浮 > G\n' +
+         '• <strong>悬浮</strong>：F浮 = G\n' +
+         '• <strong>下沉（最终沉底）</strong>：F浮 < G\n' +
+         '\n' +
+         '漂浮时：F浮 = G（二力平衡）'
+  },
+  1: {
+    title: '💡 密度与浮沉的关系',
+    body: '比较 <em>ρ物</em> 与 <em>ρ液</em>：\n' +
+         '\n' +
+         '• ρ物 < ρ液 → <strong>上浮</strong>（最终漂浮）\n' +
+         '• ρ物 = ρ液 → <strong>悬浮</strong>\n' +
+         '• ρ物 > ρ液 → <strong>下沉</strong>\n' +
+         '\n' +
+         '实心物体的浮沉完全由密度关系决定！'
+  },
+  2: {
+    title: '💡 浮沉判断技巧',
+    body: '判断浮沉状态的步骤：\n' +
+         '\n' +
+         '① 确定物体密度 ρ物 和液体密度 ρ液\n' +
+         '② 比较 ρ物 与 ρ液 的大小关系\n' +
+         '③ 根据密度关系判断浮沉\n' +
+         '\n' +
+         '或用受力分析法：比较 F浮 与 G 的大小。'
+  },
+  3: {
+    title: '💡 浮沉知识检测',
+    body: '核心要点：\n' +
+         '\n' +
+         '• 上浮 → 漂浮：F浮 > G → F浮 = G\n' +
+         '• 悬浮：F浮 = G，ρ物 = ρ液\n' +
+         '• 下沉 → 沉底：F浮 < G\n' +
+         '\n' +
+         '漂浮是上浮的最终状态，此时 F浮 = G。'
+  },
+};
+
+function toggleKnowledge() {
+  const box = document.getElementById('knowledgeBox');
+  const toggle = document.getElementById('kbToggle');
+  box.classList.toggle('collapsed');
+  toggle.classList.toggle('open');
+}
+
+function setKnowledge(idx) {
+  const k = KNOWLEDGE[idx];
+  if (k) {
+    document.getElementById('kbTitle').textContent = k.title;
+    document.getElementById('kbBody').innerHTML = k.body.replace(/\n/g, '<br>');
+    const box = document.getElementById('knowledgeBox');
+    if (box.classList.contains('collapsed')) {
+      box.classList.remove('collapsed');
+      document.getElementById('kbToggle').classList.add('open');
+    }
+  }
+}
+
+function closeQuiz() { switchMission(0); }
+</script>
+</body>
+</html>

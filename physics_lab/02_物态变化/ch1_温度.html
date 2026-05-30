@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>物理实验室 · 温度</title>
+<style>
+/* NB_LAB */
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "PingFang SC", "Helvetica Neue", sans-serif;
+    min-height: 100dvh;
+    background: linear-gradient(135deg, #0c0e1a 0%, #1a1e3a 30%, #0d1b2a 60%, #0a0e1a 100%) !important;
+    display: flex; justify-content: center; align-items: center; margin: 0; position: relative;
+  }
+  body::before {
+    content: ''; position: fixed; top: -50%; left: -50%; width: 200%; height: 200%;
+    background: radial-gradient(ellipse at 20% 50%, rgba(255,149,0,0.08) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 20%, rgba(255,149,0,0.05) 0%, transparent 50%);
+    pointer-events: none; z-index: 0;
+  }
+
+  /* COMPACT_V5 - balanced layout */
+  .app { height: 100dvh !important; max-height: 100dvh !important; }
+  .top-bar { padding: 6px 12px !important; min-height: 34px !important; }
+  .top-bar h1 { font-size: 12px !important; }
+  .top-bar .back { font-size: 14px !important; }
+  .top-bar .progress-dots .dot { width: 6px !important; height: 6px !important; }
+  .main-area { padding: 6px !important; gap: 6px !important; flex: 1 !important; min-height: 0 !important; overflow: hidden !important; }
+  .canvas-wrap { flex: 1 !important; min-height: 200px !important; max-height: none !important; overflow: hidden !important; position: relative !important; }
+  .canvas-wrap canvas { width: 100% !important; height: 100% !important; display: block !important; }
+.canvas-wrap.quiz-active { flex-shrink: 1 !important; min-height: 55dvh !important; max-height: 75dvh !important; }
+  .canvas-wrap.quiz-active canvas { display: none !important; }
+  .info-panel { padding: 4px 10px !important; flex-shrink: 0 !important; min-height: 50px !important; max-height: 30dvh !important; overflow-y: auto !important; }
+  .info-panel .mission-label { font-size: 9px !important; line-height: 14px !important; }
+  .info-panel .mission-title { font-size: 12px !important; line-height: 16px !important; margin: 0 !important; }
+  .info-panel .mission-desc { font-size: 11px !important; line-height: 15px !important; }
+  .info-panel .mission-desc button { padding: 3px 10px !important; font-size: 10px !important; border-radius: 6px !important; }
+  .info-panel .data-display, .info-panel .speed-display,
+  .info-panel .noise-display, .info-panel .sonar-display,
+  .info-panel .wave-controls, .info-panel .angle-display { margin-top: 2px !important; padding-top: 2px !important; gap: 6px !important; }
+  .info-panel .data-item, .info-panel .speed-item,
+  .info-panel .noise-item, .info-panel .sonar-item { font-size: 10px !important; }
+  .info-panel .data-item .value, .info-panel .speed-item .value { font-size: 12px !important; }
+  .info-panel .wave-controls input[type=range] { width: 60px !important; }
+  .mission-tabs { padding: 2px 8px 6px !important; flex-shrink: 0 !important; }
+  .mission-tabs .tab { padding: 5px 4px !important; font-size: 11px !important; border-radius: 6px !important; }
+  .mission-tabs .tab .tab-check { font-size: 9px !important; margin-top: 1px !important; }
+  .knowledge-box { padding: 3px 8px !important; }
+  .knowledge-box .kb-title { font-size: 9px !important; }
+  .knowledge-box .kb-body { font-size: 10px !important; line-height: 1.3 !important; }
+  .challenge-hud { padding: 4px 8px !important; font-size: 10px !important; top: 8px !important; right: 8px !important; }
+  .challenge-hud .ch-restart { padding: 2px 8px !important; font-size: 10px !important; }
+  .mode-toggle { padding: 3px 8px !important; font-size: 9px !important; top: 8px !important; left: 8px !important; }
+  .noise-btn, .timbre-btn, .app-btn, .lens-btn { padding: 4px 10px !important; font-size: 10px !important; }
+
+  .top-bar { padding: 6px 12px !important; min-height: 36px !important; }
+  .top-bar h1 { font-size: 12px !important; }
+  .top-bar .back { font-size: 14px !important; line-height: 20px !important; }
+  .top-bar .progress-dots .dot { width: 6px !important; height: 6px !important; }
+  .main-area { padding: 4px !important; gap: 4px !important; flex: 1 !important; min-height: 0 !important; }
+  .canvas-wrap { flex-shrink: 0 !important; }
+.info-panel { padding: 4px 8px !important; flex: 1 !important; min-height: 30px !important; overflow-y: auto !important; }
+  .info-panel .mission-label { font-size: 9px !important; line-height: 14px !important; }
+  .info-panel .mission-title { font-size: 12px !important; line-height: 16px !important; margin: 0 !important; }
+  .info-panel .mission-desc { font-size: 11px !important; line-height: 15px !important; }
+  .info-panel .mission-desc button { padding: 3px 10px !important; font-size: 10px !important; border-radius: 6px !important; }
+  .info-panel .data-display, .info-panel .speed-display,
+  .info-panel .noise-display, .info-panel .sonar-display,
+  .info-panel .wave-controls, .info-panel .angle-display { margin-top: 3px !important; padding-top: 3px !important; gap: 6px !important; }
+  .info-panel .data-item, .info-panel .speed-item,
+  .info-panel .noise-item, .info-panel .sonar-item { font-size: 10px !important; }
+  .info-panel .data-item .value, .info-panel .speed-item .value { font-size: 12px !important; }
+  .info-panel .wave-controls input[type=range] { width: 60px !important; }
+  .mission-tabs { padding: 1px 6px 4px !important; flex-shrink: 0 !important; }
+  .mission-tabs .tab { padding: 4px 3px !important; font-size: 10px !important; border-radius: 6px !important; }
+  .mission-tabs .tab .tab-check { font-size: 9px !important; margin-top: 1px !important; }
+  .knowledge-box { padding: 3px 8px !important; }
+  .knowledge-box .kb-title { font-size: 9px !important; }
+  .canvas-wrap.quiz-active { min-height: 60dvh !important; flex-shrink: 1 !important; }
+  .canvas-wrap.quiz-active canvas { display: none !important; }
+  .challenge-hud { padding: 4px 8px !important; font-size: 10px !important; top: 8px !important; right: 8px !important; }
+  .challenge-hud .ch-restart { padding: 2px 8px !important; font-size: 10px !important; }
+  .mode-toggle { padding: 3px 8px !important; font-size: 9px !important; top: 8px !important; left: 8px !important; }
+  .noise-btn, .timbre-btn, .app-btn, .lens-btn { padding: 4px 10px !important; font-size: 10px !important; }
+
+  .app { background: rgba(255,255,255,0.04) !important; border: 1px solid rgba(255,255,255,0.06) !important; backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); position: relative; z-index: 1; }
+  .top-bar { background: rgba(255,255,255,0.03) !important; border-bottom: 1px solid rgba(255,255,255,0.06) !important; }
+  .top-bar h1, .top-bar h2 { color: #fff !important; }
+  .top-bar .back { color: rgba(255,255,255,0.5) !important; }
+  .top-bar .back:hover { color: #fff !important; }
+  .top-bar .progress-dots .dot { background: rgba(255,255,255,0.1) !important; }
+  .top-bar .progress-dots .dot.active { background: #FF9500 !important; }
+  .top-bar .progress-dots .dot.done { background: #34C759 !important; }
+  .canvas-wrap { background: rgba(10,12,26,0.6) !important; border-color: rgba(255,255,255,0.06) !important; }
+  .canvas-wrap canvas { filter: brightness(1.05) contrast(1.05); }
+  .info-panel { background: rgba(255,255,255,0.03) !important; border-color: rgba(255,255,255,0.06) !important; }
+  .info-panel .mission-label, .card .num { color: #FF9500 !important; }
+  .info-panel .mission-title, .card h3, .hero h1, .top-bar h1 { color: #fff !important; }
+  .info-panel .mission-desc, p, .card p, .hero p { color: rgba(255,255,255,0.4) !important; }
+  .info-panel .mission-desc button, .card .status.new, .tab.active { background: #FF9500 !important; color: #fff !important; border: none !important; }
+  .mission-tabs .tab { background: rgba(255,255,255,0.03) !important; border-color: rgba(255,255,255,0.08) !important; color: rgba(255,255,255,0.3) !important; }
+  .mission-tabs .tab:hover { border-color: #FF9500 !important; color: #FF9500 !important; }
+  .mission-tabs .tab.active { background: #FF9500 !important; color: #fff !important; border-color: #FF9500 !important; }
+  .mission-tabs .tab.done { border-color: #34C759 !important; color: #34C759 !important; }
+  .challenge-hud, .mode-toggle { background: rgba(0,0,0,0.5) !important; backdrop-filter: blur(10px) !important; }
+
+  .knowledge-box { background: rgba(255,149,0,0.08) !important; border-left-color: #FF9500 !important; }
+  .knowledge-box .kb-title, .knowledge-box .kb-toggle { color: #FF9500 !important; }
+  .knowledge-box .kb-body, .card p, .hero p { color: rgba(255,255,255,0.7) !important; }
+  .knowledge-box .kb-body em { color: #FF9500 !important; }
+  .knowledge-box .kb-formula { background: rgba(255,255,255,0.06) !important; border-color: rgba(255,255,255,0.1) !important; color: #fff !important; }
+  .card { background: rgba(255,255,255,0.04) !important; border: 1px solid rgba(255,255,255,0.06) !important; backdrop-filter: blur(20px) !important; color: #fff !important; }
+  .card:hover { border-color: #FF9500 !important; transform: translateY(-2px); }
+  .card .status.done { background: rgba(52,199,89,0.12) !important; color: #34C759 !important; border: 1px solid rgba(52,199,89,0.15) !important; }
+  .card .status.new { background: rgba(255,149,0,0.1) !important; color: #FF9500 !important; border: 1px solid rgba(255,149,0,0.15) !important; }
+  .card .status.partial { background: rgba(255,255,255,0.05) !important; color: rgba(255,255,255,0.4) !important; border: 1px solid rgba(255,255,255,0.08) !important; }
+  .hero .progress-module, .module-progress { color: #FF9500 !important; background: rgba(255,149,0,0.1) !important; border: 1px solid rgba(255,149,0,0.15) !important; }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", sans-serif; background: #f5f5f7; color: #1d1d1f; height: 100dvh; display: flex; justify-content: center; align-items: center; }
+  .app { width: 820px; max-width: 96vw; height: 100dvh; max-height: 100dvh; background: #fff; border-radius: 20px; box-shadow: 0 20px 60px rgba(0,0,0,0.08); display: flex; flex-direction: column; overflow: hidden; }
+  .top-bar { display: flex; align-items: center; padding: 14px 20px; flex-shrink: 0; background: #fafafa; border-bottom: 1px solid #e8e8ed; }
+  .top-bar .back { font-size: 20px; cursor: pointer; opacity: 0.6; }
+  .top-bar .back:hover { opacity: 1; }
+  .top-bar h1 { font-size: 15px; font-weight: 600; margin-left: 10px; flex: 1; }
+  .top-bar .progress-dots { font-size: 13px; color: #86868b; display: flex; gap: 6px; align-items: center; }
+  .top-bar .progress-dots .dot { width: 8px; height: 8px; border-radius: 50%; background: #e8e8ed; }
+  .top-bar .progress-dots .dot.active { background: #FF9500; }
+  .top-bar .progress-dots .dot.done { background: #34C759; }
+  .main-area { padding: 10px; flex: 1; display: flex; flex-direction: column; overflow: hidden; gap: 8px; }
+  .canvas-wrap { position: relative; background: #fff; border-radius: 14px; border: 1px solid #e8e8ed; overflow: hidden; flex-shrink: 0; }
+  .canvas-wrap canvas { display: block; width: 100%; height: auto; cursor: pointer; touch-action: none; }
+  .info-panel { background: #fafafa; border-radius: 14px; border: 1px solid #e8e8ed; padding: 10px 16px; overflow-y: auto; min-height: 0; }
+  .info-panel .mission-label { font-size: 11px; font-weight: 600; color: #FF9500; letter-spacing: 0.5px; }
+  .info-panel .mission-title { font-size: 15px; font-weight: 600; margin: 0 0 2px; }
+  .info-panel .mission-desc { font-size: 13px; color: #86868b; line-height: 1.4; }
+  .info-panel .temp-display { display: flex; gap: 16px; margin-top: 6px; padding-top: 6px; border-top: 1px solid #e8e8ed; flex-wrap: wrap; }
+  .info-panel .temp-item { font-size: 12px; }
+  .info-panel .temp-item .label { color: #86868b; }
+  .info-panel .temp-item .value { font-weight: 600; font-size: 15px; color: #FF9500; }
+  .mission-tabs { display: flex; gap: 4px; padding: 2px 10px 8px; flex-shrink: 0; }
+  .mission-tabs .tab { flex: 1; padding: 8px 4px; border-radius: 8px; border: 1px solid #e8e8ed; background: #fff; text-align: center; cursor: pointer; font-size: 12px; font-weight: 500; color: #86868b; transition: all 0.2s; }
+  .mission-tabs .tab:hover { border-color: #FF9500; color: #FF9500; }
+  .mission-tabs .tab.active { background: #FF9500; color: #fff; border-color: #FF9500; }
+  .mission-tabs .tab.done { border-color: #34C759; color: #34C759; }
+  .mission-tabs .tab .tab-check { font-size: 11px; display: block; margin-top: 2px; }
+  .challenge-hud { position: absolute; top: 12px; right: 12px; background: rgba(0,0,0,0.7); backdrop-filter: blur(10px); border-radius: 10px; padding: 8px 14px; color: #fff; font-size: 13px; display: none; z-index: 5; }
+  .challenge-hud.show { display: block; }
+  .challenge-hud .ch-level { font-weight: 600; margin-bottom: 2px; }
+  .challenge-hud .ch-goal { color: #aaa; font-size: 12px; }
+  .challenge-hud .ch-restart { margin-top: 6px; padding: 4px 10px; background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.25); border-radius: 6px; color: #fff; font-size: 11px; cursor: pointer; }
+  .quiz-overlay { position: absolute; inset: 0; background: rgba(255,255,255,0.85); backdrop-filter: blur(20px); display: none; flex-direction: column; align-items: center; justify-content: center; padding: 30px; z-index: 10; }
+  .quiz-overlay.show { display: flex; background: rgba(10,12,26,0.92) !important; backdrop-filter: blur(20px) !important; -webkit-backdrop-filter: blur(20px) !important; }
+  .quiz-overlay .quiz-q { font-size: 18px; font-weight: 600; text-align: center; max-width: 480px; margin-bottom: 20px; line-height: 1.5; }
+  .quiz-overlay .quiz-options { display: flex; flex-direction: column; gap: 10px; width: 100%; max-width: 400px; }
+  .quiz-overlay .quiz-opt { padding: 14px 20px; background: #fff; border: 1.5px solid #e8e8ed; border-radius: 12px; font-size: 15px; cursor: pointer; transition: all 0.2s; text-align: left; }
+  .quiz-overlay .quiz-opt:hover { border-color: #FF9500; background: #fff8e8; }
+  .quiz-overlay .quiz-opt.correct { border-color: #34C759; background: #e8f8ee; }
+  .quiz-overlay .quiz-opt.wrong { border-color: #FF3B30; background: #ffe8e6; }
+  .quiz-overlay .quiz-result { margin-top: 16px; font-size: 15px; font-weight: 500; max-width: 420px; text-align: center; }
+  .quiz-overlay .quiz-next { margin-top: 14px; padding: 10px 30px; background: #FF9500; color: #fff; border: none; border-radius: 10px; font-size: 15px; font-weight: 500; cursor: pointer; }
+
+  .knowledge-box { padding: 6px 12px; background: #fff8e8; border-radius: 10px; border-left: 3px solid #FF9500; flex-shrink: 0; cursor: pointer; user-select: none; }
+  .knowledge-box .kb-title { font-weight: 600; font-size: 11px; color: #FF9500; letter-spacing: 0.3px; display: flex; align-items: center; gap: 4px; }
+  .knowledge-box .kb-toggle { font-size: 9px; color: #FF9500; opacity: 0.5; transition: transform 0.2s; }
+  .knowledge-box .kb-toggle.open { transform: rotate(90deg); }
+  .knowledge-box .kb-body { font-size: 11.5px; color: #1d1d1f; line-height: 1.5; margin-top: 3px; }
+  .knowledge-box .kb-body em { color: #FF9500; font-style: normal; font-weight: 500; }
+  .knowledge-box .kb-formula { display: inline-block; background: #fff; border: 1px solid #f5e0c0; border-radius: 5px; padding: 1px 8px; font-family: "SF Mono", monospace; font-size: 12px; font-weight: 600; color: #1d1d1f; margin: 0 2px; }
+  .knowledge-box.collapsed .kb-body { display: none; }
+
+  @media (max-width: 600px) { .mission-tabs .tab { font-size: 11px; padding: 8px 4px; } }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="top-bar">
+    <span class="back" onclick="location.href='index.html'">←</span>
+    <h1>温度</h1>
+    <div class="progress-dots" id="progressDots">
+      <span class="dot" id="pdot0"></span><span class="dot" id="pdot1"></span>
+      <span class="dot" id="pdot2"></span><span class="dot" id="pdot3"></span>
+    </div>
+  </div>
+  <div class="main-area">
+    <div class="canvas-wrap">
+      <canvas id="labCanvas" width="780" height="320"></canvas>
+      <div class="challenge-hud" id="challengeHud">
+        <div class="ch-level" id="chLevel">第 1/5 关</div>
+        <div class="ch-goal" id="chGoal">目标加载中...</div>
+        <div class="ch-restart" onclick="resetChallenges()">重来</div>
+      </div>
+      <div class="quiz-overlay" id="quizOverlay">
+        <div class="quiz-q" id="quizQ">题目加载中...</div>
+        <div class="quiz-options" id="quizOptions"></div>
+        <div class="quiz-result" id="quizResult"></div>
+        <button class="quiz-next" id="quizNext" onclick="nextQuiz()">下一题</button>
+        <button class="quiz-close" id="quizClose" onclick="closeQuiz()" style="margin-top:10px;padding:6px 16px;background:rgba(255,255,255,0.1);color:rgba(255,255,255,0.6);border:1px solid rgba(255,255,255,0.15);border-radius:8px;cursor:pointer;font-size:12px;">✕ 关闭</button>
+      </div>
+    </div>
+    <div class="info-panel">
+      <div class="mission-label" id="missionLabel">观察</div>
+      <div class="mission-title" id="missionTitle">温度计</div>
+      <div class="mission-desc" id="missionDesc">观察温度计的工作原理。</div>
+      <div class="temp-display" id="tempDisplay">
+        <div class="temp-item"><span class="label">当前温度: </span><span class="value" id="dispTemp">25 °C</span></div>
+      </div>
+      <div class="knowledge-box collapsed" id="knowledgeBox" onclick="toggleKnowledge()">
+        <div class="kb-title"><span class="kb-toggle" id="kbToggle">▶</span> 💡 <span id="kbTitle">知识要点</span></div>
+        <div class="kb-body" id="kbBody"></div>
+      </div>
+    </div>
+  </div>
+  <div class="mission-tabs" id="missionTabs"></div>
+</div>
+<script>
+const STORAGE_KEY = 'physics_wen_tai_bian_hua_ch1';
+const saved = (() => { try { return JSON.parse(localStorage.getItem(STORAGE_KEY)); } catch(e) {} return null; })() || {};
+let state = { done: saved.done || [], currentMission: saved.currentMission || 0, challengeIdx: saved.challengeIdx || 0, quizIdx: saved.quizIdx || 0, quizDone: saved.quizDone || [] };
+function saveState() { try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch(e) {} }
+
+const MISSIONS = [
+  { id: 'observe', label: '观察', title: '温度计的原理', desc: '观察酒精温度计中液柱随温度升降而变化。点击温度计上下按钮。', doneLabel: '已观看' },
+  { id: 'explore', label: '探索', title: '不同环境温度', desc: '点击场景切换，读取温度计示数。', doneLabel: '已探索' },
+  { id: 'challenge', label: '挑战', title: '温度闯关', desc: '完成温度读数、量程选择和单位换算。', doneLabel: '已闯关' },
+  { id: 'quiz', label: '测验', title: '知识检测', desc: '完成选择题巩固知识。', doneLabel: '已完成' }
+];
+
+const CHALLENGES = [
+  { goal: '右图温度计示数为多少°C？（分度值1°C）', answer: 36, unit: '°C', tolerance: 1 },
+  { goal: '体温计的量程通常是多少°C到多少°C？', answer: 42, unit: '上限°C', tolerance: 0, labelA: '35' },
+  { goal: '实验室温度计分度值通常为1°C，体温计分度值为多少°C？', answer: 1, unit: '°C', tolerance: 0 },
+  { goal: '25°C换算为开尔文温度是多少K？（K=°C+273）', answer: 298, unit: 'K', tolerance: 1 },
+  { goal: '读数为-8°C的温度计，液面在0°C刻度线以上还是以下？(0=以上,1=以下)', answer: 1, unit: '', tolerance: 0 }
+];
+
+const QUIZ_POOL = [
+  { q: '摄氏温标规定，标准大气压下沸水的温度是？', opts: ['A. 0°C', 'B. 37°C', 'C. 100°C', 'D. -4°C'], ans: 2, explain: '摄氏温标规定：标准大气压下冰水混合物0°C，沸水100°C。' },
+  { q: '体温计的量程通常是？', opts: ['A. 0-100°C', 'B. 35-42°C', 'C. -20-110°C', 'D. 30-50°C'], ans: 1, explain: '体温计用于测量人体温度，量程35-42°C，分度值0.1°C。' },
+  { q: '温度计的分度值是指？', opts: ['A. 量程范围', 'B. 每一小格代表的温度值', 'C. 玻璃管长度', 'D. 液体体积'], ans: 1, explain: '分度值是温度计每一小格所能代表的温度值，决定了读数的精确程度。' },
+  { q: '常用温度计是利用什么原理制成的？', opts: ['A. 固体热胀冷缩', 'B. 液体热胀冷缩', 'C. 气体热胀冷缩', 'D. 电子感应'], ans: 1, explain: '常用温度计（如酒精温度计、水银温度计）利用液体热胀冷缩的原理制成。' },
+  { q: '使用温度计时，以下做法正确的是？', opts: ['A. 玻璃泡接触容器底', 'B. 读数时取出温度计', 'C. 玻璃泡完全浸入被测液体中', 'D. 用体温计测开水温度'], ans: 2, explain: '使用温度计应该让玻璃泡完全浸入被测液体中，不碰容器底和壁，读数时不取出。' }
+];
+
+const canvas = document.getElementById('labCanvas');
+const ctx = canvas.getContext('2d');
+let animId = null, animTime = 0, isPlaying = false;
+let observeTemp = 25, exploreEnv = 0, dragTemp = 25;
+const ENVIRONMENTS = [
+  { name: '冰水混合物', temp: 0, color: '#e8f4ff', icon: '🧊' },
+  { name: '室内', temp: 25, color: '#fff8e8', icon: '🏠' },
+  { name: '温水', temp: 50, color: '#ffe0c0', icon: '☕' },
+  { name: '沸水', temp: 100, color: '#ffccc0', icon: '♨️' }
+];
+
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath(); ctx.moveTo(x+r,y); ctx.lineTo(x+w-r,y); ctx.arcTo(x+w,y,x+w,y+r,r);
+  ctx.lineTo(x+w,y+h-r); ctx.arcTo(x+w,y+h,x+w-r,y+h,r); ctx.lineTo(x+r,y+h);
+  ctx.arcTo(x,y+h,x,y+h-r,r); ctx.lineTo(x,y+r); ctx.arcTo(x,y,x+r,y,r); ctx.closePath();
+}
+
+function drawThermometer(cx, cy, temp, size) {
+  const s = size || 1;
+  const bulbR = 16 * s, tubeW = 8 * s, tubeH = 140 * s, topY = cy - tubeH/2, bulbY = cy + tubeH/2;
+  // Tube background
+  ctx.fillStyle = '#141626';
+  roundRect(ctx, cx-tubeW/2-2, topY-4, tubeW+4, tubeH+8, 4*s); ctx.fill();
+  ctx.strokeStyle = 'rgba(255,255,255,0.12)'; ctx.lineWidth = 1.5*s;
+  roundRect(ctx, cx-tubeW/2-2, topY-4, tubeW+4, tubeH+8, 4*s); ctx.stroke();
+  // Scale marks
+  for (let i = 0; i <= 10; i++) {
+    const y = topY + i * (tubeH/10);
+    const markLen = (i % 5 === 0) ? 12*s : 8*s;
+    ctx.strokeStyle = i % 5 === 0 ? '#333' : '#999'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(cx-tubeW/2-2, y); ctx.lineTo(cx-tubeW/2-2-markLen, y); ctx.stroke();
+    if (i % 5 === 0) {
+      ctx.fillStyle = 'rgba(255,255,255,0.65)'; ctx.font = `${10*s}px sans-serif`; ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+      ctx.fillText(i*10 + '', cx-tubeW/2-6-markLen, y);
+    }
+  }
+  // Bulb
+  ctx.fillStyle = '#e04040';
+  ctx.beginPath(); ctx.arc(cx, bulbY, bulbR, 0, Math.PI*2); ctx.fill();
+  ctx.strokeStyle = '#c03030'; ctx.lineWidth = 1; ctx.stroke();
+  // Liquid column
+  const minY = topY + 4, maxY = bulbY - bulbR - 2;
+  const liquidH = (temp / 100) * (maxY - minY);
+  const liquidTop = maxY - liquidH;
+  if (liquidH > 0) {
+    const grad = ctx.createLinearGradient(0, minY, 0, maxY);
+    grad.addColorStop(0, '#ff6666'); grad.addColorStop(1, '#cc0000');
+    ctx.fillStyle = grad;
+    roundRect(ctx, cx-tubeW/2+2, liquidTop, tubeW-4, maxY - liquidTop, 2*s); ctx.fill();
+    // Capillary highlight
+    ctx.fillStyle = 'rgba(255,255,255,0.2)';
+    roundRect(ctx, cx-tubeW/2+2, liquidTop, (tubeW-4)/3, maxY - liquidTop, 2*s); ctx.fill();
+  }
+  // Temperature text
+  ctx.fillStyle = '#ffffff'; ctx.font = `bold ${14*s}px sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+  ctx.fillText(Math.round(temp) + '°C', cx, topY + tubeH + 10);
+}
+
+function drawScene() {
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0, 0, W, H);
+  const mission = state.currentMission;
+  if (mission === 0) drawObserve(W, H);
+  else if (mission === 1) drawExplore(W, H);
+  else if (mission === 2) drawChallenge(W, H);
+}
+
+function drawObserve(W, H) {
+  ctx.fillStyle = '#141626'; ctx.fillRect(0, 0, W, H);
+  // Draw large thermometer center
+  drawThermometer(W/2, H/2 - 10, observeTemp, 1.4);
+  // Control buttons
+  const btnY = H - 80;
+  ctx.fillStyle = '#FF9500';
+  roundRect(ctx, W/2 - 100, btnY, 80, 36, 8); ctx.fill();
+  ctx.fillStyle = '#fff'; ctx.font = '16px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText('升温+', W/2 - 60, btnY + 18);
+  ctx.fillStyle = '#007AFF';
+  roundRect(ctx, W/2 + 20, btnY, 80, 36, 8); ctx.fill();
+  ctx.fillStyle = '#fff';
+  ctx.fillText('降温-', W/2 + 60, btnY + 18);
+  // Labels
+  ctx.fillStyle = 'rgba(255,255,255,0.35)'; ctx.font = '12px sans-serif'; ctx.textAlign = 'center';
+  ctx.fillText('点击"升温"或"降温"观察液柱变化', W/2, H - 30);
+  // Scale label
+  ctx.fillStyle = 'rgba(255,255,255,0.25)'; ctx.font = '11px sans-serif'; ctx.textAlign = 'left';
+  ctx.fillText('℃', W/2 + 110, 30);
+}
+
+function drawExplore(W, H) {
+  const env = ENVIRONMENTS[exploreEnv];
+  ctx.fillStyle = env.color; ctx.fillRect(0, 0, W, H);
+  // Environment icon and name
+  ctx.font = '40px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(env.icon, 100, 80);
+  ctx.fillStyle = '#ffffff'; ctx.font = '16px sans-serif';
+  ctx.fillText(env.name, 100, 130);
+  // Scene items
+  ctx.fillStyle = 'rgba(255,255,255,0.08)'; ctx.font = '14px sans-serif';
+  const items = [
+    { x: 250, y: 140, w: 120, h: 80, label: '场景' },
+    { x: 400, y: 140, w: 120, h: 80, label: '场景' }
+  ];
+  if (exploreEnv === 0) { ctx.fillStyle = '#d0e8ff'; roundRect(ctx, 250, 130, 120, 90, 8); ctx.fill(); ctx.fillStyle = 'rgba(255,255,255,0.65)'; ctx.fillText('🧊 冰块', 310, 165); roundRect(ctx, 400, 130, 120, 90, 8); ctx.fill(); ctx.fillText('💧 水', 460, 165); }
+  else if (exploreEnv === 1) { ctx.fillStyle = '#f0e8d0'; roundRect(ctx, 250, 130, 120, 90, 8); ctx.fill(); ctx.fillStyle = 'rgba(255,255,255,0.65)'; ctx.fillText('🪑 桌椅', 310, 165); roundRect(ctx, 400, 130, 120, 90, 8); ctx.fill(); ctx.fillText('📚 书本', 460, 165); }
+  else if (exploreEnv === 2) { ctx.fillStyle = '#ffe0b0'; roundRect(ctx, 250, 130, 120, 90, 8); ctx.fill(); ctx.fillStyle = 'rgba(255,255,255,0.65)'; ctx.fillText('☕ 杯子', 310, 165); roundRect(ctx, 400, 130, 120, 90, 8); ctx.fill(); ctx.fillText('♨️ 热气', 460, 165); }
+  else { ctx.fillStyle = '#ffd0c0'; roundRect(ctx, 250, 130, 120, 90, 8); ctx.fill(); ctx.fillStyle = 'rgba(255,255,255,0.65)'; ctx.fillText('🔥 火焰', 310, 165); roundRect(ctx, 400, 130, 120, 90, 8); ctx.fill(); ctx.fillText('💨 蒸汽', 460, 165); }
+  // Thermometer
+  drawThermometer(W/2, H/2 + 50, env.temp, 1.0);
+  // Scene selector buttons
+  const btnW = 100, btnH = 34;
+  const startX = (W - (ENVIRONMENTS.length * btnW + (ENVIRONMENTS.length-1) * 8)) / 2;
+  ENVIRONMENTS.forEach((e, i) => {
+    const bx = startX + i * (btnW + 8);
+    ctx.fillStyle = i === exploreEnv ? '#FF9500' : '#eee';
+    roundRect(ctx, bx, 8, btnW, btnH, 8); ctx.fill();
+    ctx.fillStyle = i === exploreEnv ? '#fff' : '#666';
+    ctx.font = '13px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(e.icon + e.name, bx + btnW/2, btnH/2 + 8);
+  });
+  ctx.fillStyle = 'rgba(255,255,255,0.35)'; ctx.font = '11px sans-serif'; ctx.textAlign = 'center';
+  ctx.fillText('点击上方场景切换，观察温度计示数变化', W/2, H - 8);
+}
+
+function drawChallenge(W, H) {
+  ctx.fillStyle = '#141626'; ctx.fillRect(0, 0, W, H);
+  const ch = CHALLENGES[state.challengeIdx] || CHALLENGES[0];
+  ctx.fillStyle = '#ffffff'; ctx.font = '15px sans-serif'; ctx.textAlign = 'center';
+  const maxW = W - 40; let lines = [], line = '';
+  for (let c of ch.goal) { line += c; if (ctx.measureText(line).width > maxW && line.length > 10) { lines.push(line); line = ''; } }
+  if (line) lines.push(line);
+  let y = 40; lines.forEach(l => { ctx.fillText(l.trim(), W/2, y); y += 28; });
+  // Visual aid: draw a thermometer for reading challenges
+  if (state.challengeIdx === 0) {
+    drawThermometer(W/2, y + 60, 36, 1.0);
+    ctx.fillStyle = '#FF9500'; ctx.font = '12px sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText('↑ 上图中温度计示数是多少？', W/2, y + 160);
+  } else {
+    ctx.fillStyle = 'rgba(255,255,255,0.35)'; ctx.font = '13px sans-serif';
+    ctx.fillText('点击画面任意位置输入答案', W/2, H - 20);
+  }
+}
+
+function animate() {
+  drawScene();
+  animId = requestAnimationFrame(animate);
+}
+
+function switchMission(idx) {
+  state.currentMission = idx; saveState(); updateUI(); drawScene(); setKnowledge(idx);
+}
+
+function updateUI() {
+  const m = MISSIONS[state.currentMission];
+  document.getElementById('missionLabel').textContent = m.label;
+  document.getElementById('missionTitle').textContent = m.title;
+  const desc = document.getElementById('missionDesc');
+  const done = state.done.includes(state.currentMission);
+  const btns = state.currentMission === 0
+    ? (done ? '✅ 已观看' : '点击温度计旁按钮控制温度')
+    : state.currentMission === 1
+    ? (done ? '✅ 已探索' : '点击上方场景切换')
+    : state.currentMission === 2
+    ? (done ? '🎉 闯关完成！' : `第 ${state.challengeIdx+1}/${CHALLENGES.length} 关`)
+    : (done ? '✅ 已测验' : '点击下方开始测验');
+  desc.textContent = btns;
+  document.getElementById('tempDisplay').style.display = (state.currentMission <= 1) ? 'flex' : 'none';
+  if (state.currentMission === 1) {
+    document.getElementById('dispTemp').textContent = ENVIRONMENTS[exploreEnv].temp + ' °C';
+  } else if (state.currentMission === 0) {
+    document.getElementById('dispTemp').textContent = observeTemp + ' °C';
+  }
+  // Tabs
+  const tabs = document.getElementById('missionTabs');
+  tabs.innerHTML = MISSIONS.map((m,i) => {
+    const isActive = i === state.currentMission, isDone = state.done.includes(i);
+    const cls = isActive ? 'tab active' : isDone ? 'tab done' : 'tab';
+    const check = isDone ? '<span class="tab-check">✓</span>' : '';
+    return `<div class="${cls}" onclick="switchMission(${i})">${m.label}${check}</div>`;
+  }).join('');
+  // Progress dots
+  MISSIONS.forEach((_, i) => {
+    const dot = document.getElementById('pdot'+i);
+    if (state.done.includes(i)) dot.className = 'dot done';
+    else if (i === state.currentMission) dot.className = 'dot active';
+    else dot.className = 'dot';
+  });
+  document.getElementById('challengeHud').className = state.currentMission === 2 ? 'challenge-hud show' : 'challenge-hud';
+  if (state.currentMission === 2) {
+    document.getElementById('chLevel').textContent = '第 ' + (state.challengeIdx+1) + '/' + CHALLENGES.length + ' 关';
+    document.getElementById('chGoal').textContent = CHALLENGES[state.challengeIdx]?.goal.slice(0, 30) + '...' || '';
+  }
+  document.getElementById('quizOverlay').className = state.currentMission === 3 && state.quizIdx < QUIZ_POOL.length ? 'quiz-overlay show' : 'quiz-overlay';
+  document.querySelector('.canvas-wrap').className = state.currentMission === 3 && state.quizIdx < QUIZ_POOL.length ? 'canvas-wrap quiz-active' : 'canvas-wrap';
+
+  if (state.currentMission === 3 && state.quizIdx < QUIZ_POOL.length) showQuiz();  if (state.currentMission === 3 && state.quizIdx < QUIZ_POOL.length) showQuiz();
+}
+
+// Canvas click handler
+canvas.addEventListener('click', (e) => {
+  const rect = canvas.getBoundingClientRect();
+  const scaleX = canvas.width / rect.width, scaleY = canvas.height / rect.height;
+  const x = (e.clientX - rect.left) * scaleX, y = (e.clientY - rect.top) * scaleY;
+  const W = canvas.width, H = canvas.height;
+
+  if (state.currentMission === 0) {
+    // Check button clicks
+    const btnY = H - 80;
+    if (y >= btnY && y <= btnY + 36) {
+      if (x >= W/2 - 100 && x <= W/2 - 20) { observeTemp = Math.min(100, observeTemp + 5); if (!state.done.includes(0)) { state.done.push(0); saveState(); updateUI(); } updateUI(); }
+      if (x >= W/2 + 20 && x <= W/2 + 100) { observeTemp = Math.max(0, observeTemp - 5); if (!state.done.includes(0)) { state.done.push(0); saveState(); updateUI(); } updateUI(); }
+    }
+  } else if (state.currentMission === 1) {
+    const btnW = 100, btnH = 34;
+    const startX = (W - (ENVIRONMENTS.length * btnW + (ENVIRONMENTS.length-1) * 8)) / 2;
+    if (y >= 8 && y <= 8 + btnH) {
+      for (let i = 0; i < ENVIRONMENTS.length; i++) {
+        const bx = startX + i * (btnW + 8);
+        if (x >= bx && x <= bx + btnW) { exploreEnv = i; if (!state.done.includes(1)) { state.done.push(1); saveState(); } updateUI(); return; }
+      }
+    }
+  } else if (state.currentMission === 2) {
+    if (state.done.includes(2)) return;
+    const ch = CHALLENGES[state.challengeIdx];
+    if (!ch) return;
+    // Special case: challenge 1 (thermometer range) has two-part answer
+    if (state.challengeIdx === 1) {
+      const a1 = prompt('体温计量程的下限是多少°C？(提示: 35)');
+      if (a1 === null) return;
+      const a2 = prompt('体温计量程的上限是多少°C？');
+      if (a2 === null) return;
+      if (parseFloat(a2) === ch.answer) {
+        state.challengeIdx++;
+        if (state.challengeIdx >= CHALLENGES.length) { if (!state.done.includes(2)) state.done.push(2); alert('恭喜通关！'); }
+        saveState(); updateUI();
+      } else alert('答案不对，再想想！体温计量程为35-42°C');
+      return;
+    }
+    const userInput = prompt('输入你的答案（数字）:', '');
+    if (userInput === null) return;
+    const num = parseFloat(userInput);
+    if (isNaN(num)) return;
+    if (Math.abs(num - ch.answer) <= ch.tolerance) {
+      state.challengeIdx++;
+      if (state.challengeIdx >= CHALLENGES.length) { if (!state.done.includes(2)) state.done.push(2); alert('恭喜通关！'); }
+      else alert('回答正确！继续下一关');
+      saveState(); updateUI();
+    } else alert('答案不对，再想想！');
+  }
+});
+
+function resetChallenges() {
+  state.challengeIdx = 0;
+  const idx = state.done.indexOf(2); if (idx >= 0) state.done.splice(idx, 1);
+  saveState(); updateUI();
+}
+
+// Quiz
+function showQuiz() {
+  if (state.quizIdx >= QUIZ_POOL.length) {
+    if (!state.done.includes(3)) { state.done.push(3); saveState(); }
+    updateUI(); return;
+  }
+  const q = QUIZ_POOL[state.quizIdx];
+  document.getElementById('quizQ').textContent = (state.quizIdx+1) + '. ' + q.q;
+  const opts = document.getElementById('quizOptions');
+  opts.innerHTML = q.opts.map((o,i) => '<div class="quiz-opt" onclick="selectQuiz('+i+')">'+o+'</div>').join('');
+  document.getElementById('quizResult').textContent = '';
+  document.getElementById('quizNext').style.display = 'none';
+  document.getElementById('quizOverlay').className = 'quiz-overlay show';
+  document.querySelector('.canvas-wrap').className = state.currentMission === 3 && state.quizIdx < QUIZ_POOL.length ? 'canvas-wrap quiz-active' : 'canvas-wrap';
+}
+function selectQuiz(idx) {
+  const q = QUIZ_POOL[state.quizIdx];
+  const opts = document.querySelectorAll('.quiz-opt');
+  opts.forEach((el,i) => { el.style.pointerEvents = 'none'; if (i === q.ans) el.className = 'quiz-opt correct'; else if (i === idx && idx !== q.ans) el.className = 'quiz-opt wrong'; });
+  document.getElementById('quizResult').textContent = idx === q.ans ? '正确！'+q.explain : '正确答案是 '+q.opts[q.ans]+'。'+q.explain;
+  document.getElementById('quizNext').style.display = 'block';
+}
+function nextQuiz() { state.quizIdx++; saveState(); showQuiz(); }
+
+// ══════════════════════════════════════════
+// KNOWLEDGE
+// ══════════════════════════════════════════
+const KNOWLEDGE = {
+  0: {
+    title: '💡 认识温度',
+    body: '<em>温度</em>表示物体的冷热程度。\n\n' +
+         '<em>摄氏温标</em>：标准大气压下，冰水混合物的温度为 <span class="kb-formula">0°C</span>，沸水温度为 <span class="kb-formula">100°C</span>，之间分成100等份，每一份为1°C。\n\n' +
+         '国际单位制中常用<em>开尔文（K）</em>：<span class="kb-formula">K = °C + 273</span>'
+  },
+  1: {
+    title: '💡 温度计的原理',
+    body: '常用温度计（如水银温度计、酒精温度计）是利用<em>液体热胀冷缩</em>的原理制成的。\n\n' +
+         '当温度升高时，测温液体体积膨胀，液柱上升；温度降低时，液体体积收缩，液柱下降。\n\n' +
+         '温度计的<em>量程</em>是它能测量的温度范围，<em>分度值</em>是每一小格代表的温度值。'
+  },
+  2: {
+    title: '💡 温度计的正确使用',
+    body: '正确使用温度计的要点：\n\n' +
+         '• 温度计的<em>玻璃泡</em>要完全浸入被测液体中，不碰容器底和壁\n' +
+         '• 待示数<em>稳定</em>后再读数\n' +
+         '• 读数时玻璃泡要<em>继续留在</em>液体中\n' +
+         '• 视线与液柱上表面<em>相平</em>\n\n' +
+         '体温计量程 <span class="kb-formula">35 ~ 42°C</span>，分度值 <span class="kb-formula">0.1°C</span>，可离开人体读数。'
+  },
+  3: {
+    title: '💡 检测你的掌握',
+    body: '通过几道选择题来检验你是否理解了温度的知识。\n\n' +
+         '关键点：<em>摄氏温标</em>、<em>液体热胀冷缩</em>、<em>正确使用温度计</em>。'
+  }
+};
+
+function toggleKnowledge() {
+  const box = document.getElementById('knowledgeBox');
+  const toggle = document.getElementById('kbToggle');
+  box.classList.toggle('collapsed');
+  toggle.classList.toggle('open');
+}
+
+function setKnowledge(idx) {
+  const k = KNOWLEDGE[idx];
+  if (k) {
+    document.getElementById('kbTitle').textContent = k.title;
+    document.getElementById('kbBody').innerHTML = k.body.replace(/\n/g, '<br>');
+    const box = document.getElementById('knowledgeBox');
+    if (box.classList.contains('collapsed')) {
+      box.classList.remove('collapsed');
+      document.getElementById('kbToggle').classList.add('open');
+    }
+  }
+}
+
+switchMission(state.currentMission);
+animate();
+
+function closeQuiz() { switchMission(0); }
+</script>
+</body>
+</html>

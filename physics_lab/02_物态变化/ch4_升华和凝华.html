@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>物理实验室 · 升华和凝华</title>
+<style>
+/* NB_LAB */
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "PingFang SC", "Helvetica Neue", sans-serif;
+    min-height: 100dvh;
+    background: linear-gradient(135deg, #0c0e1a 0%, #1a1e3a 30%, #0d1b2a 60%, #0a0e1a 100%) !important;
+    display: flex; justify-content: center; align-items: center; margin: 0; position: relative;
+  }
+  body::before {
+    content: ''; position: fixed; top: -50%; left: -50%; width: 200%; height: 200%;
+    background: radial-gradient(ellipse at 20% 50%, rgba(255,149,0,0.08) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 20%, rgba(255,149,0,0.05) 0%, transparent 50%);
+    pointer-events: none; z-index: 0;
+  }
+
+  /* COMPACT_V5 - balanced layout */
+  .app { height: 100dvh !important; max-height: 100dvh !important; }
+  .top-bar { padding: 6px 12px !important; min-height: 34px !important; }
+  .top-bar h1 { font-size: 12px !important; }
+  .top-bar .back { font-size: 14px !important; }
+  .top-bar .progress-dots .dot { width: 6px !important; height: 6px !important; }
+  .main-area { padding: 6px !important; gap: 6px !important; flex: 1 !important; min-height: 0 !important; overflow: hidden !important; }
+  .canvas-wrap { flex: 1 !important; min-height: 200px !important; max-height: none !important; overflow: hidden !important; position: relative !important; }
+  .canvas-wrap canvas { width: 100% !important; height: 100% !important; display: block !important; }
+.canvas-wrap.quiz-active { flex-shrink: 1 !important; min-height: 55dvh !important; max-height: 75dvh !important; }
+  .canvas-wrap.quiz-active canvas { display: none !important; }
+  .info-panel { padding: 4px 10px !important; flex-shrink: 0 !important; min-height: 50px !important; max-height: 30dvh !important; overflow-y: auto !important; }
+  .info-panel .mission-label { font-size: 9px !important; line-height: 14px !important; }
+  .info-panel .mission-title { font-size: 12px !important; line-height: 16px !important; margin: 0 !important; }
+  .info-panel .mission-desc { font-size: 11px !important; line-height: 15px !important; }
+  .info-panel .mission-desc button { padding: 3px 10px !important; font-size: 10px !important; border-radius: 6px !important; }
+  .info-panel .data-display, .info-panel .speed-display,
+  .info-panel .noise-display, .info-panel .sonar-display,
+  .info-panel .wave-controls, .info-panel .angle-display { margin-top: 2px !important; padding-top: 2px !important; gap: 6px !important; }
+  .info-panel .data-item, .info-panel .speed-item,
+  .info-panel .noise-item, .info-panel .sonar-item { font-size: 10px !important; }
+  .info-panel .data-item .value, .info-panel .speed-item .value { font-size: 12px !important; }
+  .info-panel .wave-controls input[type=range] { width: 60px !important; }
+  .mission-tabs { padding: 2px 8px 6px !important; flex-shrink: 0 !important; }
+  .mission-tabs .tab { padding: 5px 4px !important; font-size: 11px !important; border-radius: 6px !important; }
+  .mission-tabs .tab .tab-check { font-size: 9px !important; margin-top: 1px !important; }
+  .knowledge-box { padding: 3px 8px !important; }
+  .knowledge-box .kb-title { font-size: 9px !important; }
+  .knowledge-box .kb-body { font-size: 10px !important; line-height: 1.3 !important; }
+  .challenge-hud { padding: 4px 8px !important; font-size: 10px !important; top: 8px !important; right: 8px !important; }
+  .challenge-hud .ch-restart { padding: 2px 8px !important; font-size: 10px !important; }
+  .mode-toggle { padding: 3px 8px !important; font-size: 9px !important; top: 8px !important; left: 8px !important; }
+  .noise-btn, .timbre-btn, .app-btn, .lens-btn { padding: 4px 10px !important; font-size: 10px !important; }
+
+  .top-bar { padding: 6px 12px !important; min-height: 36px !important; }
+  .top-bar h1 { font-size: 12px !important; }
+  .top-bar .back { font-size: 14px !important; line-height: 20px !important; }
+  .top-bar .progress-dots .dot { width: 6px !important; height: 6px !important; }
+  .main-area { padding: 4px !important; gap: 4px !important; flex: 1 !important; min-height: 0 !important; }
+  .canvas-wrap { flex-shrink: 0 !important; }
+.info-panel { padding: 4px 8px !important; flex: 1 !important; min-height: 30px !important; overflow-y: auto !important; }
+  .info-panel .mission-label { font-size: 9px !important; line-height: 14px !important; }
+  .info-panel .mission-title { font-size: 12px !important; line-height: 16px !important; margin: 0 !important; }
+  .info-panel .mission-desc { font-size: 11px !important; line-height: 15px !important; }
+  .info-panel .mission-desc button { padding: 3px 10px !important; font-size: 10px !important; border-radius: 6px !important; }
+  .info-panel .data-display, .info-panel .speed-display,
+  .info-panel .noise-display, .info-panel .sonar-display,
+  .info-panel .wave-controls, .info-panel .angle-display { margin-top: 3px !important; padding-top: 3px !important; gap: 6px !important; }
+  .info-panel .data-item, .info-panel .speed-item,
+  .info-panel .noise-item, .info-panel .sonar-item { font-size: 10px !important; }
+  .info-panel .data-item .value, .info-panel .speed-item .value { font-size: 12px !important; }
+  .info-panel .wave-controls input[type=range] { width: 60px !important; }
+  .mission-tabs { padding: 1px 6px 4px !important; flex-shrink: 0 !important; }
+  .mission-tabs .tab { padding: 4px 3px !important; font-size: 10px !important; border-radius: 6px !important; }
+  .mission-tabs .tab .tab-check { font-size: 9px !important; margin-top: 1px !important; }
+  .knowledge-box { padding: 3px 8px !important; }
+  .knowledge-box .kb-title { font-size: 9px !important; }
+  .canvas-wrap.quiz-active { min-height: 60dvh !important; flex-shrink: 1 !important; }
+  .canvas-wrap.quiz-active canvas { display: none !important; }
+  .challenge-hud { padding: 4px 8px !important; font-size: 10px !important; top: 8px !important; right: 8px !important; }
+  .challenge-hud .ch-restart { padding: 2px 8px !important; font-size: 10px !important; }
+  .mode-toggle { padding: 3px 8px !important; font-size: 9px !important; top: 8px !important; left: 8px !important; }
+  .noise-btn, .timbre-btn, .app-btn, .lens-btn { padding: 4px 10px !important; font-size: 10px !important; }
+
+  .app { background: rgba(255,255,255,0.04) !important; border: 1px solid rgba(255,255,255,0.06) !important; backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); position: relative; z-index: 1; }
+  .top-bar { background: rgba(255,255,255,0.03) !important; border-bottom: 1px solid rgba(255,255,255,0.06) !important; }
+  .top-bar h1, .top-bar h2 { color: #fff !important; }
+  .top-bar .back { color: rgba(255,255,255,0.5) !important; }
+  .top-bar .back:hover { color: #fff !important; }
+  .top-bar .progress-dots .dot { background: rgba(255,255,255,0.1) !important; }
+  .top-bar .progress-dots .dot.active { background: #FF9500 !important; }
+  .top-bar .progress-dots .dot.done { background: #34C759 !important; }
+  .canvas-wrap { background: rgba(10,12,26,0.6) !important; border-color: rgba(255,255,255,0.06) !important; }
+  .canvas-wrap canvas { filter: brightness(1.05) contrast(1.05); }
+  .info-panel { background: rgba(255,255,255,0.03) !important; border-color: rgba(255,255,255,0.06) !important; }
+  .info-panel .mission-label, .card .num { color: #FF9500 !important; }
+  .info-panel .mission-title, .card h3, .hero h1, .top-bar h1 { color: #fff !important; }
+  .info-panel .mission-desc, p, .card p, .hero p { color: rgba(255,255,255,0.4) !important; }
+  .info-panel .mission-desc button, .card .status.new, .tab.active { background: #FF9500 !important; color: #fff !important; border: none !important; }
+  .mission-tabs .tab { background: rgba(255,255,255,0.03) !important; border-color: rgba(255,255,255,0.08) !important; color: rgba(255,255,255,0.3) !important; }
+  .mission-tabs .tab:hover { border-color: #FF9500 !important; color: #FF9500 !important; }
+  .mission-tabs .tab.active { background: #FF9500 !important; color: #fff !important; border-color: #FF9500 !important; }
+  .mission-tabs .tab.done { border-color: #34C759 !important; color: #34C759 !important; }
+  .challenge-hud, .mode-toggle { background: rgba(0,0,0,0.5) !important; backdrop-filter: blur(10px) !important; }
+
+  .knowledge-box { background: rgba(255,149,0,0.08) !important; border-left-color: #FF9500 !important; }
+  .knowledge-box .kb-title, .knowledge-box .kb-toggle { color: #FF9500 !important; }
+  .knowledge-box .kb-body, .card p, .hero p { color: rgba(255,255,255,0.7) !important; }
+  .knowledge-box .kb-body em { color: #FF9500 !important; }
+  .knowledge-box .kb-formula { background: rgba(255,255,255,0.06) !important; border-color: rgba(255,255,255,0.1) !important; color: #fff !important; }
+  .card { background: rgba(255,255,255,0.04) !important; border: 1px solid rgba(255,255,255,0.06) !important; backdrop-filter: blur(20px) !important; color: #fff !important; }
+  .card:hover { border-color: #FF9500 !important; transform: translateY(-2px); }
+  .card .status.done { background: rgba(52,199,89,0.12) !important; color: #34C759 !important; border: 1px solid rgba(52,199,89,0.15) !important; }
+  .card .status.new { background: rgba(255,149,0,0.1) !important; color: #FF9500 !important; border: 1px solid rgba(255,149,0,0.15) !important; }
+  .card .status.partial { background: rgba(255,255,255,0.05) !important; color: rgba(255,255,255,0.4) !important; border: 1px solid rgba(255,255,255,0.08) !important; }
+  .hero .progress-module, .module-progress { color: #FF9500 !important; background: rgba(255,149,0,0.1) !important; border: 1px solid rgba(255,149,0,0.15) !important; }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", sans-serif; background: #f5f5f7; color: #1d1d1f; height: 100dvh; display: flex; justify-content: center; align-items: center; }
+  .app { width: 820px; max-width: 96vw; height: 100dvh; max-height: 100dvh; background: #fff; border-radius: 20px; box-shadow: 0 20px 60px rgba(0,0,0,0.08); display: flex; flex-direction: column; overflow: hidden; }
+  .top-bar { display: flex; align-items: center; padding: 14px 20px; flex-shrink: 0; background: #fafafa; border-bottom: 1px solid #e8e8ed; }
+  .top-bar .back { font-size: 20px; cursor: pointer; opacity: 0.6; }
+  .top-bar .back:hover { opacity: 1; }
+  .top-bar h1 { font-size: 15px; font-weight: 600; margin-left: 10px; flex: 1; }
+  .top-bar .progress-dots { display: flex; gap: 6px; align-items: center; }
+  .top-bar .progress-dots .dot { width: 8px; height: 8px; border-radius: 50%; background: #e8e8ed; }
+  .top-bar .progress-dots .dot.active { background: #FF9500; }
+  .top-bar .progress-dots .dot.done { background: #34C759; }
+  .main-area { padding: 10px; flex: 1; display: flex; flex-direction: column; overflow: hidden; gap: 8px; }
+  .canvas-wrap { position: relative; background: #fff; border-radius: 14px; border: 1px solid #e8e8ed; overflow: hidden; flex-shrink: 0; }
+  .canvas-wrap canvas { display: block; width: 100%; height: auto; cursor: pointer; touch-action: none; }
+  .info-panel { background: #fafafa; border-radius: 14px; border: 1px solid #e8e8ed; padding: 10px 16px; overflow-y: auto; min-height: 0; }
+  .info-panel .mission-label { font-size: 11px; font-weight: 600; color: #FF9500; letter-spacing: 0.5px; }
+  .info-panel .mission-title { font-size: 15px; font-weight: 600; margin: 0 0 2px; }
+  .info-panel .mission-desc { font-size: 13px; color: #86868b; line-height: 1.4; }
+  .info-panel .info-display { display: flex; gap: 16px; margin-top: 6px; padding-top: 6px; border-top: 1px solid #e8e8ed; flex-wrap: wrap; }
+  .info-panel .info-item { font-size: 12px; }
+  .info-panel .info-item .label { color: #86868b; }
+  .info-panel .info-item .value { font-weight: 600; font-size: 15px; color: #FF9500; }
+  .mission-tabs { display: flex; gap: 4px; padding: 2px 10px 8px; flex-shrink: 0; }
+  .mission-tabs .tab { flex: 1; padding: 8px 4px; border-radius: 8px; border: 1px solid #e8e8ed; background: #fff; text-align: center; cursor: pointer; font-size: 12px; font-weight: 500; color: #86868b; transition: all 0.2s; }
+  .mission-tabs .tab:hover { border-color: #FF9500; color: #FF9500; }
+  .mission-tabs .tab.active { background: #FF9500; color: #fff; border-color: #FF9500; }
+  .mission-tabs .tab.done { border-color: #34C759; color: #34C759; }
+  .mission-tabs .tab .tab-check { font-size: 11px; display: block; margin-top: 2px; }
+  .challenge-hud { position: absolute; top: 12px; right: 12px; background: rgba(0,0,0,0.7); backdrop-filter: blur(10px); border-radius: 10px; padding: 8px 14px; color: #fff; font-size: 13px; display: none; z-index: 5; }
+  .challenge-hud.show { display: block; }
+  .challenge-hud .ch-level { font-weight: 600; margin-bottom: 2px; }
+  .challenge-hud .ch-goal { color: #aaa; font-size: 12px; }
+  .challenge-hud .ch-restart { margin-top: 6px; padding: 4px 10px; background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.25); border-radius: 6px; color: #fff; font-size: 11px; cursor: pointer; }
+  .quiz-overlay { position: absolute; inset: 0; background: rgba(255,255,255,0.85); backdrop-filter: blur(20px); display: none; flex-direction: column; align-items: center; justify-content: center; padding: 30px; z-index: 10; }
+  .quiz-overlay.show { display: flex; background: rgba(10,12,26,0.92) !important; backdrop-filter: blur(20px) !important; -webkit-backdrop-filter: blur(20px) !important; }
+  .quiz-overlay .quiz-q { font-size: 18px; font-weight: 600; text-align: center; max-width: 480px; margin-bottom: 20px; line-height: 1.5; }
+  .quiz-overlay .quiz-options { display: flex; flex-direction: column; gap: 10px; width: 100%; max-width: 400px; }
+  .quiz-overlay .quiz-opt { padding: 14px 20px; background: #fff; border: 1.5px solid #e8e8ed; border-radius: 12px; font-size: 15px; cursor: pointer; transition: all 0.2s; text-align: left; }
+  .quiz-overlay .quiz-opt:hover { border-color: #FF9500; background: #fff8e8; }
+  .quiz-overlay .quiz-opt.correct { border-color: #34C759; background: #e8f8ee; }
+  .quiz-overlay .quiz-opt.wrong { border-color: #FF3B30; background: #ffe8e6; }
+  .quiz-overlay .quiz-result { margin-top: 16px; font-size: 15px; font-weight: 500; max-width: 420px; text-align: center; }
+  .quiz-overlay .quiz-next { margin-top: 14px; padding: 10px 30px; background: #FF9500; color: #fff; border: none; border-radius: 10px; font-size: 15px; font-weight: 500; cursor: pointer; }
+
+  .knowledge-box { padding: 6px 12px; background: #fff8e8; border-radius: 10px; border-left: 3px solid #FF9500; flex-shrink: 0; cursor: pointer; user-select: none; }
+  .knowledge-box .kb-title { font-weight: 600; font-size: 11px; color: #FF9500; letter-spacing: 0.3px; display: flex; align-items: center; gap: 4px; }
+  .knowledge-box .kb-toggle { font-size: 9px; color: #FF9500; opacity: 0.5; transition: transform 0.2s; }
+  .knowledge-box .kb-toggle.open { transform: rotate(90deg); }
+  .knowledge-box .kb-body { font-size: 11.5px; color: #1d1d1f; line-height: 1.5; margin-top: 3px; }
+  .knowledge-box .kb-body em { color: #FF9500; font-style: normal; font-weight: 500; }
+  .knowledge-box .kb-formula { display: inline-block; background: #fff; border: 1px solid #f5e0c0; border-radius: 5px; padding: 1px 8px; font-family: "SF Mono", monospace; font-size: 12px; font-weight: 600; color: #1d1d1f; margin: 0 2px; }
+  .knowledge-box.collapsed .kb-body { display: none; }
+
+  @media (max-width: 600px) { .mission-tabs .tab { font-size: 11px; padding: 8px 4px; } }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="top-bar">
+    <span class="back" onclick="location.href='index.html'">←</span>
+    <h1>升华和凝华</h1>
+    <div class="progress-dots" id="progressDots">
+      <span class="dot" id="pdot0"></span><span class="dot" id="pdot1"></span>
+      <span class="dot" id="pdot2"></span><span class="dot" id="pdot3"></span>
+    </div>
+  </div>
+  <div class="main-area">
+    <div class="canvas-wrap">
+      <canvas id="labCanvas" width="780" height="320"></canvas>
+      <div class="challenge-hud" id="challengeHud">
+        <div class="ch-level" id="chLevel">第 1/5 关</div>
+        <div class="ch-goal" id="chGoal">目标加载中...</div>
+        <div class="ch-restart" onclick="resetChallenges()">重来</div>
+      </div>
+      <div class="quiz-overlay" id="quizOverlay">
+        <div class="quiz-q" id="quizQ">题目加载中...</div>
+        <div class="quiz-options" id="quizOptions"></div>
+        <div class="quiz-result" id="quizResult"></div>
+        <button class="quiz-next" id="quizNext" onclick="nextQuiz()">下一题</button>
+        <button class="quiz-close" id="quizClose" onclick="closeQuiz()" style="margin-top:10px;padding:6px 16px;background:rgba(255,255,255,0.1);color:rgba(255,255,255,0.6);border:1px solid rgba(255,255,255,0.15);border-radius:8px;cursor:pointer;font-size:12px;">✕ 关闭</button>
+      </div>
+    </div>
+    <div class="info-panel">
+      <div class="mission-label" id="missionLabel">观察</div>
+      <div class="mission-title" id="missionTitle">干冰升华</div>
+      <div class="mission-desc" id="missionDesc">观察干冰（固态CO₂）升华和碘凝华现象。</div>
+      <div class="info-display" id="infoDisplay">
+        <div class="info-item"><span class="label">现象: </span><span class="value" id="dispPhen">干冰升华</span></div>
+      </div>
+      <div class="knowledge-box collapsed" id="knowledgeBox" onclick="toggleKnowledge()">
+        <div class="kb-title"><span class="kb-toggle" id="kbToggle">▶</span> 💡 <span id="kbTitle">知识要点</span></div>
+        <div class="kb-body" id="kbBody"></div>
+      </div>
+    </div>
+  </div>
+  <div class="mission-tabs" id="missionTabs"></div>
+</div>
+<script>
+const STORAGE_KEY = 'physics_wen_tai_bian_hua_ch4';
+const saved = (() => { try { return JSON.parse(localStorage.getItem(STORAGE_KEY)); } catch(e) {} return null; })() || {};
+let state = { done: saved.done || [], currentMission: saved.currentMission || 0, challengeIdx: saved.challengeIdx || 0, quizIdx: saved.quizIdx || 0, quizDone: saved.quizDone || [] };
+function saveState() { try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch(e) {} }
+
+const MISSIONS = [
+  { id: 'observe', label: '观察', title: '干冰升华与碘凝华', desc: '观察干冰升华产生白雾，碘蒸气凝华成碘晶体。点击切换。', doneLabel: '已观看' },
+  { id: 'explore', label: '探索', title: '六种物态变化', desc: '点击物态变化名称查看对应关系。', doneLabel: '已探索' },
+  { id: 'challenge', label: '挑战', title: '自然现象归类', desc: '判断自然现象属于哪种物态变化。', doneLabel: '已闯关' },
+  { id: 'quiz', label: '测验', title: '知识检测', desc: '完成选择题巩固知识。', doneLabel: '已完成' }
+];
+
+const CHALLENGES = [
+  { goal: '衣柜中的樟脑丸变小消失，是___现象？(0=升华,1=凝华,2=汽化)', answer: 0, unit: '', tolerance: 0 },
+  { goal: '冬天窗户玻璃上的冰花，是___现象？(0=升华,1=凝华,2=凝固)', answer: 1, unit: '', tolerance: 0 },
+  { goal: '干冰人工降雨时，干冰升华___热使水蒸气冷凝？(0=吸热,1=放热)', answer: 0, unit: '', tolerance: 0 },
+  { goal: '灯泡用久了内壁发黑，是钨丝先升华后___的结果？(0=熔化,1=凝华,2=凝固)', answer: 1, unit: '', tolerance: 0 },
+  { goal: '雪人没有融化却变小了，是___现象？(0=熔化,1=升华,2=汽化)', answer: 1, unit: '', tolerance: 0 }
+];
+
+const QUIZ_POOL = [
+  { q: '升华是指物质从什么状态直接变成什么状态？', opts: ['A. 固态→液态', 'B. 固态→气态', 'C. 液态→气态', 'D. 气态→固态'], ans: 1, explain: '升华是物质从固态直接变成气态的过程，不经过液态。升华吸热。' },
+  { q: '下列现象中属于凝华的是？', opts: ['A. 冰变成水', 'B. 湿衣服变干', 'C. 霜的形成', 'D. 水沸腾'], ans: 2, explain: '霜是空气中的水蒸气遇冷凝华形成的冰晶。凝华过程放出热量。' },
+  { q: '干冰升华时，周围会出现大量白雾，这是因为？', opts: ['A. 干冰变成白雾', 'B. 水蒸气液化', 'C. 二氧化碳液化', 'D. 空气凝结'], ans: 1, explain: '干冰升华吸热使周围温度降低，空气中的水蒸气遇冷液化成小水滴，形成白雾。' },
+  { q: '下列物态变化中，需要吸热的是？', opts: ['A. 凝华', 'B. 液化', 'C. 升华', 'D. 凝固'], ans: 2, explain: '升华（固态→气态）需要吸收热量。凝华、液化、凝固都是放热过程。' },
+  { q: '冬天冰冻的衣服变干（没有化成水），属于什么现象？', opts: ['A. 熔化', 'B. 汽化', 'C. 升华', 'D. 液化'], ans: 2, explain: '冰冻的衣服上的冰直接从固态变成水蒸气，不经过液态，属于升华现象。' }
+];
+
+const canvas = document.getElementById('labCanvas');
+const ctx = canvas.getContext('2d');
+let animId = null, animTime = 0, isPlaying = false;
+let observeMode = 0; // 0=干冰升华, 1=碘凝华
+let exploreIdx = -1;
+
+// Six state changes data
+const CHANGES = [
+  { from: '固态', to: '液态', name: '熔化', icon: '🧊→💧', color: '#FF9500', ex: '冰融化成水' },
+  { from: '液态', to: '固态', name: '凝固', icon: '💧→🧊', color: '#007AFF', ex: '水结成冰' },
+  { from: '液态', to: '气态', name: '汽化', icon: '💧→💨', color: '#34C759', ex: '水蒸发为水蒸气' },
+  { from: '气态', to: '液态', name: '液化', icon: '💨→💧', color: '#FF3B30', ex: '水蒸气液化' },
+  { from: '固态', to: '气态', name: '升华', icon: '🧊→💨', color: '#AF52DE', ex: '干冰升华' },
+  { from: '气态', to: '固态', name: '凝华', icon: '💨→🧊', color: '#FF9500', ex: '霜的形成' }
+];
+
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath(); ctx.moveTo(x+r,y); ctx.lineTo(x+w-r,y); ctx.arcTo(x+w,y,x+w,y+r,r);
+  ctx.lineTo(x+w,y+h-r); ctx.arcTo(x+w,y+h,x+w-r,y+h,r); ctx.lineTo(x+r,y+h);
+  ctx.arcTo(x,y+h,x,y+h-r,r); ctx.lineTo(x,y+r); ctx.arcTo(x,y,x+r,y,r); ctx.closePath();
+}
+
+function drawScene() {
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0, 0, W, H);
+  const mission = state.currentMission;
+  if (mission === 0) drawObserve(W, H);
+  else if (mission === 1) drawExplore(W, H);
+  else if (mission === 2) drawChallenge(W, H);
+}
+
+function drawObserve(W, H) {
+  if (observeMode === 0) {
+    // Dry ice sublimation
+    ctx.fillStyle = '#e8f0f8'; ctx.fillRect(0, 0, W, H);
+    // Table
+    ctx.fillStyle = '#c8b898'; ctx.fillRect(80, H-80, W-160, 20);
+    // Dry ice block
+    ctx.fillStyle = '#141626'; ctx.strokeStyle = 'rgba(255,255,255,0.1)'; ctx.lineWidth = 2;
+    roundRect(ctx, W/2-50, H-120, 100, 50, 6); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = 'rgba(255,255,255,0.08)'; ctx.font = '12px sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText('干冰 (-78.5°C)', W/2, H-95);
+    // CO2 cloud (white mist)
+    if (isPlaying) {
+      for (let i = 0; i < 20; i++) {
+        const px = W/2 - 60 + Math.sin(animTime*2 + i*1.5)*80 + (i-10)*4;
+        const py = H-135 - (animTime*1.5 + i*8) % 100;
+        const alpha = Math.max(0, 0.5 - ((animTime*1.5 + i*8) % 100) / 200);
+        ctx.fillStyle = 'rgba(220,230,240,'+alpha+')';
+        ctx.beginPath(); ctx.arc(px, py, 8+Math.sin(animTime+i)*3, 0, Math.PI*2); ctx.fill();
+      }
+    }
+    ctx.fillStyle = 'rgba(255,255,255,0.65)'; ctx.font = '13px sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText('固态CO₂（干冰）→ 气态CO₂（升华吸热）', W/2, 40);
+  } else {
+    // Iodine deposition
+    ctx.fillStyle = '#f5f0e0'; ctx.fillRect(0, 0, W, H);
+    // Test tube / flask
+    ctx.fillStyle = 'rgba(200,220,240,0.3)'; ctx.strokeStyle = 'rgba(100,150,200,0.5)'; ctx.lineWidth = 2;
+    roundRect(ctx, W/2-60, 50, 120, 200, 10); ctx.fill(); ctx.stroke();
+    // Iodine crystals at bottom
+    ctx.fillStyle = '#8B5CF6';
+    for (let i = 0; i < 8; i++) {
+      const cx = W/2-40 + Math.random()*80;
+      const cy = 220 + Math.random()*20;
+      ctx.beginPath(); ctx.arc(cx, cy, 3+Math.random()*3, 0, Math.PI*2); ctx.fill();
+    }
+    ctx.fillStyle = 'rgba(255,255,255,0.65)'; ctx.font = '11px sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText('碘晶体', W/2, 255);
+    // Iodine vapor (purple)
+    if (isPlaying) {
+      for (let i = 0; i < 12; i++) {
+        const vx = W/2-40 + Math.sin(animTime+i*2)*40;
+        const vy = 200 - (animTime*2 + i*15) % 160;
+        ctx.fillStyle = 'rgba(139,92,246,'+(0.4 - vy/400)+')';
+        ctx.beginPath(); ctx.arc(vx, vy, 4+Math.sin(animTime+i)*2, 0, Math.PI*2); ctx.fill();
+      }
+      // Crystals forming at top (cool area)
+      if (animTime > 2) {
+        for (let i = 0; i < 6; i++) {
+          const cx = W/2-35 + Math.sin(i*2.3)*40;
+          const cy = 65 + Math.sin(i*1.7)*15;
+          ctx.fillStyle = '#8B5CF6';
+          ctx.beginPath(); ctx.arc(cx, cy, 2+Math.sin(animTime*0.5+i)*1.5, 0, Math.PI*2); ctx.fill();
+        }
+      }
+    }
+    ctx.fillStyle = 'rgba(255,255,255,0.65)'; ctx.font = '13px sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText('碘蒸气上升，遇冷→碘晶体（凝华放热）', W/2, 310);
+  }
+  // Toggle button
+  const btnW = 120, btnH = 32;
+  const startX = (W - (2*btnW + 10)) / 2;
+  ['干冰升华', '碘凝华'].forEach((m, i) => {
+    const bx = startX + i*(btnW+10);
+    ctx.fillStyle = i === observeMode ? '#AF52DE' : '#eee';
+    roundRect(ctx, bx, 10, btnW, btnH, 8); ctx.fill();
+    ctx.fillStyle = i === observeMode ? '#fff' : '#666';
+    ctx.font = '12px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(m, bx+btnW/2, btnH/2+10);
+  });
+  ctx.fillStyle = 'rgba(255,255,255,0.35)'; ctx.font = '11px sans-serif'; ctx.textAlign = 'center';
+  ctx.fillText('点击上方切换实验，点击画布播放', W/2, H - 10);
+}
+
+function drawExplore(W, H) {
+  ctx.fillStyle = '#141626'; ctx.fillRect(0, 0, W, H);
+  // Title
+  ctx.fillStyle = '#ffffff'; ctx.font = '15px sans-serif'; ctx.textAlign = 'center';
+  ctx.fillText('六种物态变化', W/2, 25);
+  // Draw 6 change buttons in 2x3 grid
+  const cols = 3, rows = 2;
+  const cw = 140, ch = 48, gap = 10;
+  const startX = (W - (cols*cw + (cols-1)*gap)) / 2;
+  const startY = 45;
+  CHANGES.forEach((c, i) => {
+    const col = i % cols, row = Math.floor(i / cols);
+    const bx = startX + col*(cw+gap), by = startY + row*(ch+gap);
+    const isSelected = exploreIdx === i;
+    ctx.fillStyle = isSelected ? c.color : '#fff';
+    ctx.strokeStyle = isSelected ? c.color : '#ddd';
+    ctx.lineWidth = 2;
+    roundRect(ctx, bx, by, cw, ch, 10); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = isSelected ? '#fff' : c.color;
+    ctx.font = 'bold 14px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(c.icon+' '+c.name, bx+cw/2, by+ch/2+2);
+  });
+  // Detail panel
+  if (exploreIdx >= 0) {
+    const c = CHANGES[exploreIdx];
+    const py = startY + 2*(ch+gap) + 10;
+    ctx.fillStyle = '#141626'; roundRect(ctx, 60, py, W-120, 80, 10); ctx.fill();
+    ctx.fillStyle = c.color; ctx.font = 'bold 14px sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText(c.name+'：'+c.from+' → '+c.to, W/2, py+25);
+    ctx.fillStyle = 'rgba(255,255,255,0.65)'; ctx.font = '13px sans-serif';
+    ctx.fillText('实例：'+c.ex, W/2, py+50);
+    const heat = (exploreIdx === 0 || exploreIdx === 2 || exploreIdx === 4) ? '吸热' : '放热';
+    ctx.fillStyle = '#FF9500'; ctx.font = '12px sans-serif';
+    ctx.fillText('过程'+heat, W/2, py+70);
+  }
+  ctx.fillStyle = 'rgba(255,255,255,0.35)'; ctx.font = '11px sans-serif'; ctx.textAlign = 'center';
+  ctx.fillText('点击上方按钮查看各物态变化的详情', W/2, H - 10);
+}
+
+function drawChallenge(W, H) {
+  ctx.fillStyle = '#141626'; ctx.fillRect(0, 0, W, H);
+  const ch = CHALLENGES[state.challengeIdx] || CHALLENGES[0];
+  ctx.fillStyle = '#ffffff'; ctx.font = '15px sans-serif'; ctx.textAlign = 'center';
+  const maxW = W - 40; let lines = [], line = '';
+  for (let c of ch.goal) { line += c; if (ctx.measureText(line).width > maxW && line.length > 10) { lines.push(line); line = ''; } }
+  if (line) lines.push(line);
+  let y = 50; lines.forEach(l => { ctx.fillText(l.trim(), W/2, y); y += 28; });
+  // Visual hints
+  ctx.fillStyle = 'rgba(255,255,255,0.35)'; ctx.font = '13px sans-serif'; ctx.textAlign = 'center';
+  if (state.challengeIdx === 0) ctx.fillText('🧳 樟脑丸由固态直接变为气态', W/2, y+20);
+  else if (state.challengeIdx === 1) ctx.fillText('❄️ 冰花是水蒸气直接变成冰晶', W/2, y+20);
+  else if (state.challengeIdx === 2) ctx.fillText('☁️ 干冰升华 → 降温 → 水蒸气液化', W/2, y+20);
+  else if (state.challengeIdx === 3) ctx.fillText('💡 钨丝先变成钨蒸气，再附着在玻璃上', W/2, y+20);
+  else if (state.challengeIdx === 4) ctx.fillText('⛄ 雪不经熔化直接变成水蒸气', W/2, y+20);
+  ctx.fillStyle = 'rgba(255,255,255,0.35)'; ctx.font = '13px sans-serif'; ctx.textAlign = 'center';
+  ctx.fillText('点击画面输入答案', W/2, H - 15);
+}
+
+function animate() {
+  if (isPlaying) animTime += 0.05;
+  drawScene();
+  animId = requestAnimationFrame(animate);
+}
+
+function switchMission(idx) {
+  state.currentMission = idx; saveState(); updateUI(); drawScene(); setKnowledge(idx);
+}
+
+function updateUI() {
+  const m = MISSIONS[state.currentMission];
+  document.getElementById('missionLabel').textContent = m.label;
+  document.getElementById('missionTitle').textContent = m.title;
+  const desc = document.getElementById('missionDesc');
+  const done = state.done.includes(state.currentMission);
+  desc.textContent = state.currentMission === 0
+    ? (done ? '✅ 已观看' : '点击画布播放，切换实验')
+    : state.currentMission === 1
+    ? (done ? '✅ 已探索' : '点击查看各物态变化')
+    : state.currentMission === 2
+    ? (done ? '🎉 闯关完成！' : `第 ${state.challengeIdx+1}/${CHALLENGES.length} 关`)
+    : (done ? '✅ 已测验' : '点击下方开始测验');
+  document.getElementById('infoDisplay').style.display = state.currentMission === 0 ? 'flex' : 'none';
+  if (state.currentMission === 0) {
+    document.getElementById('dispPhen').textContent = observeMode === 0 ? '干冰升华' : '碘凝华';
+  }
+  document.getElementById('missionTabs').innerHTML = MISSIONS.map((m,i) => {
+    const isActive = i === state.currentMission, isDone = state.done.includes(i);
+    return `<div class="${isActive?'tab active':isDone?'tab done':'tab'}" onclick="switchMission(${i})">${m.label}${isDone?'<span class="tab-check">✓</span>':''}</div>`;
+  }).join('');
+  MISSIONS.forEach((_, i) => {
+    document.getElementById('pdot'+i).className = state.done.includes(i) ? 'dot done' : i === state.currentMission ? 'dot active' : 'dot';
+  });
+  document.getElementById('challengeHud').className = state.currentMission === 2 ? 'challenge-hud show' : 'challenge-hud';
+  if (state.currentMission === 2) {
+    document.getElementById('chLevel').textContent = '第 '+(state.challengeIdx+1)+'/'+CHALLENGES.length+' 关';
+    document.getElementById('chGoal').textContent = (CHALLENGES[state.challengeIdx]?.goal||'').slice(0,30)+'...';
+  }
+  document.getElementById('quizOverlay').className = state.currentMission === 3 && state.quizIdx < QUIZ_POOL.length ? 'quiz-overlay show' : 'quiz-overlay';
+  document.querySelector('.canvas-wrap').className = state.currentMission === 3 && state.quizIdx < QUIZ_POOL.length ? 'canvas-wrap quiz-active' : 'canvas-wrap';
+
+  if (state.currentMission === 3 && state.quizIdx < QUIZ_POOL.length) showQuiz();  if (state.currentMission === 3 && state.quizIdx < QUIZ_POOL.length) showQuiz();
+}
+
+canvas.addEventListener('click', (e) => {
+  const rect = canvas.getBoundingClientRect();
+  const scaleX = canvas.width / rect.width, scaleY = canvas.height / rect.height;
+  const x = (e.clientX - rect.left) * scaleX, y = (e.clientY - rect.top) * scaleY;
+  const W = canvas.width;
+  if (state.currentMission === 0) {
+    const btnW = 120, btnH = 32, startX = (W - (2*btnW + 10)) / 2;
+    if (y >= 10 && y <= 10+btnH) {
+      if (x >= startX && x <= startX+btnW) { observeMode = 0; isPlaying = true; animTime = 0; if (!state.done.includes(0)) { state.done.push(0); saveState(); updateUI(); } }
+      if (x >= startX+btnW+10 && x <= startX+2*btnW+10) { observeMode = 1; isPlaying = true; animTime = 0; if (!state.done.includes(0)) { state.done.push(0); saveState(); updateUI(); } }
+    } else {
+      isPlaying = !isPlaying; if (isPlaying) animTime = 0;
+    }
+  } else if (state.currentMission === 1) {
+    const cols = 3, cw = 140, ch = 48, gap = 10;
+    const startX = (W - (cols*cw + (cols-1)*gap)) / 2, startY = 45;
+    for (let i = 0; i < CHANGES.length; i++) {
+      const col = i % cols, row = Math.floor(i / cols);
+      const bx = startX + col*(cw+gap), by = startY + row*(ch+gap);
+      if (x >= bx && x <= bx+cw && y >= by && y <= by+ch) {
+        exploreIdx = i;
+        if (!state.done.includes(1)) { state.done.push(1); saveState(); }
+        updateUI(); return;
+      }
+    }
+  } else if (state.currentMission === 2) {
+    if (state.done.includes(2)) return;
+    const ch = CHALLENGES[state.challengeIdx]; if (!ch) return;
+    const userInput = prompt('输入答案（数字）:', ''); if (userInput === null) return;
+    const num = parseFloat(userInput); if (isNaN(num)) return;
+    if (Math.abs(num - ch.answer) <= ch.tolerance) {
+      state.challengeIdx++;
+      if (state.challengeIdx >= CHALLENGES.length) { if (!state.done.includes(2)) state.done.push(2); alert('恭喜通关！'); }
+      else alert('回答正确！继续下一关');
+      saveState(); updateUI();
+    } else alert('答案不对，再想想！');
+  }
+});
+
+function resetChallenges() {
+  state.challengeIdx = 0; const idx = state.done.indexOf(2); if(idx>=0) state.done.splice(idx,1);
+  saveState(); updateUI();
+}
+function showQuiz() {
+  if (state.quizIdx >= QUIZ_POOL.length) { if(!state.done.includes(3)){state.done.push(3);saveState();} updateUI(); return; }
+  const q = QUIZ_POOL[state.quizIdx];
+  document.getElementById('quizQ').textContent = (state.quizIdx+1)+'. '+q.q;
+  document.getElementById('quizOptions').innerHTML = q.opts.map((o,i)=>'<div class="quiz-opt" onclick="selectQuiz('+i+')">'+o+'</div>').join('');
+  document.getElementById('quizResult').textContent = '';
+  document.getElementById('quizNext').style.display = 'none';
+  document.getElementById('quizOverlay').className = 'quiz-overlay show';
+  document.querySelector('.canvas-wrap').className = state.currentMission === 3 && state.quizIdx < QUIZ_POOL.length ? 'canvas-wrap quiz-active' : 'canvas-wrap';
+}
+function selectQuiz(idx) {
+  const q = QUIZ_POOL[state.quizIdx];
+  document.querySelectorAll('.quiz-opt').forEach((el,i)=>{ el.style.pointerEvents='none'; if(i===q.ans) el.className='quiz-opt correct'; else if(i===idx&&idx!==q.ans) el.className='quiz-opt wrong'; });
+  document.getElementById('quizResult').textContent = idx===q.ans ? '正确！'+q.explain : '正确答案是 '+q.opts[q.ans]+'。'+q.explain;
+  document.getElementById('quizNext').style.display = 'block';
+}
+function nextQuiz() { state.quizIdx++; saveState(); showQuiz(); }
+
+// ══════════════════════════════════════════
+// KNOWLEDGE
+// ══════════════════════════════════════════
+const KNOWLEDGE = {
+  0: {
+    title: '💡 认识升华和凝华',
+    body: '<em>升华</em>：物质从固态<em>直接</em>变成气态，不经过液态（如干冰升华、冰冻衣服变干）\n\n' +
+         '<em>凝华</em>：物质从气态<em>直接</em>变成固态，不经过液态（如霜的形成、窗花）\n\n' +
+         '升华<em>吸热</em>，凝华<em>放热</em>。'
+  },
+  1: {
+    title: '💡 物态变化的吸热与放热',
+    body: '六种物态变化的吸放热规律：\n\n' +
+         '<em>吸热</em>（固态→液态→气态）：\n' +
+         '熔化（吸热）→ 汽化（吸热）→ 升华（吸热）\n\n' +
+         '<em>放热</em>（气态→液态→固态）：\n' +
+         '液化（放热）→ 凝固（放热）→ 凝华（放热）\n\n' +
+         '记忆口诀："<em>熔汽升，吸吸吸；液凝凝，放放放</em>"'
+  },
+  2: {
+    title: '💡 自然现象中的升华与凝华',
+    body: '生活中的升华和凝华现象：\n\n' +
+         '<em>升华</em>实例：\n' +
+         '• 干冰（固态CO₂）升华吸热 → 人工降雨、舞台烟雾\n' +
+         '• 樟脑丸变小消失\n' +
+         '• 雪人没有融化却变小\n' +
+         '• 冰冻衣服变干\n\n' +
+         '<em>凝华</em>实例：\n' +
+         '• 霜的形成\n' +
+         '• 冬天窗户上的冰花\n' +
+         '• 灯泡内壁发黑（钨丝先升华后凝华）'
+  },
+  3: {
+    title: '💡 检测你的掌握',
+    body: '通过几道选择题来检验你是否理解了升华和凝华。\n\n' +
+         '关键点：<em>固态↔气态直接转变</em>、<em>升华吸热凝华放热</em>、<em>区分六种物态变化</em>。'
+  }
+};
+
+function toggleKnowledge() {
+  const box = document.getElementById('knowledgeBox');
+  const toggle = document.getElementById('kbToggle');
+  box.classList.toggle('collapsed');
+  toggle.classList.toggle('open');
+}
+
+function setKnowledge(idx) {
+  const k = KNOWLEDGE[idx];
+  if (k) {
+    document.getElementById('kbTitle').textContent = k.title;
+    document.getElementById('kbBody').innerHTML = k.body.replace(/\n/g, '<br>');
+    const box = document.getElementById('knowledgeBox');
+    if (box.classList.contains('collapsed')) {
+      box.classList.remove('collapsed');
+      document.getElementById('kbToggle').classList.add('open');
+    }
+  }
+}
+
+switchMission(state.currentMission);
+animate();
+
+function closeQuiz() { switchMission(0); }
+</script>
+</body>
+</html>
